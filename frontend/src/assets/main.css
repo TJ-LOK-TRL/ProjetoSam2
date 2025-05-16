@@ -1,0 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Pacifico&family=Courier+Prime&family=Merriweather&family=Playfair+Display&family=Raleway:wght@600&family=Monoton&family=Permanent+Marker&family=Orbitron:wght@700&family=Fredoka&display=swap');
+
+html,
+body,
+#app {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+p {
+    margin: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    user-select: none;
+}
+
+:root {
+    --main-color: #007bff;
+    --main-color-alpha: rgba(0, 123, 255, 0.2);
+}
+
+/* Font styles */
+.font-headline {
+    font-family: 'Raleway', sans-serif;
+}
+
+.font-simple {
+    font-family: 'Inter', sans-serif;
+}
+
+.font-handwriting {
+    font-family: 'Pacifico', cursive;
+}
+
+.font-serif {
+    font-family: 'Merriweather', serif;
+}
+
+.font-typewriter {
+    font-family: 'Courier Prime', monospace;
+}
+
+.font-script {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+}
+
+.font-gothic {
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+}
+
+.font-modern {
+    font-family: 'Raleway', sans-serif;
+    letter-spacing: 1px;
+}
+
+.font-impact {
+    font-family: 'Monoton', cursive;
+    font-size: 1.3rem;
+}
+
+.font-rounded {
+    font-family: 'Fredoka', sans-serif;
+}
+
+.font-outline {
+    font-family: 'Raleway', sans-serif;
+    color: transparent;
+    -webkit-text-stroke: 1px #333;
+    text-stroke: 1px #333;
+}
+
+.font-vintage {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 1.1rem;
+}
+
+/* Sidebar div */
+.sidebar-div {
+    padding: 20px;
+    padding-top: 0px;
+    gap: 0.75rem;
+}
+
+.sidebar-subtitle {
+    font-size: 0.9475rem;
+    font-weight: 600;
+    color: rgb(24, 25, 27);
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.aside-box {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    cursor: pointer;
+    border: 0.5px solid rgb(234, 234, 234);
+    border-radius: 0.625rem;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.05);
+    min-height: 4.25rem;
+    max-height: 4.25rem;
+}
+
+.section-title {
+    font-family: Inter, sans-serif;
+    font-size: 0.8125rem;
+    line-height: 1rem;
+    letter-spacing: 0px;
+    font-weight: 500;
+    color: #2c2c2c;
+    margin-bottom: 0.5rem;
+    display: block;
+    margin-top: 0px;
+}
+
+.local-sidebar-div {
+    gap: 0;
+}
+
+.no-pointer-events {
+    pointer-events: none;
+}

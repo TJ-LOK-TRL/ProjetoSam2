@@ -1,0 +1,32 @@
+# Ignorar diretório de checkpoints e modelos
+sam2_model/
+*.pth
+*.ckpt
+*.pt
+*.onnx
+*.bin
+
+# Outras coisas que provavelmente não quer subir
+__pycache__/
+*.pyc
+.env
+venv/
+*.log
+
+# Ignorar ambientes virtuais
+backend/venv/
+backend/venv_old/
+
+# Ignorar cache do Python
+backend/__pycache__/
+
+# Ignorar dados e pastas temporárias
+backend/checkpoints/
+backend/segment-anything-2/
+backend/stages/
+backend/segmented/
+backend/videos/
+backend/videos\\test_frames\\
+backend/images/
+
+frontend/node_modules/

@@ -1,0 +1,8 @@
+docker run --gpus all -it -p 38080:38080 -v $(pwd)/backend:/app/backend --name sam2_v1 sam2
+docker exec -it sam2_v1 /bin/bash
+docker start sam2_v1
+apt-get update
+apt-get install -y libgl1-mesa-glx
+apt-get install -y libglib2.0-0
+source venv/bin/activate
+apt-get install -y ffmpeg
