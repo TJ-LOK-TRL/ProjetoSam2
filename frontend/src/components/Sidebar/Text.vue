@@ -77,6 +77,8 @@
 
                     const mouseX = event.clientX;
                     const mouseY = event.clientY;
+                    console.log('MouseX:', mouseX)
+                    console.log('MouseY:', mouseY)
 
                     const hoveredElement = document.elementFromPoint(mouseX, mouseY);
 

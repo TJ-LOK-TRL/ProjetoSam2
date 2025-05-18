@@ -20,6 +20,8 @@ export default class Grab {
 
         this.useRelativeOffsets = false;
 
+        this.xspeed = null
+
         this.onIniGrabEvent = (eg, em, x, y) => false;
 
         this.onEndGrabEvent = (eg, em, x, y) => false;
