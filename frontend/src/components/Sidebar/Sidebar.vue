@@ -1,10 +1,10 @@
 <template>
     <div class="sidebar-container">
-        
+
         <Search v-if="videoEditor.selectedTool === 'search'" />
         <Settings v-else-if="videoEditor.selectedTool === 'settings'" />
         <Media v-else-if="videoEditor.selectedTool === 'media'" />
-        <Text v-else-if="videoEditor.selectedTool === 'text'" />
+        <TextSelector v-else-if="videoEditor.selectedTool === 'text'" />
         <Projects v-else-if="videoEditor.selectedTool === 'projects'" />
         <ConfigSam v-else-if="videoEditor.selectedTool === 'configSam'" />
         <SamEffects v-else-if="videoEditor.selectedTool === 'samEffects'" />
@@ -17,22 +17,22 @@
 
 
 <script setup>
-import Search from './Search.vue'
-import Settings from './Settings.vue'
-import Media from './Media/Media.vue'
-import Text from './Text.vue'
-import ConfigSam from './ConfigSam.vue'
-import SamEffects from './Effects/SamEffects.vue'
-import ColorEffect from './Effects/ColorEffect.vue'
-import OverlayEffect from './Effects/OverlayEffect.vue'
-import BlendEffect from './Effects/BlendEffect.vue'
-import RemoveColor from './Effects/RemoveColor.vue'
-import Projects from './Projects.vue'
+    import Search from './Search.vue'
+    import Settings from './Settings.vue'
+    import Media from './Media/Media.vue'
+    import TextSelector from './Text/Selector.vue'
+    import ConfigSam from './ConfigSam.vue'
+    import SamEffects from './Effects/SamEffects.vue'
+    import ColorEffect from './Effects/ColorEffect.vue'
+    import OverlayEffect from './Effects/OverlayEffect.vue'
+    import BlendEffect from './Effects/BlendEffect.vue'
+    import RemoveColor from './Effects/RemoveColor.vue'
+    import Projects from './Projects.vue'
 
-import { useVideoEditor } from '@/stores/videoEditor'
+    import { useVideoEditor } from '@/stores/videoEditor'
 
 
-const videoEditor = useVideoEditor()
+    const videoEditor = useVideoEditor()
 
 
 </script>
@@ -40,33 +40,31 @@ const videoEditor = useVideoEditor()
 
 
 <style scoped>
-.sidebar-container {
-    position: relative;
-    height: 100%;
-    border-right: 1px solid rgb(228, 229, 231);
-    background-color: white;
-    min-width: 350px;
-    max-width: 375px;
-    overflow-y: scroll;
-}
+    .sidebar-container {
+        position: relative;
+        height: 100%;
+        border-right: 1px solid rgb(228, 229, 231);
+        background-color: white;
+        min-width: 350px;
+        max-width: 375px;
+        overflow-y: scroll;
+    }
 
-h2 {
-    margin-bottom: 10px;
-}
+    h2 {
+        margin-bottom: 10px;
+    }
 
-button {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 5px;
-    background: #444;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
+    button {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 5px;
+        background: #444;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
 
-button:hover {
-    background: #666;
-}
-
-
+    button:hover {
+        background: #666;
+    }
 </style>

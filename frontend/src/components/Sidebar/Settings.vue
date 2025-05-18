@@ -48,10 +48,6 @@
     const videoEditor = useVideoEditor();
     const timelineStore = useTimelineStore();
 
-    const search = ref('')
-    const open = ref(false)
-    const selected = ref(null)
-
     const items = ref([
         { label: 'YouTube Shorts (9:16)', width: 1080, height: 1920 },
         { label: 'YouTube (16:9)', width: 1920, height: 1080 },
@@ -59,28 +55,6 @@
         { label: 'Instagram Story (9:16)', width: 1080, height: 1920 },
         { label: 'Facebook Cover (820x312)', width: 820, height: 312 },
     ])
-
-    const filteredItems = computed(() => {
-        return items.value.filter(i =>
-            i.label.toLowerCase().includes(search.value.toLowerCase())
-        )
-    })
-
-    function select(item) {
-        selected.value = item
-        search.value = item.label
-        open.value = false
-        console.log('Selecionado:', item)
-        // Aqui você pode emitir ou atualizar o tamanho
-    }
-
-    function handleFocus() {
-        open.value = true
-    }
-
-    function handleBlur() {
-        open.value = false
-    }
 
     const speedOptions = [0.5, 1.0, 2.0]
     const currentSpeed = ref(1.0)
@@ -134,72 +108,6 @@
         gap: 8px;
         width: 100%;
         height: 48px;
-    }
-
-    .custom-select {
-        position: relative;
-        width: 100%;
-        height: 100%;
-    }
-
-    .custom-select input {
-        width: 100%;
-        height: 100%;
-        padding: 8px;
-        font-size: 14px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        box-sizing: border-box;
-        cursor: pointer;
-    }
-
-    .custom-select input:focus {
-        outline: none;
-        border-color: var(--main-color);
-        cursor: text;
-    }
-
-    .dropdown {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        width: 100%;
-        max-height: 200px;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background: #fff;
-        z-index: 10;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        margin-top: 4px;
-        list-style: none;
-        padding: 0;
-    }
-
-    .dropdown li {
-        padding: 8px 12px;
-        cursor: pointer;
-        font-family: Inter, sans-serif;
-        font-size: 0.8125rem;
-        line-height: 1rem;
-        letter-spacing: 0px;
-        color: var(--color-gray-950);
-        margin-right: 4px;
-        font-weight: 500;
-    }
-
-    .dropdown li:hover {
-        background: #e6f0ff;
-    }
-
-    .no-results {
-        padding: 8px 12px;
-        color: #888;
-    }
-
-    .selected {
-        margin-top: 8px;
-        font-size: 14px;
     }
 
     .speed-container {

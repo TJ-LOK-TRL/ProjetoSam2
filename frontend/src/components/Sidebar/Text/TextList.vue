@@ -5,7 +5,7 @@
             <div class="text-container-background grab-placeholder" v-for="(item, i) in items" :key="i"
                 :class="item.back_class">
                 <div class="text-container" ref="textRefs">
-                    <p class="text" :class="item.class" :data-font-class="item.class">{{ item.label }}</p>
+                    <p class="text" :class="item.class" :data-font-class="item.class" :data-font="item.font">{{ item.label }}</p>
                 </div>
             </div>
         </div>
@@ -22,18 +22,18 @@
     const videoEditor = useVideoEditor()
 
     const items = [
-        { label: 'Headline Title', class: 'font-headline', back_class: 'span-2' },
-        { label: 'Simple', class: 'font-simple', back_class: '' },
-        { label: 'Handwriting', class: 'font-handwriting', back_class: '' },
-        { label: 'Serif', class: 'font-serif', back_class: '' },
-        { label: 'Typewriter', class: 'font-typewriter', back_class: '' },
-        { label: 'Script', class: 'font-script', back_class: '' },
-        { label: 'Gothic', class: 'font-gothic', back_class: '' },
-        { label: 'Modern', class: 'font-modern', back_class: '' },
-        { label: 'Bold Impact', class: 'font-impact', back_class: '' },
-        { label: 'Rounded', class: 'font-rounded', back_class: '' },
-        { label: 'Outline', class: 'font-outline', back_class: '' },
-        { label: 'Vintage', class: 'font-vintage', back_class: '' },
+        { label: 'Headline Title', class: 'font-headline', back_class: 'span-2', font: 'Raleway' },
+        { label: 'Simple', class: 'font-simple', back_class: '', font: 'Inter' },
+        { label: 'Handwriting', class: 'font-handwriting', back_class: '', font: 'Pacifico' },
+        { label: 'Serif', class: 'font-serif', back_class: '', font: 'Merriweather' },
+        { label: 'Typewriter', class: 'font-typewriter', back_class: '', font: 'Courier Prime' },
+        { label: 'Script', class: 'font-script', back_class: '', font: 'Playfair Display' },
+        { label: 'Gothic', class: 'font-gothic', back_class: '', font: 'Orbitron' },
+        { label: 'Modern', class: 'font-modern', back_class: '', font: 'Raleway' },
+        { label: 'Bold Impact', class: 'font-impact', back_class: '', font: 'Monoton' },
+        { label: 'Rounded', class: 'font-rounded', back_class: '', font: 'Fredoka' },
+        { label: 'Outline', class: 'font-outline', back_class: '', font: 'Raleway' },
+        { label: 'Vintage', class: 'font-vintage', back_class: '', font: 'Permanent Marker' },
     ];
 
     const textRefs = ref([]);
@@ -86,11 +86,13 @@
                         let e_text = elementMove.querySelector('.text')
                         if (e_text) {
                             const fontClass = e_text.dataset.fontClass
+                            const font = e_text.dataset.font;
                             const label = e_text.innerText || 'Text';
 
                             const text = videoEditor.addText(
                                 label,
-                                fontClass
+                                fontClass,
+                                font
                             );
 
                             videoEditor.onAddMapBoxVideo((e, textBox) => {
@@ -103,7 +105,6 @@
                                 textBox.box.setSize(elementMoveRect.width, elementMoveRect.height)
                                 console.log('Box:', textBox, textBox.box.getRect())
                             })
-
                         }
                     }
                 }

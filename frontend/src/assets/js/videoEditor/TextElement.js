@@ -1,8 +1,9 @@
 import EditorElement from './EditorElement.js'
 
 export default class TextElement extends EditorElement {
-    constructor(text, font = "Arial", size = 16) {
+    constructor(text, style, size = 16, font = "Arial") {
         super('text')
+        this.style = style
         this.text = text
         this.font = font
         this.size = size

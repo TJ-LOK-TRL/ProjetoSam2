@@ -81,8 +81,8 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         return createVideo(file, metadata.fps, metadata.frames)
     }
 
-    function addText(text, font) {
-        const textElement = new TextElement(text, font)
+    function addText(text, style, font) {
+        const textElement = new TextElement(text, style, font)
         elementManager.value.addElement(textElement)
 
         return textElement
