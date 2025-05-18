@@ -88,10 +88,22 @@
                             const fontClass = e_text.dataset.fontClass
                             const label = e_text.innerText || 'Text';
 
-                            videoEditor.addText(
+                            const text = videoEditor.addText(
                                 label,
                                 fontClass
                             );
+
+                            videoEditor.onAddMapBoxVideo((e, textBox) => {
+                                if (e.id !== text.id) return
+
+                                const rect = videoEditor.videoPlayerSpaceContainer.getBoundingClientRect()
+
+                                const elementMoveRect = elementMove.getBoundingClientRect()
+                                textBox.box.setPosition(mouseX - rect.x, mouseY - rect.y)
+                                textBox.box.setSize(elementMoveRect.width, elementMoveRect.height)
+                                console.log('Box:', textBox, textBox.box.getRect())
+                            })
+
                         }
                     }
                 }

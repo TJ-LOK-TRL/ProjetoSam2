@@ -1,9 +1,9 @@
 <template>
-    <ResizableBox class="text-box-resizable" ref="boxTextRef" :enable-resize="true" @dblclick="enableEdit"
-        :style="{ pointerEvents: isEditing ? 'none' : 'auto' }" @click="videoEditor.selectEditorElement(textElement)" >
-        <div v-if="textElement" class="text-box" :class="textElement.font" :contenteditable="isEditing" ref="textEl"
+    <ResizableBox class="text-box-resizable" ref="boxTextRef" :enable-resize="true" @dblclick="enableEdit" :class="{ 'element-box-selected': text?.id === videoEditor?.selectedElement?.id && text?.visible }"
+        :style="{ pointerEvents: isEditing ? 'none' : 'auto' }" @click="videoEditor.selectEditorElement(text)" >
+        <div v-if="text" class="text-box" :class="text.font" :contenteditable="isEditing" ref="textRef"
             @blur="disableEdit" @keydown.enter.prevent="disableEdit">
-            {{ textElement.text }}
+            {{ text.text }}
         </div>
     </ResizableBox>
 </template>
@@ -20,14 +20,14 @@
     });
 
     const isEditing = ref(false);
-    const textEl = ref(null);
+    const textRef = ref(null);
     const boxTextRef = ref(null);
-    const textElement = ref(null)
+    const text = ref(null)
 
     function enableEdit() {
         isEditing.value = true;
         nextTick(() => {
-            const el = textEl.value;
+            const el = textRef.value;
             if (el) {
                 el.focus();
                 // Seleciona todo o texto e move o cursor para o final
@@ -39,11 +39,20 @@
 
     function disableEdit() {
         isEditing.value = false;
-        textElement.text = textEl.value?.innerText ?? '';
+        text.text = textRef.value?.innerText ?? '';
     }
 
     onMounted(() => {
-        textElement.value = props.textElement
+        text.value = props.textElement
+
+        nextTick(() => {
+            videoEditor.registerBox(text.value, {
+                getRect: (abs=false) => {
+                    return boxVideoRef.value?.getRect(abs)
+                },
+                box: boxTextRef.value,
+            })
+        })
     })
 
     defineExpose({

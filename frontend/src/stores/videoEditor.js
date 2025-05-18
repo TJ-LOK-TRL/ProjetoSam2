@@ -33,6 +33,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     });
 
     const videoPlayerContainer = ref(null)
+    const videoPlayerSpaceContainer = ref(null)
     const videoPlayerWidth = ref(null)
     const videoPlayerHeight = ref(null)
     const videoPlayerWidthResized = ref(null)
@@ -243,6 +244,10 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         videoPlayerContainer.value = e
     }
 
+    function setVideoPlayerSpaceContainer(e) {
+        videoPlayerSpaceContainer.value = e
+    }
+
     function setVideoPlayerSize(width, height) {
         //videoPlayerWidth.value = width
         //videoPlayerHeight.value = height
@@ -450,7 +455,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     }
 
     function download(data, filename = 'final_video.mp4') {
-        // Cria o link de download (mesmo código anterior)
+        // Cria o link de download
         const url = window.URL.createObjectURL(new Blob([data]));
         const link = document.createElement('a');
         link.href = url;
@@ -524,10 +529,10 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         }
     }
 
-    function registerBox(video, box) {
-        mapperBoxVideo.value[video.id] = box
+    function registerBox(element, box) {
+        mapperBoxVideo.value[element.id] = box
         onAddMapBoxVideoCallbacks.value.forEach(callback => {
-            callback(video, box)
+            callback(element, box)
         })
     }
 
@@ -536,11 +541,11 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     return {
         elementManager, isLoading, videoPlayerWidth, videoPlayerHeight, videoPlayerContainer, fps,
         selectedElement, maskHandler, selectedTool, selectedToolIcon, mapperBoxVideo, register, effectHandler, zoomLevel,
-        preventUnselectElementOnOutside,
+        preventUnselectElementOnOutside, videoPlayerSpaceContainer,
         addVideo, addText, cloneVideo, getVideos, getTexts, generateMasksForFrame, selectEditorElement, setVideoPlayerContainer,
         onFirstVideoMetadataLoaded, onEditorElementSelected, onVideoMetadataLoaded, reorderElements, generateMasksForVideo,
         removeEditorElementSelectedCallback, changeTool, changeToPreviousTool, removeElement, getBoxOfVideo, download, getVideoMetadata,
         compileVideos, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfVideo,
-        setVideoPlayerSize, onCompileVideoMetadata, getFlipStateOfVideo, exportProject, importProject,
-    }
+        setVideoPlayerSize, onCompileVideoMetadata, getFlipStateOfVideo, exportProject, importProject, setVideoPlayerSpaceContainer,
+    } 
 })

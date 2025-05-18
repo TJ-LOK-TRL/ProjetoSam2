@@ -201,6 +201,7 @@
     onMounted(async () => {
         await nextTick()
         videoEditorStore.setVideoPlayerContainer(videoPlayerContainer.value)
+        videoEditorStore.setVideoPlayerSpaceContainer(spaceContainerRef.value)
         videoEditorStore.onFirstVideoMetadataLoaded(() => {
             onVideoLoaded()
         })

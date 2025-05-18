@@ -220,6 +220,13 @@
             box.style.left = `${x}px`;
             box.style.top = `${y}px`;
         },
+        setSize: (width, height) => {
+            const box = boxRef.value;
+            if (!box) return;
+            box.style.width = `${width}px`;
+            box.style.height = `${height}px`;
+        },
+
         getRotation: () => rotation.value,
         flip: () => isFlipped.value = !isFlipped.value,
         getFlip: () => isFlipped.value,

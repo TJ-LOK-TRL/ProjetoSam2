@@ -1,5 +1,5 @@
 <template>
-    <ResizableBox ref="boxVideoRef" class="video-box" :enable-resize="enableResize" @click="handleClick" :class="{ 'no-pointer-events': !video?.shouldBeDraw || !video?.visible, 'selected': video?.id === videoEditor?.selectedElement?.id && video?.visible && video?.shouldBeDraw}">
+    <ResizableBox ref="boxVideoRef" class="video-box" :enable-resize="enableResize" @click="handleClick" :class="{ 'no-pointer-events': !video?.shouldBeDraw || !video?.visible, 'element-box-selected': video?.id === videoEditor?.selectedElement?.id && video?.visible && video?.shouldBeDraw}">
         <!-- <video></video> -->
         <canvas ref="videoCanvasRef" class="video-canvas"></canvas>
 
@@ -568,9 +568,5 @@
 
     .video-box { 
         border: 1px solid transparent;
-    }
-
-    .selected {
-        border: 1px solid var(--main-color);
     }
 </style>

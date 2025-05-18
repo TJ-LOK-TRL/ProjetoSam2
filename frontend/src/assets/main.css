@@ -134,3 +134,7 @@ body {
 .no-pointer-events {
     pointer-events: none;
 }
+
+.element-box-selected {
+    border: 1px solid var(--main-color);
+}
