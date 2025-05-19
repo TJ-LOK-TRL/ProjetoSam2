@@ -1136,7 +1136,7 @@ class VideoEffectsProcessor:
     ) -> np.ndarray:
         """Aplica efeitos a um frame individual."""
         if (not masks or not effects_config) and (not chroma_key_data):
-            print('EFFECTS_CONFIG:', effects_config, bool(masks))
+            #print('EFFECTS_CONFIG:', effects_config, bool(masks))
             return frame
 
         current_frame_masks = masks.get(frame_idx, {})

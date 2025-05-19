@@ -41,7 +41,7 @@
     }
 </script>
 
-<style>
+<style scoped>
     .color-picker-container {
         display: flex;
         flex-direction: column;

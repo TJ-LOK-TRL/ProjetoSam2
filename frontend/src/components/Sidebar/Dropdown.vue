@@ -6,16 +6,11 @@
             <i class="fa fa-chevron-down input-icon" aria-hidden="true"></i>
         </div>
         <ul v-if="open" class="dropdown">
-            <li v-for="item in filteredItems" :key="item.label" @mousedown.prevent="select(item)">
+            <li v-for="item in filteredItems" :key="item.label" @mousedown.prevent="select(item)" :style="item.font ? { fontFamily: item.font } : {}">
                 {{ item.label }}
             </li>
             <li v-if="filteredItems.length === 0" class="no-results">No results</li>
         </ul>
-        <!--
-        <div v-if="selected" class="selected">
-            Selected: <strong>{{ selected.label }}</strong>
-        </div>
-        -->
     </div>
 </template>
 
@@ -76,8 +71,8 @@
         top: 50%;
         transform: translateY(-50%);
         pointer-events: none;
-        color: #888;
-        font-size: 0.9rem;
+        color: #515151;
+        font-size: 0.6rem;
     }
 
     .input {
@@ -110,7 +105,6 @@
         z-index: 10;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         margin-top: 4px;
-        list-style: none;
         padding: 0;
     }
 
