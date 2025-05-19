@@ -33,7 +33,7 @@
             <TimelineBar />
 
             <div class="timeline-frames-container" ref="timelineFramesContainerRef">
-                <Frames v-for="video in videoEditor.getVideos()" :key="video.id" :video="video"
+                <Frames v-for="element in videoEditor.getElements()" :key="element.id" :element="element"
                     :parent="timelineFramesContainerRef" class="timeline-video-frames" ref="framesComponents" />
             </div>
 
@@ -166,6 +166,7 @@
         height: calc(100%);
         background-color: var(--main-color);
         transform: translateX(-50%) translateZ(0);
+        pointer-events: none;
     }
 
 
@@ -302,6 +303,7 @@
         position: relative;
         display: flex;
         flex-direction: column-reverse;
+        gap: 5px;
         width: 100%;
         height: 100%;
     }

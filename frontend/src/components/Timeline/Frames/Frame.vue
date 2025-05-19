@@ -28,6 +28,13 @@
 
     const element = ref(null)
     const elementRef = ref(null)
+    const framesContainerRef = ref(null)
+    const parent = ref(null)
+    const grabInstance = ref(null)
+    const resizableContainer = ref(null)
+    const resizeInstance = ref(null)
+    const ctrl_ml = ref(null)
+    const ctrl_mr = ref(null)
 
     function getWidth() {
         const totalWidth = framesContainerRef.value.parentElement.getBoundingClientRect().width
@@ -44,7 +51,9 @@
     }
 
     function update() {
-        elementRef.value.update(getWidth())
+        const width = getWidth()
+        framesContainerRef.value.style.width = width + 'px'
+        elementRef.value.update(width)
     }
 
     function handleReorder() {
@@ -94,10 +103,10 @@
 
     async function init() {
         element.value = props.element
-        update()
-
+        
         await nextTick()
-
+        update()
+        
         grabInstance.value = new Grab(framesContainerRef.value, framesContainerRef.value);
         grabInstance.value.useRelativeOffsets = true
 
@@ -222,3 +231,54 @@
         }
     })
 </script>
+
+<style scoped>
+    .frames-container {
+        position: relative;
+        top: 0;
+        left: 0;
+        width: 100%;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+        transform: translateZ(0);
+        display: flex;
+        overflow-x: visible;
+    }
+
+    .resizable-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 4px solid transparent;
+        border-radius: .25rem;
+        display: flex;
+    }
+
+    .resizable-container:hover {
+        border: 4px solid orange;
+        border-radius: .25rem;
+    }
+
+    .lateral-cut {
+        position: absolute;
+        top: 0;
+        width: 15px;
+        height: 100%;
+        background: transparent;
+        cursor: ew-resize;
+        z-index: 2;
+        transition: background 0.2s;
+    }
+
+    .left-cut {
+        left: 0;
+    }
+
+    .right-cut {
+        right: 0;
+    }
+
+</style>

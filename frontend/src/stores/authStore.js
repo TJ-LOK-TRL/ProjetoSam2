@@ -104,12 +104,12 @@ export const useAuthStore = defineStore('auth', {
         id: Date.now().toString(),
         name: projectName,
         createdAt: new Date().toISOString(),
-        data: projectData,
-        thumbnail: thumbnail
+        data: projectData,        // dados do editor de video
+        thumbnail: thumbnail      // miniatura do projeto
       }
 
       this.currentUser.projects.push(project)
-      this._saveCurrentUser()
+      this._saveCurrentUser()               // guarda no LocalStorage
 
       return project
     },

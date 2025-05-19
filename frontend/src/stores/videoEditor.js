@@ -44,6 +44,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     const onFirstVideoMetadataLoadedCallbacks = ref([])
     const onVideoMetadataLoadedCallbacks = ref([])
 
+    const onElementAddedCallbacks = ref([])
     const onElementRemovedCallbacks = ref([])
 
     const selectedTool = ref('')
@@ -73,6 +74,8 @@ export const useVideoEditor = defineStore('videoEditor', () => {
             onVideoMetadataLoadedCallbacks.value.forEach(callback => callback(video))
         })
 
+        onElementAddedCallbacks.value.forEach(callback => callback(video))
+
         return video
     }
 
@@ -85,6 +88,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         const textElement = new TextElement(text, preset, font)
         elementManager.value.addElement(textElement)
 
+        onElementAddedCallbacks.value.forEach(callback => callback(textElement))
         return textElement
     }
 
@@ -240,6 +244,10 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         return elementManager.value.getByType('text')
     }
 
+    function getElements() {
+        return elementManager.value.listElements()
+    }
+
     function setVideoPlayerContainer(e) {
         videoPlayerContainer.value = e
     }
@@ -279,11 +287,15 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         onVideoMetadataLoadedCallbacks.value.push(callback)
     }
 
+    function onElementAdded(callback) {
+        onElementAddedCallbacks.value.push(callback)
+    }
+
     function onElementRemoved(callback) {
         onElementRemovedCallbacks.value.push(callback)
     }
 
-    function reorderElements(currentId, targetId) {
+    function reorderElements_OLD(currentId, targetId) {
         const allElements = elementManager.value.listElements();
 
         const currentElement = elementManager.value.getById(currentId);
@@ -304,6 +316,26 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         elementsOfType.splice(targetIndex, 0, movedElement);
 
         elementManager.value.elementsByType.set(elementType, new Set(elementsOfType));
+    }
+
+    function reorderElements(currentId, targetId) {
+        const allElements = elementManager.value.listElements();
+
+        const currentIndex = allElements.findIndex(el => el.id === currentId);
+        const targetIndex = allElements.findIndex(el => el.id === targetId);
+
+        if (currentIndex === -1 || targetIndex === -1) return;
+
+        const [movedElement] = allElements.splice(currentIndex, 1);
+        allElements.splice(targetIndex, 0, movedElement);
+
+        // Reconstroi os maps baseados na nova ordem
+        elementManager.value.elementsById.clear();
+        elementManager.value.elementsByType.clear();
+
+        for (const el of allElements) {
+            elementManager.value.addElement(el);
+        }
     }
 
     function changeTool(newTool, newToolIcon = null) {
@@ -520,9 +552,9 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                 const video = await this.addVideo(videoData.file)
 
                 // propriedades do video
-                if(videoData.start !== undefined) video.start = videoData.start
-                if(videoData.end !== undefined) video.end = videoData.end
-                if(videoData.speed !== undefined) video.speed = videoData.speed
+                if (videoData.start !== undefined) video.start = videoData.start
+                if (videoData.end !== undefined) video.end = videoData.end
+                if (videoData.speed !== undefined) video.speed = videoData.speed
 
                 // configurar posiçao e transformaçoes
                 const box = this.mapperBoxVideo[video.id]
@@ -574,10 +606,10 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         elementManager, isLoading, videoPlayerWidth, videoPlayerHeight, videoPlayerContainer, fps,
         selectedElement, maskHandler, selectedTool, selectedToolIcon, mapperBoxVideo, register, effectHandler, zoomLevel,
         preventUnselectElementOnOutside, videoPlayerSpaceContainer,
-        addVideo, addText, cloneVideo, getVideos, getTexts, generateMasksForFrame, selectEditorElement, setVideoPlayerContainer,
+        addVideo, addText, cloneVideo, getVideos, getTexts, getElements, generateMasksForFrame, selectEditorElement, setVideoPlayerContainer,
         onFirstVideoMetadataLoaded, onEditorElementSelected, onVideoMetadataLoaded, reorderElements, generateMasksForVideo,
         removeEditorElementSelectedCallback, changeTool, changeToPreviousTool, removeElement, getBoxOfVideo, download, getVideoMetadata,
-        compileVideos, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfVideo,
+        compileVideos, onElementAdded, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfVideo, 
         setVideoPlayerSize, onCompileVideoMetadata, getFlipStateOfVideo, exportProject, importProject, setVideoPlayerSpaceContainer,
-    } 
+    }
 })

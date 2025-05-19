@@ -1,10 +1,12 @@
 <template>
-    <div class="video-player-container" ref="videoPlayerContainer"  @wheel.prevent="handleWheelZoom">
+    <div class="video-player-container" ref="videoPlayerContainer" @wheel.prevent="handleWheelZoom">
         <div class="zoom-wrapper" :style="{ transform: `scale(${videoEditorStore.zoomLevel})` }">
             <div class="video-space-container-parent" ref="spaceContainerParentRef">
                 <div class="video-space-container" ref="spaceContainerRef">
-                    <BoxVideo v-for="video in videoEditorStore.getVideos()" :key="video.id" :video="video" />
-                    <BoxText v-for="text in videoEditorStore.getTexts()" :key="text.id" :text-element="text"/>
+                    <template v-for="element in videoEditorStore.getElements()" :key="element.id">
+                        <BoxVideo v-if="element.type === 'video'" :video="element" />
+                        <BoxText v-else-if="element.type === 'text'" :text-element="element" />
+                    </template>
                 </div>
             </div>
         </div>
@@ -173,7 +175,7 @@
             console.log(newBoxHeight);
             console.log(newBoxLeft);
             console.log(newBoxTop);
-            
+
             box.style.transform = originalTransform;
         });
 

@@ -88,13 +88,16 @@ export const useTimelineStore = defineStore('timeline', () => {
             console.log("Video duration in seconds is: " + video.duration)
         })
 
+        videoEditor.onElementAdded((e) => {
+            if (e.type === 'video') return
+            updateTimelineMaxDuration()
+        })
+
         videoEditor.onElementRemoved((e) => {
-            if (e.type === 'video') {
-                updateTimelineMaxDuration()
-                if (videoEditor.getVideos().length == 0) {
-                    if (isPlaying.value) {
-                        togglePlay()
-                    }
+            updateTimelineMaxDuration()
+            if (videoEditor.getVideos().length == 0) {
+                if (isPlaying.value) {
+                    togglePlay()
                 }
             }
         })
@@ -102,12 +105,12 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function updateTimelineMaxDuration() {
         let longestDuration = 0;
-        videoEditor.getVideos().forEach(video => {
-            if (!video.shouldBeDraw) return
+        videoEditor.getElements().forEach(element => {
+            if (!element.shouldBeDraw) return
 
-            const videoDuration = Math.max(video.maxEnd, video.duration / video.speed)
-            if (video.stOffset + videoDuration > longestDuration) {
-                longestDuration = video.stOffset + videoDuration;
+            const elementDuration = Math.max(element.maxEnd, element.duration / element.speed)
+            if (element.stOffset + elementDuration > longestDuration) {
+                longestDuration = element.stOffset + elementDuration;
             }
         });
     
@@ -182,14 +185,14 @@ export const useTimelineStore = defineStore('timeline', () => {
     async function setPercentage(percentage, origin = 'user') {
         percentage = Math.max(0, Math.min(100, percentage))
         const newTime = minDuration.value + (percentage / 100) * (maxDuration.value - minDuration.value)
-        syncVideos(newTime, origin)
+        syncAll(newTime, origin)
         currentTime.value = newTime
         currentPercentage.value = percentage
         lastUpdateOrigin.value = origin
     }
 
     async function setCurrentTime(time, origin = 'user') {
-        syncVideos(time, origin)
+        syncAll(time, origin)
         
         currentTime.value = time
         const range = maxDuration.value - minDuration.value
@@ -205,49 +208,52 @@ export const useTimelineStore = defineStore('timeline', () => {
         //console.log(time, range, minDuration.value, maxDuration.value, currentPercentage.value, lastUpdateOrigin.value)
     }
 
-    async function syncVideos(time, origin = 'user') {
-        const videos = videoEditor.getVideos()
-        for (let i = 0; i < videos.length; i++) {
-            let video = videos[i]
+    async function syncAll(time, origin = 'user') {
+        const elements = videoEditor.getElements()
+        for (let i = 0; i < elements.length; i++) {
+            let element = elements[i]
             if (origin == 'timer' && isPlaying.value) {
-                await syncVideo(video, time, false)
+                await sync(element, time, false)
             }
             
             else /*if (origin == 'user')*/ {
-                await syncVideo(video, time, true, origin === 'reset')
+                await sync(element, time, true, origin === 'reset')
             }
         }
 
         const shouldPlay = origin === 'timer' && isPlaying.value
         if (shouldPlay) {
+            const videos = videoEditor.getVideos()
             for (let i = 0; i < videos.length; i++) {
-                let video = videos[i]
-                if (!video.isPlaying && shouldRenderVideo(video, time)) {
+                let video = elements[i]
+                if (!video.isPlaying && shouldRenderElement(video, time)) {
                     await video.play()
                 }
             }
         }
     }
 
-    async function syncVideo(video, time, setTime = true, presetTime = false) {
-        const videoTime = time - video.stOffset + video.start
-        if (presetTime) {
-            await video.setTime(video.start)
+    async function sync(element, time, setTime = true, presetTime = false) {
+        const videoTime = time - element.stOffset + element.start
+        if (presetTime && element.type === 'video') {
+            await element.setTime(element.start)
         }
 
-        if (shouldRenderVideo(video, time)) {
-            if (setTime && !presetTime) {
-                await video.setTime(videoTime)
+        if (shouldRenderElement(element, time)) {
+            if (setTime && !presetTime && element.type === 'video') {
+                await element.setTime(videoTime)
             }
-            video.show()
+            element.show()
         } else {
-            video.hide()
-            await video.pause()
+            element.hide()
+            if (element.type === 'video') {
+                await element.pause()
+            }
         }
     }
    
-    function shouldRenderVideo(video, time) {
-        return time >= video.stOffset && time <= video.stOffset + video.duration / video.speed
+    function shouldRenderElement(element, time) {
+        return time >= element.stOffset && time <= element.stOffset + element.duration / element.speed
     }
 
     async function togglePlay() {
@@ -344,7 +350,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     function setStOffset(element, stOffset) {
         element.stOffset = Math.max(stOffset, 0)
         updateTimelineMaxDuration()
-        syncVideo(element, currentTime.value)
+        sync(element, currentTime.value)
     }
 
     function setElementStart(element, startTime) {
@@ -353,13 +359,13 @@ export const useTimelineStore = defineStore('timeline', () => {
             element.end = element.start;
         }
         updateTimelineMaxDuration();
-        syncVideo(element, currentTime.value);
+        sync(element, currentTime.value);
     }
     
     function setElementEnd(element, endTime) {
         element.end = Math.max(element.start || 0, Math.min(endTime, element.maxEnd));
         updateTimelineMaxDuration();
-        syncVideo(element, currentTime.value);
+        sync(element, currentTime.value);
     }
 
     function setVideoSpeed(video, speed) {
@@ -384,13 +390,13 @@ export const useTimelineStore = defineStore('timeline', () => {
         //video.end = video.start + logicalDuration;
     
         updateTimelineMaxDuration();
-        syncVideo(video, currentTime.value);
+        sync(video, currentTime.value);
     }
 
     function setElementMaxEnd(element, maxEnd) {
         element.maxEnd = Math.max(element.start || 0, Math.min(element.element.duration, maxEnd));
         updateTimelineMaxDuration();
-        syncVideo(element, currentTime.value);
+        sync(element, currentTime.value);
     }
 
     return {

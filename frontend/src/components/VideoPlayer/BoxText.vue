@@ -1,5 +1,5 @@
 <template>
-    <ResizableBox class="text-box-resizable" ref="boxTextRef" :enable-resize="true" @dblclick="enableEdit"
+    <ResizableBox class="text-box-resizable" ref="boxTextRef" :enable-resize="text?.visible" v-show="text?.visible" @dblclick="enableEdit"
         :class="{ 'element-box-selected': text?.id === videoEditor?.selectedElement?.id && text?.visible }"
         :style="{ pointerEvents: isEditing ? 'none' : 'auto' }" @click="videoEditor.selectEditorElement(text)">
         <div v-if="text" class="text-box" :class="text.style" :contenteditable="isEditing" ref="textRef"

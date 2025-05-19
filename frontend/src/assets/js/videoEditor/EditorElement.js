@@ -5,6 +5,12 @@ export default class EditorElement {
         this.stOffset = 0
         this.start = 0
         this.end = 5 // Default duration
+        this.speed = 1 // Default speed
+
+        // Define o limite máximo visível do timeline (ex: 30s mesmo que o vídeo esteja cortado para this.end=15s).
+        // Útil para permitir expandir o vídeo até o ponto original, a menos que maxEnd seja explicitamente reduzido.
+        this.maxEnd = 5
+
         this.shouldBeDraw = true
 
         Object.defineProperty(this, 'duration', {

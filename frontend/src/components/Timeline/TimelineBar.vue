@@ -1,6 +1,6 @@
 <template>
-    <div ref="timeline" class="timeline" @wheel.prevent="onScroll">
-        <div class="timeline-numeration-container" @click="setVideoTime">
+    <div ref="timeline" class="timeline" @wheel.prevent="onScroll" :style="{ cursor: target ? 'grabbing' : 'initial' }">
+        <div class="timeline-numeration-container" @mousedown="onMouseDown">
             <label v-for="(mark, index) in numerationMarks" :key="index" class="timeline-numeration-item"
                 :style="{ flexGrow: mark.grow }">
                 <span v-if="mark.type === 'label'" class="timeline-numeration-seconds">{{ mark.value }}</span>
@@ -31,6 +31,8 @@
         360: { interval: 60, steps: 4 },
     })
 
+    const target = ref(null)
+
     function getIntervalToFit(durationToFit) {
         const keys = Object.keys(amplitudeConfiguration.value)
             .map(Number)
@@ -48,11 +50,30 @@
     }
 
     async function setVideoTime(event) {
-        const timelineEl = event.currentTarget
+        const timelineEl = target.value//event.currentTarget
         const rect = timelineEl.getBoundingClientRect()
         const clickX = event.clientX - rect.left
 
         await timelineStore.setPercentage((clickX / rect.width) * 100)
+    }
+
+    function onMouseDown(event) {
+        target.value = event.currentTarget
+        setVideoTime(event)
+
+        function onMouseMove(moveEvent) {
+            setVideoTime(moveEvent)
+        }
+
+        function onMouseUp() {
+            window.removeEventListener('mousemove', onMouseMove)
+            window.removeEventListener('mouseup', onMouseUp)
+
+            target.value = null
+        }
+
+        window.addEventListener('mousemove', onMouseMove)
+        window.addEventListener('mouseup', onMouseUp)
     }
 
     function addTimelineNumeration() {
@@ -144,6 +165,7 @@
         flex-basis: 0;
         flex-shrink: 1;
         min-width: 0;
+        pointer-events: none;
     }
 
     .timeline-numeration-seconds {

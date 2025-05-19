@@ -13,6 +13,7 @@
     })
 
     const video = ref(props.video)
+    const timelineCanvasRef = ref(null)
 
     function drawFrames(width) {
         if (!video.value.shouldBeDraw) return
@@ -23,7 +24,6 @@
         const frameWidth = width / video.value.frames.length
         const frameHeight = 60
         
-        framesContainerRef.value.style.width = width + 'px'
         canvas.width = width
         canvas.height = frameHeight
         
@@ -51,3 +51,11 @@
     })
 
 </script>
+
+<style scoped>
+    .timeline-canvas {
+        display: block;
+        width: 100%;
+        height: 60px;
+    }
+</style>

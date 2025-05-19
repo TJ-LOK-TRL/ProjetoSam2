@@ -38,20 +38,27 @@ function selectTool(tool) {
     videoEditor.selectedTool = tool
     videoEditor.selectedToolIcon = tool
 }
+
 async function loadProject(project) {
     try {
-        const success = await authStore.loadProject(project.id)
-        if (success) {
-            videoEditor.selectedTool = 'media' // Volta para a view de mídia
-            videoEditor.selectedToolIcon = 'media'
-            router.push('/')
+        // 1. Primeiro redireciona para o editor
+        router.push('/')  // Ou a rota correta do seu editor
         
+        // 2. Espera um pouco para garantir que o editor está pronto
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        // 3. Agora carrega o projeto
+        const success = await authStore.loadProject(project.id)
+        
+        if (!success) {
+            alert('Failed to load project')
+            router.push('/')  // Volta se falhar
         }
     } catch (error) {
         console.error('Error loading project:', error)
         alert('Error loading project')
+        router.push('/')
     }
-
 }
 
 async function deleteProject(projectId) {

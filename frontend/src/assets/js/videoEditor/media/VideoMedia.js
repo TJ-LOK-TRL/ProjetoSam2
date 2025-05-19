@@ -283,7 +283,7 @@ export default class VideoMedia extends Media {
     async setTime(t) {
         t = Math.max(Math.min(t, this.element.duration), 0);
         
-        console.log('Set time: ', t)
+        //console.log('Set time: ', t)
         this.element.currentTime = t;
         await new Promise(resolve => {
             const handler = () => {
