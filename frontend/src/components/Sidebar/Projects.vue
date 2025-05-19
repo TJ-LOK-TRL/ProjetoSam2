@@ -7,11 +7,10 @@
             </div>
 
             <div v-for="project in authStore.getProjects" :key="project.id" class="project-item"
-                @click="loadProject(project)">
-                <div class="project-info">
+                >
+                <div class="project-info" @click="loadProject(project)">
                     <span class="project-name">{{ project.name }}</span>
-                    <!--<span class="project-date">{{ formatDate(project.createdAt) }}</span>
-                -->
+                
                 </div>
                 <button class="delete-project-btn" @click.stop="deleteProject(project.id)">
                     <i class="fas fa-trash"></i>

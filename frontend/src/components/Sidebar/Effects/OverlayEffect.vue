@@ -260,10 +260,10 @@
                 await updateOverlayType()
 
                 const refVideo = videoEditor.maskHandler.video
-                timelineStore.setVideoStart(video, refVideo.start)
-                timelineStore.setVideoEnd(video, refVideo.end)
+                timelineStore.setElementStart(video, refVideo.start)
+                timelineStore.setElementEnd(video, refVideo.end)
                 timelineStore.setStOffset(video, refVideo.stOffset)
-                timelineStore.setVideoMaxEnd(video, refVideo.end)
+                timelineStore.setElementMaxEnd(video, refVideo.end)
             })
             await applyChromaKey(videoEditor.selectedElement);
 

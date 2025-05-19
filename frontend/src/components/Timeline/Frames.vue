@@ -223,7 +223,7 @@
 
                     const offsetSeconds = sizeToDuration(offetLeft)
                     //console.log('INFO:', offetLeft, offsetSeconds, offsetSeconds * video.value.speed, video.value.start + offsetSeconds * video.value.speed)
-                    timelineStore.setVideoStart(video.value, video.value.start + offsetSeconds)
+                    timelineStore.setElementStart(video.value, video.value.start + offsetSeconds)
                     timelineStore.setStOffset(video.value, video.value.stOffset + offsetSeconds)
                 } 
                 
@@ -232,7 +232,7 @@
                     framesContainerRef.value.style.width = newWidth + 'px'
                     const newEndTime = sizeToDuration(newWidth) * video.value.speed
                     //console.log('INFO:', newWidth, newEndTime, video.value.stOffset + newEndTime)
-                    timelineStore.setVideoEnd(video.value, video.value.start + newEndTime)
+                    timelineStore.setElementEnd(video.value, video.value.start + newEndTime)
                 }
                 
                 resizableContainer.value.style.left = '0px'

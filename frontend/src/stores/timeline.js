@@ -341,25 +341,25 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
     }
 
-    function setStOffset(video, stOffset) {
-        video.stOffset = Math.max(stOffset, 0)
+    function setStOffset(element, stOffset) {
+        element.stOffset = Math.max(stOffset, 0)
         updateTimelineMaxDuration()
-        syncVideo(video, currentTime.value)
+        syncVideo(element, currentTime.value)
     }
 
-    function setVideoStart(video, startTime) {
-        video.start = Math.max(0, Math.min(startTime, video.duration));
-        if (video.end && video.end < video.start) {
-            video.end = video.start;
+    function setElementStart(element, startTime) {
+        element.start = Math.max(0, Math.min(startTime, element.duration));
+        if (element.end && element.end < element.start) {
+            element.end = element.start;
         }
         updateTimelineMaxDuration();
-        syncVideo(video, currentTime.value);
+        syncVideo(element, currentTime.value);
     }
     
-    function setVideoEnd(video, endTime) {
-        video.end = Math.max(video.start || 0, Math.min(endTime, video.maxEnd));
+    function setElementEnd(element, endTime) {
+        element.end = Math.max(element.start || 0, Math.min(endTime, element.maxEnd));
         updateTimelineMaxDuration();
-        syncVideo(video, currentTime.value);
+        syncVideo(element, currentTime.value);
     }
 
     function setVideoSpeed(video, speed) {
@@ -387,10 +387,10 @@ export const useTimelineStore = defineStore('timeline', () => {
         syncVideo(video, currentTime.value);
     }
 
-    function setVideoMaxEnd(video, maxEnd) {
-        video.maxEnd = Math.max(video.start || 0, Math.min(video.element.duration, maxEnd));
+    function setElementMaxEnd(element, maxEnd) {
+        element.maxEnd = Math.max(element.start || 0, Math.min(element.element.duration, maxEnd));
         updateTimelineMaxDuration();
-        syncVideo(video, currentTime.value);
+        syncVideo(element, currentTime.value);
     }
 
     return {
@@ -398,6 +398,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         minRange, maxRange, zoomInverted,
         togglePlay, goBack, goForward, setZoom, zoomIn, zoomOut, init, setTimelineInterval, setPercentage, setCurrentTime,
         zoomFit, onPlayed, onPaused, onUpdate, removeOnPlayed, removeOnPaused, removeOnUpdate, setStOffset, getBestFps,
-        setVideoStart, setVideoEnd, setVideoSpeed, setVideoMaxEnd,
+        setElementStart, setElementEnd, setVideoSpeed, setElementMaxEnd,
     }
 })

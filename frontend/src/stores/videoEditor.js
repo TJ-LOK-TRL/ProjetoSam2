@@ -81,8 +81,8 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         return createVideo(file, metadata.fps, metadata.frames)
     }
 
-    function addText(text, style, font) {
-        const textElement = new TextElement(text, style, font)
+    function addText(text, preset, font) {
+        const textElement = new TextElement(text, preset, font)
         elementManager.value.addElement(textElement)
 
         return textElement
@@ -392,7 +392,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         onCompileVideoMetadataCallbacks.value.push(callback)
     }
 
-    async function compileVideos(videos, compute_transparency = false) {
+    async function compileVideos(videos, texts = [], compute_transparency = false) {
         try {
             if (!videos || videos.length === 0) {
                 console.error("Nenhum vídeo encontrado para compilar.");
@@ -411,6 +411,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                 fps: fps.value,
                 enable_transparency: compute_transparency,
                 videos_data: {},
+                text_data: {},
             };
 
             const videos_files = [];
@@ -440,6 +441,20 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                 console.log("Video data:", metadata.videos_data[video.id]);
 
                 videos_files.push(video.file);
+            }
+
+            for (let index = 0; index < texts.length; index++) {
+                const text = texts[index];
+                const { x, y, width, height } = text.getRect();
+                metadata.text_data[text.id] = {
+                    x: x,
+                    y: y,
+                    width: width,
+                    height: height,
+                    layer_idx: index + videos.length,
+                    text: text.text,
+                    style: text.style,
+                };
             }
 
             const data = await backend.download(videos_files, metadata);
@@ -492,24 +507,41 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         try {
             this.$reset()
 
+            // limpar elementos existentes
+            const videos = this.getVideos()
+            videos.forEach(video => this.removeElement(video))
+
+            const texts = this.getTexts()
+            texts.forEach(text => this.removeElement(text))
+
+            // carrega os videos do projeto
             for (const videoData of projectData.videos) {
 
-                const video = await addVideo(videoData.file)
-                const box = this.getBoxOfVideo(video)
+                const video = await this.addVideo(videoData.file)
+
+                // propriedades do video
+                if(videoData.start !== undefined) video.start = videoData.start
+                if(videoData.end !== undefined) video.end = videoData.end
+                if(videoData.speed !== undefined) video.speed = videoData.speed
+
+                // configurar posiçao e transformaçoes
+                const box = this.mapperBoxVideo[video.id]
 
                 if (box && videoData.position) {
                     box.setRect(videoData.position)
                     if (videoData.rotation) box.setRotation(videoData.rotation)
-                    if (videoData.flip) box.setFlip(videoData.flip)
+                    if (videoData.flipped) box.setFlip(videoData.flip)
                 }
 
-                video.start = videoData.start
-                video.end = videoData.end
-                this.register.applyEffects(video.id, videoData.effects)
+                // aplicar efeitos se existirem
+                if (videoData.effects)
+                    this.register.applyEffectsToVideo(video.id, videoData.effects)
 
+                // restaurar zoom level
+                if (projectData.zoomLevel) {
+                    this.zoomLevel = projectData.zoomLevel
+                }
             }
-            this.timeline = projectData.timeline
-            this.zoomLevel = projectData.zoomLevel
             return true
         } catch (error) {
             console.error('Erro ao importar projeto:', error);

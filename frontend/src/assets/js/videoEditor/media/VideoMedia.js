@@ -23,7 +23,6 @@ export default class VideoMedia extends Media {
         this.element.src = this.url
         this.isPlaying = false
         this.visible = true
-        this.shouldBeDraw = true
         this.skipNextUpdateCallbacks = false
 
         // coisas de masks
@@ -59,13 +58,13 @@ export default class VideoMedia extends Media {
             this.start = 0
             this.end = this.element.duration
             this.maxEnd = this.element.duration
-            if (this.duration === undefined) {
-                Object.defineProperty(this, 'duration', {
-                    get() {
-                        return this.end - this.start;
-                    }
-                });
-            }
+            //if (this.duration === undefined) {
+            //    Object.defineProperty(this, 'duration', {
+            //        get() {
+            //            return this.end - this.start;
+            //        }
+            //    });
+            //}
             this.onMetadataLoadedCallbacks.forEach(callback => callback())
             this.onMetadataLoadedCallbacks = []
         })

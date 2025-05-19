@@ -261,7 +261,7 @@
                 console.log(`Ajustando seek: +${safeAdjustment} (metade do frame duration com margem)`);
             }
             timelineStore.setStOffset(newVideo, targetTime);
-            timelineStore.setVideoStart(newVideo, targetTime);
+            timelineStore.setElementStart(newVideo, targetTime);
 
             await newVideo.waitUntilVideoIsReady()
 

@@ -1,20 +1,15 @@
 import EditorElement from './EditorElement.js'
 
 export default class TextElement extends EditorElement {
-    constructor(text, style, font = 'Arial', size = '16px') {
+    constructor(text, preset, font = 'Arial', size = '16px') {
         super('text')
-        this.style = style
+        this.preset = preset
         this.text = text
-        this.font = font
-        this.size = size
-        this.color = 'white'
-        this.bold = false
-        this.italic = false
-        this.visible = true
-        this.align = 'left'
-    }
-
-    render() {
-        console.log(`Rendering text: "${this.text}" with font ${this.font} and size ${this.size}`)
+        this.style = {
+            fontFamily: font,
+            fontSize: size,
+            color: '#FFFFFF',
+            textAlign: 'center',
+        }
     }
 }

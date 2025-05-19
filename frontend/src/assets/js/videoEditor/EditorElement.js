@@ -3,6 +3,15 @@ export default class EditorElement {
         this.type = type
         this.id = crypto.randomUUID()
         this.stOffset = 0
+        this.start = 0
+        this.end = 5 // Default duration
+        this.shouldBeDraw = true
+
+        Object.defineProperty(this, 'duration', {
+            get() {
+                return this.end - this.start;
+            }
+        });
     }
 
     destroy() {

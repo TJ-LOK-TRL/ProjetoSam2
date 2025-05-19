@@ -17,11 +17,11 @@
                 <div class="style-container-rows">
                     <div class="style-container-row-1">
                         <div class="dropdown-font-container">
-                            <Dropdown v-model="textFont" :items="fontList" :placeholder="textElement?.font" />
+                            <Dropdown v-model="textFont" :items="fontList" :placeholder="textElement?.style.fontFamily" />
                         </div>
 
                         <div class="dropdown-font-size-container">
-                            <Dropdown v-model="textFontSize" :items="fontSizeList" :placeholder="textElement?.size" />
+                            <Dropdown v-model="textFontSize" :items="fontSizeList" :placeholder="textElement?.style.fontSize" />
                         </div>
 
                         <div class="color-picker-container">
@@ -121,59 +121,59 @@
 
     const textFont = computed({
         get: () => {
-            const currentFont = textElement.value?.font || 'Inter'
+            const currentFont = textElement.value?.style.fontFamily || 'Inter'
             return fontList.value.find(item => item.font === currentFont)
         },
         set: (item) => {
             if (textElement.value) {
-                textElement.value.font = item.font
+                textElement.value.style.fontFamily = item.font
             }
         }
     })
 
     const textFontSize = computed({
         get: () => {
-            const size = textElement.value?.size || '16px'
+            const size = textElement.value?.style.fontSize || '16px'
             return fontSizeList.value.find(i => i.size === size) || fontSizeList.value[0]
         },
         set: (item) => {
             if (textElement.value) {
                 console.log('textFontSize', item.size)
-                textElement.value.size = item.size
+                textElement.value.style.fontSize = item.size
             }
         }
     })
 
     const textColor = computed({
-        get: () => textElement.value?.color || '#000000',
+        get: () => textElement.value?.style.color || '#000000',
         set: (val) => {
-            if (textElement.value) textElement.value.color = val
+            if (textElement.value) textElement.value.style.color = val
         }
     })
 
     const activeStyles = computed({
         get: () => {
             return [
-                textElement.value?.bold ? 'bold' : '',
-                textElement.value?.italic ? 'italic' : ''
+                textElement.value?.style?.fontWeight === 'bold' ? 'bold' : '',
+                textElement.value?.style?.fontStyle === 'italic' ? 'italic' : ''
             ].filter(Boolean)
         },
         set: (styles) => {
             if (textElement.value) {
-                textElement.value.bold = styles.includes('bold')
-                textElement.value.italic = styles.includes('italic')
+                textElement.value.style.fontWeight = styles.includes('bold') ? 'bold' : 'normal'
+                textElement.value.style.fontStyle = styles.includes('italic') ? 'italic' : 'normal'
             }
         }
     })
 
     const textAlign = computed({
         get: () => {
-            const align = textElement.value?.align || 'left'
+            const align = textElement.value?.style?.textAlign || 'left'
             return align
         },
         set: (align) => {
             if (textElement.value) {
-                textElement.value.align = align
+                textElement.value.style.textAlign = align
             }
         }
     })

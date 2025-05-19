@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { useVideoEditor } from '@/stores/videoEditor'
 
 const LS_KEY = 'myapp_users'
+const LS_PROJECTS = 'myapp_projects'
 
 export const useAuthStore = defineStore('auth', {
   state: () => {
@@ -27,16 +28,14 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     _save() {
       localStorage.setItem(LS_KEY, JSON.stringify(this.users))
+      this._saveCurrentUser()
     },
 
-
-
     login(email, password) {
-      const user = this.users.find(
-        (u) => u.email === email && u.password === password)
+      const user = this.users.find(u => u.email === email && u.password === password)
       if (user) {
         this.currentUser = user
-
+        localStorage.setItem('currentUser', JSON.stringify(user))
         return true
       }
       return false
@@ -65,6 +64,7 @@ export const useAuthStore = defineStore('auth', {
         this._save()
       }
     },
+
     _saveCurrentUser() {
       if (this.currentUser) {
         localStorage.setItem('currentUser', JSON.stringify(this.currentUser))
@@ -77,18 +77,35 @@ export const useAuthStore = defineStore('auth', {
         }
       }
     },
-    saveProject(projectName) {
+    
+    async _generateThumbnail() {
+      try {
+
+        const videoEditor = useVideoEditor()
+        const videos = videoEditor.getVideos() // Método que você precisa implementar
+
+        if(videos.length === 0) return null
+
+        return 'thumbail-placeholder'
+      } catch (error) {
+        console.error('Error generating thumbnail:', error)
+        return null
+      }
+    },
+
+    async saveProject(projectName) {
       if (!this.currentUser) return false
 
       const videoEditor = useVideoEditor()  
       const projectData = videoEditor.exportProject() // Método que você precisa implementar
+      const thumbnail = await this._generateThumbnail()
 
       const project = {
-        id: Date.now(),
+        id: Date.now().toString(),
         name: projectName,
         createdAt: new Date().toISOString(),
-        videoData: projectData,
-        humbnail: this._generateThumbnail() // 
+        data: projectData,
+        thumbnail: thumbnail
       }
 
       this.currentUser.projects.push(project)
@@ -98,15 +115,26 @@ export const useAuthStore = defineStore('auth', {
     },
 
 
-    loadProject(projectId) {
-      if (!this.currentUser) return null
+    async loadProject(projectId) {
+      if (!this.currentUser) return false
 
-      const projects = JSON.parse(localStorage.getItem(LS_KEY)) || []
-      const project = projects.find(p => p.id === projectId)
+      const project = this.currentUser.projects.find(p => p.id === projectId)
       if (!project) return false
 
       const videoEditor = useVideoEditor()
-      videoEditor.importProject(project.videoData) // Método a implementar
+
+      await videoEditor.importProject(project.data) 
+      return true
+    },
+
+    deleteProject(projectId) {
+      if (!this.currentUser) return false
+
+      const projectIndex = this.currentUser.projects.findIndex(p => p.id === projectId)
+      if (projectIndex === -1) return false
+
+      this.currentUser.projecsts.splice(projectIndex, 1)
+      this._saveCurrentUser()
       return true
     }
   }
