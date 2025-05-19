@@ -2,7 +2,7 @@
     <div class="custom-select">
         <div class="input-wrapper">
             <input class="input" type="text" v-model="search" @focus="handleFocus" @blur="handleBlur"
-                :placeholder='placeholder' />
+                :placeholder='placeholder' ref="inputRef" />
             <i class="fa fa-chevron-down input-icon" aria-hidden="true"></i>
         </div>
         <ul v-if="open" class="dropdown">
@@ -20,13 +20,17 @@
     const props = defineProps({
         placeholder: String,
         items: Array,
+        modelValue: Object,
     })
+
+    const emit = defineEmits(['update:modelValue'])
 
     const placeholder = ref(props.placeholder)
     const items = ref(props.items)
     const open = ref(false)
     const search = ref('')
-    const selected = ref(null)
+    const selected = ref(props.modelValue)
+    const inputRef = ref(null)
 
     const filteredItems = computed(() => {
         return items.value?.filter(i =>
@@ -36,10 +40,11 @@
 
     function select(item) {
         selected.value = item
-        search.value = item.label
+        emit('update:modelValue', item)
+        search.value = ''
+        placeholder.value = item.label
         open.value = false
-        console.log('Selecionado:', item)
-        // Aqui você pode emitir ou atualizar o tamanho
+        inputRef.value?.blur()
     }
 
     function handleFocus() {
@@ -81,7 +86,7 @@
         padding: 8px;
         font-size: 14px;
         border-radius: 8px;
-        border: 1px solid #ccc;
+        border: 1px solid #ddd;
         box-sizing: border-box;
         cursor: pointer;
     }

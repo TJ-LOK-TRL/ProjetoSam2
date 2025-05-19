@@ -1,7 +1,10 @@
 <template>
     <div class="input-color-picker-container">
         <label for="input-color-picker" class="color-picker-icon"
-            :style="{ background: modelValue, color: isLightColor(modelValue) ? 'black' : 'white' }">
+            :style="{ background: modelValue, 
+                      color: isLightColor(modelValue) ? 'black' : 'white', 
+                      border: isLightColor(modelValue) ? '0.5px solid #ddd' : '0.5px solid transparent'
+            }">
             <div class="color-picker-icon"></div>
         </label>
         <input type="color" :value="modelValue" id="input-color-picker"
@@ -30,10 +33,9 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        width: 24px;
-        height: 24px;
+        width: 25px;
+        height: 25px;
         border-radius: 50%;
-        font-size: 11px;
         transition: color 0.2s ease;
     }
 

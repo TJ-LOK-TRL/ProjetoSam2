@@ -1,65 +1,79 @@
 <template>
-    <StickyHeader :show-icon="true">
-        Edit Text
-    </StickyHeader>
+    <div class="container">
+        <StickyHeader :show-icon="true">
+            Edit Text
+        </StickyHeader>
 
-    <div class="local-sidebar-div sidebar-div">
-        <div class="textarea-container">
-            <Textarea class="textarea">{{ textElement?.text }}</Textarea>
+        <div class="content">
+            <div class="local-sidebar-div sidebar-div">
+                <div class="textarea-container">
+                    <textarea v-model="textValue" class="textarea">{{ textElement?.text }}</textarea>
+                </div>
+            </div>
+
+            <div class="style-container sidebar-div">
+                <p class="sidebar-subtitle">Style</p>
+
+                <div class="style-container-rows">
+                    <div class="style-container-row-1">
+                        <div class="dropdown-font-container">
+                            <Dropdown v-model="textFont" :items="fontList" :placeholder="textElement?.font" />
+                        </div>
+
+                        <div class="dropdown-font-size-container">
+                            <Dropdown v-model="textFontSize" :items="fontSizeList" :placeholder="textElement?.size" />
+                        </div>
+
+                        <div class="color-picker-container">
+                            <ColorPicker v-model="textColor" />
+                        </div>
+                    </div>
+
+                    <div class="style-container-row-2">
+                        <div class="bold-italic-container">
+                            <ToggleCard v-model="activeStyles" multiple>
+                                <template #default>
+                                    <div data-value="bold"><i class="fas fa-bold" /></div>
+                                    <div data-value="italic"><i class="fas fa-italic" /></div>
+                                </template>
+                            </ToggleCard>
+                        </div>
+
+                        <div class="aligment-container">
+                            <ToggleCard v-model="textAlign">
+                                <template #default>
+                                    <div data-value="left"><i class="fas fa-align-left" /></div>
+                                    <div data-value="center"><i class="fas fa-align-center" /></div>
+                                    <div data-value="right"><i class="fas fa-align-right" /></div>
+                                </template>
+                            </ToggleCard>
+                        </div>
+                    </div>
+
+                    <div class="aside-box button-delete-container">
+                        <button class="button-delete" @click="videoEditor.removeElement(textElement)">
+                            Delete Text
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="style-container sidebar-div">
-        <p class="sidebar-subtitle">Style</p>
-
-        <div class="style-container-rows">
-            <div class="style-container-row-1">
-                <div class="dropdown-font-container">
-                    <Dropdown :items="fontList" :placeholder="textElement?.font" />
-                </div>
-
-                <div class="dropdown-font-size-container">
-                    <Dropdown :items="fontSizeList" :placeholder="textElement?.size" />
-                </div>
-
-                <div class="color-picker-container">
-                    <ColorPicker v-model="textColor" />
-                </div>
-            </div>
-
-            <div class="style-container-row-2">
-                <div class="bold-italic-container">
-                    <ToggleCard v-model="activeStyles" multiple>
-                        <template #default>
-                            <div data-value="bold"><i class="fas fa-bold" /></div>
-                            <div data-value="italic"><i class="fas fa-italic" /></div>
-                        </template>
-                    </ToggleCard>
-                </div>
-
-                <div class="aligment-container">
-                    <ToggleCard v-model="textAlign">
-                        <template #default>
-                            <div data-value="left"><i class="fas fa-align-left" /></div>
-                            <div data-value="center"><i class="fas fa-align-center" /></div>
-                            <div data-value="right"><i class="fas fa-align-right" /></div>
-                        </template>
-                    </ToggleCard>
-                </div>
-            </div>
-
-            <div class="button-delete-container">
-                <button class="button-delete" @click="videoEditor.removeElement(textElement)">
-                    <i class="fas fa-trash-alt" />
+        <StickyFooter>
+            <div class="button-add-text-container">
+                <button class="button-add-text" @click="videoEditor.selectedElement = null">
+                    <i class="fas fa-plus" />
+                    <label>Add Another Text Box</label>
                 </button>
             </div>
-        </div>
+        </StickyFooter>
     </div>
 </template>
 
 <script setup>
     import { useVideoEditor } from '@/stores/videoEditor'
     import StickyHeader from '@/components/Sidebar/StickyHeader.vue'
+    import StickyFooter from '@/components/Sidebar/StickyFooter.vue'
     import Dropdown from '@/components/Sidebar/Dropdown.vue'
     import ColorPicker from '@/components/Sidebar/ColorPicker.vue'
     import ToggleCard from '@/components/Sidebar/ToggleCard.vue'
@@ -82,17 +96,53 @@
     ]);
 
     const fontSizeList = ref([
-        { label: '8px', value: '8px' },
-        { label: '10px', value: '10px' },
-        { label: '12px', value: '12px' },
-        { label: '14px', value: '14px' },
-        { label: '16px', value: '16px' },
-        { label: '18px', value: '18px' },
-        { label: '20px', value: '20px' },
-        { label: '24px', value: '24px' },
-        { label: '32px', value: '32px' },
-        { label: '48px', value: '48px' },
+        { label: '8px', size: '8px' },
+        { label: '10px', size: '10px' },
+        { label: '12px', size: '12px' },
+        { label: '14px', size: '14px' },
+        { label: '16px', size: '16px' },
+        { label: '18px', size: '18px' },
+        { label: '20px', size: '20px' },
+        { label: '24px', size: '24px' },
+        { label: '32px', size: '32px' },
+        { label: '48px', size: '48px' },
     ]);
+
+
+    const textValue = computed({
+        get: () => textElement.value?.text || '',
+        set: (val) => {
+            if (textElement.value) {
+                console.log('textValue', val)
+                textElement.value.text = val
+            }
+        }
+    })
+
+    const textFont = computed({
+        get: () => {
+            const currentFont = textElement.value?.font || 'Inter'
+            return fontList.value.find(item => item.font === currentFont)
+        },
+        set: (item) => {
+            if (textElement.value) {
+                textElement.value.font = item.font
+            }
+        }
+    })
+
+    const textFontSize = computed({
+        get: () => {
+            const size = textElement.value?.size || '16px'
+            return fontSizeList.value.find(i => i.size === size) || fontSizeList.value[0]
+        },
+        set: (item) => {
+            if (textElement.value) {
+                console.log('textFontSize', item.size)
+                textElement.value.size = item.size
+            }
+        }
+    })
 
     const textColor = computed({
         get: () => textElement.value?.color || '#000000',
@@ -101,9 +151,32 @@
         }
     })
 
-    const activeStyles = ref(null)
+    const activeStyles = computed({
+        get: () => {
+            return [
+                textElement.value?.bold ? 'bold' : '',
+                textElement.value?.italic ? 'italic' : ''
+            ].filter(Boolean)
+        },
+        set: (styles) => {
+            if (textElement.value) {
+                textElement.value.bold = styles.includes('bold')
+                textElement.value.italic = styles.includes('italic')
+            }
+        }
+    })
 
-    const textAlign = ref(null)
+    const textAlign = computed({
+        get: () => {
+            const align = textElement.value?.align || 'left'
+            return align
+        },
+        set: (align) => {
+            if (textElement.value) {
+                textElement.value.align = align
+            }
+        }
+    })
 
     function applyFontToText(textElement, selectedFontClass) {
         const fontFamily = fontMap[selectedFontClass] || 'sans-serif';
@@ -117,6 +190,17 @@
 </script>
 
 <style scoped>
+    .container {
+        height: 100%;
+    }
+
+    .content {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        height: 100%;
+    }
+
     .textarea-container {
         padding: 24px;
         border-radius: 0.625rem;
@@ -195,20 +279,52 @@
         justify-content: center;
         align-items: center;
         height: 50px;
+        min-height: 50px;
+        border-color: #ddd;
     }
 
     .button-delete {
-        all: unset;
+        width: 100%;
+        background-color: white;
+        color: rgb(41, 41, 41);
+        border: none;
+        padding: 10px 20px;
+        text-align: center;
+        font-size: 14px;
         cursor: pointer;
-        background-color: rgb(255, 255, 255);
-        border-radius: 0.5rem;
-        height: auto;
-        padding: 0.25rem 0.5rem;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        max-width: 4.375rem;
-        overflow: hidden;
-        border: 0.5px solid rgb(225, 225, 227);
-        box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 2px;
+    }
+
+
+    .button-add-text {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+        font-family: Inter, sans-serif;
+        font-size: 0.8125rem;
+        line-height: 1rem;
+        letter-spacing: 0px;
+        font-weight: 400;
+        padding: 0px 16px;
+        border-radius: 10px;
+        height: 3rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        text-decoration: none;
+        user-select: none;
+        background-color: rgb(247, 247, 248);
+        border: 1px solid rgb(247, 247, 248);
+        color: rgb(24, 25, 27);
+        box-shadow: none;
+    }
+
+    .button-add-text>* {
+        pointer-events: none;
+    }
+
+    .button-add-text:hover {
+        background-color: rgb(238, 238, 239);
+        border: 1px solid rgb(238, 238, 239);
     }
 </style>

@@ -7,8 +7,11 @@ export default class TextElement extends EditorElement {
         this.text = text
         this.font = font
         this.size = size
-        this.color = 'black'
+        this.color = 'white'
+        this.bold = false
+        this.italic = false
         this.visible = true
+        this.align = 'left'
     }
 
     render() {

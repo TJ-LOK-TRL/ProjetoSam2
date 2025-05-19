@@ -1,8 +1,12 @@
 <template>
-    <ResizableBox class="text-box-resizable" ref="boxTextRef" :enable-resize="true" @dblclick="enableEdit" :class="{ 'element-box-selected': text?.id === videoEditor?.selectedElement?.id && text?.visible }"
-        :style="{ pointerEvents: isEditing ? 'none' : 'auto' }" @click="videoEditor.selectEditorElement(text)" >
-        <div v-if="text" class="text-box" :class="text.font" :contenteditable="isEditing" ref="textRef"
-            @blur="disableEdit" @keydown.enter.prevent="disableEdit">
+    <ResizableBox class="text-box-resizable" ref="boxTextRef" :enable-resize="true" @dblclick="enableEdit"
+        :class="{ 'element-box-selected': text?.id === videoEditor?.selectedElement?.id && text?.visible }"
+        :style="{ pointerEvents: isEditing ? 'none' : 'auto' }" @click="videoEditor.selectEditorElement(text)">
+        <div v-if="text" class="text-box" :class="text.style" :contenteditable="isEditing" ref="textRef"
+            :style="{  fontSize: text.size, color: text.color, fontFamily: text.font, 
+                       textAlign: text.align, fontWeight: text.bold ? 'bold' : 'normal', fontStyle: text.italic ? 'italic' : 'normal' }" 
+            @blur="disableEdit"
+            @keydown.enter.prevent="disableEdit">
             {{ text.text }}
         </div>
     </ResizableBox>
@@ -47,7 +51,7 @@
 
         nextTick(() => {
             videoEditor.registerBox(text.value, {
-                getRect: (abs=false) => {
+                getRect: (abs = false) => {
                     return boxVideoRef.value?.getRect(abs)
                 },
                 box: boxTextRef.value,
