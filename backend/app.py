@@ -377,7 +377,6 @@ def download():
         for idx, video_id in enumerate(elements_metadata.keys()):
             #video_id = list(elements_metadata.keys())[idx] if elements_metadata else str(idx)
             element_metadata = elements_metadata.get(video_id, {})
-            input_path = os.path.join(temp_dir, f'input_{video_id}.mp4')
             if not element_metadata:
                 print(f"\n[AVISO] Nenhum metadado encontrado para o vídeo {video_id}")
                 print('\tVideos data:', elements_metadata)
@@ -405,7 +404,6 @@ def download():
                 stageMasks = element_metadata.get('stageMasks', None)
                 masks = decode_masks(DataSaver.get_stage(stageMasks) or {}) if stageMasks else None    
                 video_file = videos[idx]                    
-                video_file.save(input_path)
                 video_data[idx] = {
                     'idx': idx,
                     'video_id': video_id,
@@ -420,25 +418,30 @@ def download():
                     'flipped': flipped,
                     'draw': draw,
                 }
+                video_input = os.path.join(temp_dir, f'input_{video_id}.mp4')
+                video_file.save(video_input)
                 
             elif element_type == 'text':
                 text = element_metadata.get('text', '')
                 style = element_metadata.get('style', {})
-                print(text, style)
                 font_family = style.get('fontFamily', 'Raleway')
                 font_size = style.get('fontSize', 20)
                 color = style.get('color', '#FFFFFF')
-                bold = style.get('fontWeight', 400)
-                italic = 'italic' in style.get('fontStyle', '')
+                bold = style.get('fontWeight', 'normal')
+                italic = style.get('fontStyle', '')
                 align = style.get('textAlign', 'left')
                 
                 duration = end_t - start_t if start_t and end_t else 5
-                text_frame = create_text_frame(text, font_family, font_size, color, bold, italic, align, rect.width, rect.height)
-                convert_frame_to_video(text_frame, duration, input_path, 1)
-                                        
+                text_fps = fps or 1
+                is_bold = bold == int(bold) >= 700 if isinstance(bold, int) else bold == 'bold'
+                is_italic = 'italic' in italic
+                text_frame = create_text_frame(text, font_family, font_size, color, is_bold, is_italic, align, rect.width, rect.height)
+                text_frames = replicate_frame_as_video_array(text_frame, duration, text_fps)
+                video_input = VideoArray(text_frames, text_fps)
+              
             # Adiciona layer com configurações
             compositor.add_layer(LayerInfo(
-                video_path=input_path,
+                video=video_input,
                 rect=rect,
                 layer_idx=idx,
                 st_offset=st_offset,

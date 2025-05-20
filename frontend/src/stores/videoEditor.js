@@ -476,10 +476,11 @@ export const useVideoEditor = defineStore('videoEditor', () => {
 
                     videos_files.push(element.file);
                 } else if (element.type === 'text') {
-                    element.style.fontSize = parseInt(element.style.fontSize.replace('px', ''), 10);
+                    const copy_style = JSON.parse(JSON.stringify(element.style));
+                    copy_style.fontSize = parseInt(copy_style.fontSize.replace('px', ''), 10);
                     Object.assign(element_data, {
                         text: element.text,
-                        style: element.style,
+                        style: copy_style,
                     });
                     videos_files.push(1);
                 }

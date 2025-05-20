@@ -46,6 +46,12 @@ google_fonts_links = {
     }
 }
 
+fonts_italic_not_support = [
+    font 
+    for font, variants in google_fonts_links.items()
+    if 'italic' not in variants
+]
+
 def select_font_link(font_family: str, bold: bool, italic: bool) -> str:
     """
     Seleciona a fonte correta com base na família, negrito e itálico.
@@ -90,18 +96,47 @@ def download_font(font_path: str, font_family: str, bold: bool, italic: bool) ->
         f.write(response.content)
 
 def get_font(font_family: str, font_size: int, bold: bool, italic: bool) -> ImageFont.truetype:
-    bold_str = "bold" if bold else ""
-    italic_str = "italic" if italic else ""
-    filename = f"{font_family}_{bold_str}_{italic_str}.ttf".replace("__", "_").strip("_")
+    bold_str = 'bold' if bold else ''
+    italic_str = 'italic' if italic else ''
+    filename = f'{font_family}_{bold_str}_{italic_str}.ttf'.replace('__', '_').strip('_')
     font_cache_path = os.path.join(FONT_DIR, filename)
     
     if not os.path.exists(font_cache_path):
         download_font(font_cache_path, font_family, bold, italic)
     
     font = ImageFont.truetype(font_cache_path, font_size)
-    font.set_variation_by_axes([('wght', 400 if not bold else 700)])
+    
+    # Valores padrão: [weight, width, italic, slant, optical_size, etc.]
+    axes = [400, 100, 0, 0, font_size]  # Valores iniciais padrão
+    
+    # Ajustar para negrito
+    if bold:
+        axes[0] = 700  # wght (400=normal, 700=bold)
+    
+    # Ajustar para itálico
+    #if italic:
+    #    axes[2] = 1    # ital (0=normal, 1=italic)
+    
+    try:
+        font.set_variation_by_axes(axes)
+    except Exception as e:
+        print(f"Erro ao aplicar variações na fonte: {e}")
     
     return font
+
+def skew_image(image: Image.Image, angle_degrees: float = 10) -> Image.Image:
+    import math
+    width, height = image.size
+    angle = math.radians(angle_degrees)
+    offset = int(height * math.tan(angle))
+    new_width = width + abs(offset)
+    return image.transform(
+        (new_width, height),
+        Image.AFFINE,
+        (1, math.tan(angle), -offset if angle > 0 else 0, 0, 1, 0),
+        resample=Image.BICUBIC,
+        fillcolor=(0, 0, 0, 0)
+    )
 
 def create_text_frame(
     text: str,
@@ -149,17 +184,22 @@ def create_text_frame(
     color_rgb = tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
     
     # Calcula a posição do texto baseado no alinhamento
-    text_width, text_height = draw.textsize(text, font=font)
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
     x = {
-        'left': 0,
+        'left': 10,
         'center': (width - text_width) // 2,
         'right': width - text_width
     }.get(align, 0)
     
-    y = (height - text_height) // 2  # Centralizado verticalmente
+    y = 10#(height - text_height) // 2  # Centralizado verticalmente
     
     # Desenha o texto
     draw.text((x, y), text, font=font, fill=color_rgb)
+    
+    if italic and font_family in fonts_italic_not_support:
+        pil_image = skew_image(pil_image, 15)
     
     # Converte para numpy array no formato BGRA (para OpenCV)
     if bg_transparent:

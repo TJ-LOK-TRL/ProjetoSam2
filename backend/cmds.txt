@@ -4,5 +4,5 @@ docker start sam2_v1
 apt-get update
 apt-get install -y libgl1-mesa-glx
 apt-get install -y libglib2.0-0
-source venv/bin/activate
 apt-get install -y ffmpeg
+source venv/bin/activate

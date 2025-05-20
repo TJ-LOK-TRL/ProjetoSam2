@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import math
-from typing import List, Dict, Optional, Tuple, Callable
+from typing import List, Dict, Optional, Tuple, Callable, Union
 from dataclasses import dataclass
 
 PROCESS_STAGE_PRE_TRANSFORM = 0
@@ -10,7 +10,7 @@ PROCESS_STAGE_POST_TRANSFORM = 1
 @dataclass
 class LayerInfo:
     """Classe para armazenar informações de cada layer (vídeo/imagem)."""
-    video_path: str
+    video: Union[str, 'VideoArray']  # Caminho do vídeo ou objeto VideoArray
     rect: 'Rect'
     layer_idx: int
     st_offset: int = 0.0 # Offset de início (em segundos)
@@ -20,6 +20,7 @@ class LayerInfo:
     speed: float = 1
     flipped: bool = False
     draw: bool = True
+    fps: int = 30
     
     @property
     def x(self) -> float:
@@ -53,9 +54,133 @@ class LayerInfo:
     def height(self, value: float):
         self.rect.height = value
 
-class RenderInfo:
-    def __init__(self, video_path: str, layer_info: LayerInfo, size: Tuple[int, int]):
+class VideoArray:
+    """Mock de um vídeo como lista de frames (np.ndarray)."""
+    def __init__(self, frames: List[np.ndarray], fps: float = 30.0):
+        self.frames = frames
+        self._fps = fps
+
+    def __len__(self):
+        return len(self.frames)
+
+    def __getitem__(self, idx):
+        return self.frames[idx]
+
+    @property
+    def shape(self):
+        return self.frames[0].shape if self.frames else (0, 0, 0)
+
+    @property
+    def fps(self):
+        return self._fps
+
+class VideoCaptureObject:
+    """Classe base abstrata com interface comum."""
+    @property
+    def fps(self) -> float:
+        raise NotImplementedError
+
+    @property
+    def width(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def height(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def frame_count(self) -> int:
+        """Retorna o número total de frames do vídeo."""
+        raise NotImplementedError
+
+    def set_frame(self, frame_idx: int) -> None:
+        raise NotImplementedError
+
+    def read(self) -> Tuple[bool, np.ndarray]:
+        raise NotImplementedError
+
+    def release(self) -> None:
+        """Libera os recursos do vídeo."""
+        raise NotImplementedError
+
+class VideoCapturePath(VideoCaptureObject):
+    def __init__(self, video_path: str):
         self.cap: cv2.VideoCapture = cv2.VideoCapture(video_path)
+    
+    @property
+    def fps(self) -> float:
+        """Retorna o FPS do vídeo."""
+        return self.cap.get(cv2.CAP_PROP_FPS)
+    
+    @property
+    def width(self) -> int:
+        """Retorna a largura do vídeo."""
+        return int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    
+    @property
+    def height(self) -> int:
+        """Retorna a altura do vídeo."""
+        return int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    @property
+    def frame_count(self) -> int:
+        """Retorna o número total de frames do vídeo."""
+        return int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    def set_frame(self, fram_idx: int) -> None:
+        """Define a posição do frame atual."""
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, fram_idx)
+    
+    def read(self) -> Tuple[bool, np.ndarray]:
+        return self.cap.read()
+    
+    def release(self):
+        self.cap.release()
+    
+class VideoCaptureArray(VideoCaptureObject):
+    def __init__(self, video: VideoArray):
+        self.video = video
+        self.index = 0
+
+    @property
+    def fps(self) -> float:
+        return self.video.fps
+
+    @property
+    def width(self) -> int:
+        return self.video.shape[1]
+
+    @property
+    def height(self) -> int:
+        return self.video.shape[0]
+
+    @property
+    def frame_count(self) -> int:
+        return len(self.video)
+
+    def set_frame(self, frame_idx: int) -> None:
+        self.index = frame_idx
+
+    def read(self) -> Tuple[bool, np.ndarray]:
+        if 0 <= self.index < len(self.video):
+            frame = self.video[self.index]
+            self.index += 1
+            return True, frame
+        return False, None
+
+    def release(self) -> None:
+        self.index = 0
+        self.video = None
+
+class RenderInfo:
+    def __init__(self, video: Union[str, VideoArray], layer_info: LayerInfo, size: Tuple[int, int]):
+        if isinstance(video, str):
+            self.capture: VideoCaptureObject = VideoCapturePath(video)
+        elif isinstance(video, VideoArray):
+            self.capture: VideoCaptureObject = VideoCaptureArray(video)
+        else:
+            raise ValueError('Tipo de vídeo inválido. Deve ser str ou VideoArray.')
+        
         self.frame_position: int = 0
         self.layer: LayerInfo = layer_info
         self.cached_mask: Optional[np.ndarray] = None  # Máscara atual (se houver)
@@ -64,14 +189,19 @@ class RenderInfo:
         self.size = size
         
         if self.layer.width == None:
-            self.layer.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.layer.width = int(self.capture.width)
         if self.layer.height == None:
-            self.layer.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self.layer.height = int(self.capture.height)
             
     def get_frame_by_idx(self, frame_idx: int) -> Tuple[int, np.ndarray]:
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-        ret, frame = self.cap.read()
+        self.capture.set_frame(frame_idx)
+        ret, frame = self.capture.read()
         return ret, frame
+    
+    @property
+    def fps(self) -> float:
+        """Retorna o FPS do vídeo."""
+        return self.capture.fps
 
 class RoiInfo:
     def __init__(self, roi: np.ndarray, y1: int, y2: int, x1: int, x2: int, fy1: int, fy2: int, fx1: int, fx2: int,):
@@ -105,20 +235,11 @@ class VideoCompositor:
         self.layers.append(layer)
         self.layers.sort(key=lambda x: x.layer_idx)  # Garante ordem correta
 
-    def _initialize_video_capture(self, layer: LayerInfo, cap: cv2.VideoCapture) -> None:
-        """Inicializa os capturadores de vídeo para todas as layers."""
-        if not cap.isOpened():
-            raise ValueError(f"Não foi possível abrir o vídeo: {layer.video_path}")
-        
-        # Configura o ponto de início se start_t > 0
-        if layer.start_t > 0:
-            cap.set(cv2.CAP_PROP_POS_MSEC, layer.start_t * 1000)
-
-    def _get_duration(self, cap: cv2.VideoCapture) -> float:
+    def _get_duration(self, video_capture: VideoCaptureObject) -> float:
         """Retorna a duração total do vídeo."""
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        return frame_count / fps
+        fps = video_capture.fps
+        frame_count = video_capture.frame_count
+        return frame_count / max(fps, 1)
 
     def _get_effective_duration(self, layer: LayerInfo, cap: cv2.VideoCapture) -> float:
         """Calcula a duração máxima entre todos os vídeos (considerando os offsets)."""
@@ -135,7 +256,7 @@ class VideoCompositor:
             
         # Verifica se já passou do tempo final
         video_time = render_info.layer.start_t + (current_time * render_info.layer.speed) - render_info.layer.st_offset
-        end_time = render_info.layer.end_t if render_info.layer.end_t is not None else self._get_duration(render_info.cap)
+        end_time = render_info.layer.end_t if render_info.layer.end_t is not None else self._get_duration(render_info.capture)
         
         return render_info.layer.start_t <= video_time < end_time
             
@@ -160,7 +281,7 @@ class VideoCompositor:
             return False
         
         video_time = layer.start_t + (global_time  * layer.speed) - layer.st_offset
-        target_frame_pos = int(video_time * fps)
+        target_frame_pos = int(video_time * render_info.fps)
         
         width, height = int(layer.width), int(layer.height)
         x, y = int(layer.x), int(layer.y)
@@ -276,9 +397,9 @@ class VideoCompositor:
         output_width = int(self.output_width)
         output_height = int(self.output_height)
         
-        render_infos = { layer.layer_idx: RenderInfo(layer.video_path, layer, (output_width, output_height)) for layer in self.layers }
-        fps = self.fps if self.fps is not None else (max(ri.cap.get(cv2.CAP_PROP_FPS) for ri in render_infos.values()) or 30.0)
-        max_duration = max(self._get_effective_duration(layer, ri.cap) for layer, ri in zip(self.layers, render_infos.values()) if layer.draw)
+        render_infos = { layer.layer_idx: RenderInfo(layer.video, layer, (output_width, output_height)) for layer in self.layers }
+        fps = self.fps if self.fps is not None else (max(ri.capture.fps for ri in render_infos.values()) or 30.0)
+        max_duration = max(self._get_effective_duration(layer, ri.capture) for layer, ri in zip(self.layers, render_infos.values()) if layer.draw)
         
         total_frames = int(max_duration * fps)  
         
@@ -306,7 +427,7 @@ class VideoCompositor:
         # Libera todos os recursos
         out.release()
         for ri in render_infos.values():
-            ri.cap.release()
+            ri.capture.release()
             
 if __name__ == "__main__":
     # Exemplo de uso

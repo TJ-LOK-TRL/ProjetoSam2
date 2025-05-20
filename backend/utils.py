@@ -203,6 +203,11 @@ def convert_frame_to_video(frame: np.ndarray, duration: float, output_path: str,
     Returns:
         None
     """
+    if len(frame.shape) == 2:
+        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+    elif frame.shape[2] == 4:
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+    
     num_frames = int(duration * fps)
     height, width = frame.shape[:2]
 
@@ -213,3 +218,19 @@ def convert_frame_to_video(frame: np.ndarray, duration: float, output_path: str,
         out.write(frame)
 
     out.release()
+    
+def replicate_frame_as_video_array(frame: np.ndarray, duration: float, fps: int = 30) -> List[np.ndarray]:
+    """
+    Retorna uma lista de frames duplicados a partir de um frame único,
+    respeitando a duração e fps fornecidos.
+
+    Args:
+        frame (np.ndarray): Frame base.
+        duration (float): Duração total em segundos.
+        fps (int): Frames por segundo.
+
+    Returns:
+        List[np.ndarray]: Lista de frames.
+    """
+    num_frames = int(duration * fps)
+    return [frame.copy() for _ in range(num_frames)]
