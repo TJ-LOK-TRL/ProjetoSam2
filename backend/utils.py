@@ -189,4 +189,27 @@ def unique_filename(folder: str, prefix: str = "file_", ext: str = ".txt") -> st
         full_path = os.path.join(folder, filename)
         if not os.path.exists(full_path):
             return filename
-    
+   
+def convert_frame_to_video(frame: np.ndarray, duration: float, output_path: str, fps: int = 30) -> None:
+    """
+    Converte um frame numpy array para um vídeo MP4 com duração especificada e salva em arquivo.
+
+    Args:
+        frame (np.ndarray): O frame a ser convertido.
+        duration (float): Duração do vídeo em segundos.
+        output_path (str): Caminho para salvar o arquivo de vídeo.
+        fps (int): Frames por segundo do vídeo.
+
+    Returns:
+        None
+    """
+    num_frames = int(duration * fps)
+    height, width = frame.shape[:2]
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    for _ in range(num_frames):
+        out.write(frame)
+
+    out.release()

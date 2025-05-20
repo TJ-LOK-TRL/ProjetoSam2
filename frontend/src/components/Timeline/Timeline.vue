@@ -47,7 +47,6 @@
     import { useVideoEditor } from '@/stores/videoEditor'
     import { useTimelineStore } from '@/stores/timeline'
     import TimelineBar from './TimelineBar.vue'
-    /*import Frames from './Frames.vue'*/
     import Frames from './Frames/Frame.vue'
 
     const videoEditor = useVideoEditor()

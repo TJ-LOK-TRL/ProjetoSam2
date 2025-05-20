@@ -16,7 +16,6 @@ class LayerInfo:
     st_offset: int = 0.0 # Offset de início (em segundos)
     start_t: float = 0.0  # Tempo de início (em segundos)
     end_t: Optional[float] = None  # Tempo de fim (em segundos, None=até o final)
-    mask: Optional[np.ndarray] = None  # Máscara binária (0=transparente, 1=opaco)
     rotation: int = 0
     speed: float = 1
     flipped: bool = False
@@ -106,15 +105,6 @@ class VideoCompositor:
         self.layers.append(layer)
         self.layers.sort(key=lambda x: x.layer_idx)  # Garante ordem correta
 
-    def _process_mask(self, render_info: RenderInfo, width: int, height: int) -> Optional[np.ndarray]:
-        if not render_info.layer.mask:
-            return None
-        
-        if not render_info.cached_mask:
-            render_info.cached_mask = cv2.resize(render_info.layer.mask, (width, height))
-            
-        return render_info.cached_mask
-
     def _initialize_video_capture(self, layer: LayerInfo, cap: cv2.VideoCapture) -> None:
         """Inicializa os capturadores de vídeo para todas as layers."""
         if not cap.isOpened():
@@ -202,17 +192,7 @@ class VideoCompositor:
         
         if frame is None:
             return False
-        
-        # Aplica rotação ao frame
-        if layer.rotation and False:
-            if frame.shape[2] == 3:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
                 
-            h, w = frame.shape[:2]
-            center = (w // 2, h // 2)
-            M = cv2.getRotationMatrix2D(center, -layer.rotation, 1.0)
-            frame = cv2.warpAffine(frame, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(0,0,0,0))
-        
         # Aplica rotação ao frame
         if layer.rotation:
             if frame.shape[2] == 3:

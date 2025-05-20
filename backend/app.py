@@ -29,13 +29,12 @@ from sam2.build_sam import build_sam2
 from sam2_segmenter import SAM2Segmenter, VideoObjectData
 from data_saver import DataSaver
 from utils import *
+from text_generator import create_text_frame
 
 app = Flask(__name__)
 
 app.debug = True  # Ativa o modo debug
 CORS(app)
-
-
 
 # Definição da pasta de imagens
 IMAGES_FOLDER = 'images'
@@ -372,60 +371,79 @@ def download():
         )
         processor = VideoEffectsProcessor()
 
-        videos_metadata = metadata.get('videos_data', {})
+        elements_metadata = metadata.get('elements_data', {})
         video_data = {}
-        for idx, video_file in enumerate(videos):
-            video_id = list(videos_metadata.keys())[idx] if videos_metadata else str(idx)
+        #for idx, video_file in enumerate(videos):
+        for idx, video_id in enumerate(elements_metadata.keys()):
+            #video_id = list(elements_metadata.keys())[idx] if elements_metadata else str(idx)
+            element_metadata = elements_metadata.get(video_id, {})
             input_path = os.path.join(temp_dir, f'input_{video_id}.mp4')
-            video_metadata = videos_metadata.get(video_id, {})
-            if not video_metadata:
+            if not element_metadata:
                 print(f"\n[AVISO] Nenhum metadado encontrado para o vídeo {video_id}")
-                print('\tVideos data:', videos_metadata)
-                print('\tVideo metadata:', video_metadata)
+                print('\tVideos data:', elements_metadata)
+                print('\tVideo metadata:', element_metadata)
                 continue
-            effects = video_metadata.get('effects', {})
-            chromaKeyData = video_metadata.get('chromaKeyDetectionData', {})
-            stageMasks = video_metadata.get('stageMasks', None)
-            masks = decode_masks(DataSaver.get_stage(stageMasks) or {}) if stageMasks else None            
-            rotation = video_metadata.get('rotation', 0)
-            flipped = video_metadata.get('flipped', False)
-            speed = video_metadata.get('speed', 1)
-            draw = video_metadata.get('draw', True)
+            
+            element_type = element_metadata.get('type', 'video')
+            rotation = element_metadata.get('rotation', 0)
+            flipped = element_metadata.get('flipped', False)
+            speed = element_metadata.get('speed', 1)
+            draw = element_metadata.get('draw', True)
+            st_offset = element_metadata.get('st_offset', 0)
+            start_t = element_metadata.get('start_t', 0)
+            end_t = element_metadata.get('end_t', None)
             rect = Rect(
-                video_metadata.get('x', 0),
-                video_metadata.get('y', 0),
-                video_metadata.get('width', None),
-                video_metadata.get('height', None)
+                int(element_metadata.get('x', 0)),
+                int(element_metadata.get('y', 0)),
+                int(element_metadata.get('width', None)),
+                int(element_metadata.get('height', None))
             )
             
-            
-            video_data[idx] = {
-                'idx': idx,
-                'video_id': video_id,
-                'video_file': video_file,
-                'effects': effects,
-                'stageMasks': stageMasks,
-                'masks': masks,
-                'chromaKeyData': chromaKeyData,
-                'rect': rect,
-                'extra_data': {},
-                'rotation': rotation,
-                'flipped': flipped,
-                'draw': draw,
-            }
-            
-            # Salva o vídeo original
-            video_file.save(input_path)
-                        
+            if element_type == 'video':
+                effects = element_metadata.get('effects', {})
+                chromaKeyData = element_metadata.get('chromaKeyDetectionData', {})
+                stageMasks = element_metadata.get('stageMasks', None)
+                masks = decode_masks(DataSaver.get_stage(stageMasks) or {}) if stageMasks else None    
+                video_file = videos[idx]                    
+                video_file.save(input_path)
+                video_data[idx] = {
+                    'idx': idx,
+                    'video_id': video_id,
+                    'video_file': video_file,
+                    'effects': effects,
+                    'stageMasks': stageMasks,
+                    'masks': masks,
+                    'chromaKeyData': chromaKeyData,
+                    'rect': rect,
+                    'extra_data': {},
+                    'rotation': rotation,
+                    'flipped': flipped,
+                    'draw': draw,
+                }
+                
+            elif element_type == 'text':
+                text = element_metadata.get('text', '')
+                style = element_metadata.get('style', {})
+                print(text, style)
+                font_family = style.get('fontFamily', 'Raleway')
+                font_size = style.get('fontSize', 20)
+                color = style.get('color', '#FFFFFF')
+                bold = style.get('fontWeight', 400)
+                italic = 'italic' in style.get('fontStyle', '')
+                align = style.get('textAlign', 'left')
+                
+                duration = end_t - start_t if start_t and end_t else 5
+                text_frame = create_text_frame(text, font_family, font_size, color, bold, italic, align, rect.width, rect.height)
+                convert_frame_to_video(text_frame, duration, input_path, 1)
+                                        
             # Adiciona layer com configurações
             compositor.add_layer(LayerInfo(
                 video_path=input_path,
                 rect=rect,
                 layer_idx=idx,
-                st_offset=video_metadata.get('st_offset', 0),
-                start_t=video_metadata.get('start_t', 0),
-                end_t=video_metadata.get('end_t', None),
-                mask=video_metadata.get('mask', None),
+                st_offset=st_offset,
+                start_t=start_t,
+                end_t=end_t,
                 rotation=rotation,
                 speed=speed,
                 flipped=flipped,
@@ -445,6 +463,9 @@ def download():
         ) -> np.ndarray:
             """Função de callback para processar cada frame"""
             video_idx = render_info.layer.layer_idx
+            if video_idx not in video_data:
+                return frame
+            
             rect = video_data[video_idx].get('rect', None)
             masks = video_data[video_idx].get('masks', None)
             effects_config = video_data[video_idx].get('effects', {})

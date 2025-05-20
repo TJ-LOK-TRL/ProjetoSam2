@@ -67,10 +67,10 @@
 
             const frameRect = frame.getBoundingClientRect();
 
-            // Verifica sobreposição vertical (pelo menos 50% de altura)
+            const minHeight = Math.min(currentRect.height, frameRect.height);
             const verticalOverlap =
-                currentRect.bottom > frameRect.top + frameRect.height * 0.5 &&
-                currentRect.top < frameRect.bottom - frameRect.height * 0.5;
+                currentRect.bottom > frameRect.top + minHeight * 0.3 &&
+                currentRect.top < frameRect.bottom - minHeight * 0.3;
 
             return verticalOverlap;
         });
@@ -78,6 +78,8 @@
         if (targetFrame) {
             console.log('Reorder:', currentFrame.dataset.id, targetFrame.dataset.id);
             videoEditor.reorderElements(currentFrame.dataset.id, targetFrame.dataset.id);
+        } else {
+            console.log('Reorder:', currentFrame.dataset.id, 'none');
         }
 
         currentFrame.style.removeProperty('top');
@@ -103,10 +105,10 @@
 
     async function init() {
         element.value = props.element
-        
+
         await nextTick()
         update()
-        
+
         grabInstance.value = new Grab(framesContainerRef.value, framesContainerRef.value);
         grabInstance.value.useRelativeOffsets = true
 
@@ -280,5 +282,4 @@
     .right-cut {
         right: 0;
     }
-
 </style>

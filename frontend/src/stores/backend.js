@@ -7,10 +7,12 @@ export const useBackendStore = defineStore('backend', () => {
     const error = ref(null)
     //const ip = ref('192.168.1.231')
     const ip = ref('127.0.0.1')
+    const port = ref('38080')
 
     async function test() {
         try {
-            const response = await axios.get(`http://${ip.value}:38080/test`)
+            console.log(`http://${ip.value}:${port.value}/test`)
+            const response = await axios.get(`http://${ip.value}:${port.value}/test`)
             console.log(response.data)
         } catch (err) {
             error.value = err.message
@@ -21,7 +23,7 @@ export const useBackendStore = defineStore('backend', () => {
         const formData = new FormData()
         formData.append('video', file)
 
-        const response = await axios.post(`http://${ip.value}:38080/video/basic_data`, formData, {
+        const response = await axios.post(`http://${ip.value}:${port.value}/video/basic_data`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -34,7 +36,7 @@ export const useBackendStore = defineStore('backend', () => {
         const formData = new FormData()
         formData.append('frame', frame)
 
-        const response = await axios.post(`http://${ip.value}:38080/video/frame/mask`, formData, {
+        const response = await axios.post(`http://${ip.value}:${port.value}/video/frame/mask`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -71,7 +73,7 @@ export const useBackendStore = defineStore('backend', () => {
                 stage_name: (options.stage_name || null),
             });
 
-            const response = await axios.post(`http://${ip.value}:38080/video/mask`, formData, {
+            const response = await axios.post(`http://${ip.value}:${port.value}/video/mask`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
@@ -96,7 +98,7 @@ export const useBackendStore = defineStore('backend', () => {
             // 2. Adiciona todos os metadados em um único JSON
             formData.append('metadata', JSON.stringify(metadata));
 
-            const response = await axios.post(`http://${ip.value}:38080/download`, formData, {
+            const response = await axios.post(`http://${ip.value}:${port.value}/download`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },

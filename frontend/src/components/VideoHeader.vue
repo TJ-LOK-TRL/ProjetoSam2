@@ -67,7 +67,7 @@ function stopEditing() {
 
 async function download() {
     console.log('Download clicked')
-    const data = await videoEditor.compileVideos(videoEditor.getVideos(), videoEditor.getTexts(), true)
+    const data = await videoEditor.compileVideos(videoEditor.getElements(), true)
     if (data) {
         videoEditor.download(data)
     }

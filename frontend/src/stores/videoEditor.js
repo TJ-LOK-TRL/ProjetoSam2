@@ -424,9 +424,9 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         onCompileVideoMetadataCallbacks.value.push(callback)
     }
 
-    async function compileVideos(videos, texts = [], compute_transparency = false) {
+    async function compileVideos(elements, compute_transparency = false) {
         try {
-            if (!videos || videos.length === 0) {
+            if (!elements || elements.length === 0) {
                 console.error("Nenhum vídeo encontrado para compilar.");
                 return null;
             }
@@ -442,51 +442,51 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                 height: output_height,
                 fps: fps.value,
                 enable_transparency: compute_transparency,
-                videos_data: {},
-                text_data: {},
+                elements_data: {},
             };
 
             const videos_files = [];
-            for (let index = 0; index < videos.length; index++) {
-                const video = videos[index];
-                const { x, y, width, height } = getRectBoxOfVideo(video);
-                const flipped = getFlipStateOfVideo(video)
+            for (let index = 0; index < elements.length; index++) {
+                const element = elements[index];
+                const { x, y, width, height } = getRectBoxOfVideo(element);
+                const flipped = getFlipStateOfVideo(element)
 
-                metadata.videos_data[video.id] = await getCompileVideoMetadata({
+                const element_data = {
                     x: x,
                     y: y,
                     width: width,
                     height: height,
                     layer_idx: index,
-                    st_offset: video.stOffset,
-                    start_t: video.start,
-                    end_t: video.end,
-                    stageMasks: video.track_id,
-                    effects: register.value.getLastEffectOfVideo(video.id),
-                    chromaKeyDetectionData: video.chromaKeyDetectionData,
-                    rotation: getRotationOfVideo(video),
-                    speed: video.speed,
+                    st_offset: element.stOffset,
+                    start_t: element.start,
+                    end_t: element.end,
+                    rotation: getRotationOfVideo(element),
+                    speed: element.speed,
                     flipped: flipped,
-                    draw: video.shouldBeDraw,
-                }, video);
+                    draw: element.shouldBeDraw,
+                    type: element.type,
+                }
 
-                console.log("Video data:", metadata.videos_data[video.id]);
+                if (element.type === 'video') {
+                    Object.assign(element_data, {
+                        stageMasks: element.track_id,
+                        effects: register.value.getLastEffectOfVideo(element.id),
+                        chromaKeyDetectionData: element.chromaKeyDetectionData,
+                    });
 
-                videos_files.push(video.file);
-            }
+                    videos_files.push(element.file);
+                } else if (element.type === 'text') {
+                    element.style.fontSize = parseInt(element.style.fontSize.replace('px', ''), 10);
+                    Object.assign(element_data, {
+                        text: element.text,
+                        style: element.style,
+                    });
+                    videos_files.push(1);
+                }
 
-            for (let index = 0; index < texts.length; index++) {
-                const text = texts[index];
-                const { x, y, width, height } = text.getRect();
-                metadata.text_data[text.id] = {
-                    x: x,
-                    y: y,
-                    width: width,
-                    height: height,
-                    layer_idx: index + videos.length,
-                    text: text.text,
-                    style: text.style,
-                };
+                metadata.elements_data[element.id] = await getCompileVideoMetadata(element_data, element);
+
+                console.log("Element data:", metadata.elements_data[element.id]);
             }
 
             const data = await backend.download(videos_files, metadata);
@@ -609,7 +609,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         addVideo, addText, cloneVideo, getVideos, getTexts, getElements, generateMasksForFrame, selectEditorElement, setVideoPlayerContainer,
         onFirstVideoMetadataLoaded, onEditorElementSelected, onVideoMetadataLoaded, reorderElements, generateMasksForVideo,
         removeEditorElementSelectedCallback, changeTool, changeToPreviousTool, removeElement, getBoxOfVideo, download, getVideoMetadata,
-        compileVideos, onElementAdded, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfVideo, 
+        compileVideos, onElementAdded, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfVideo,
         setVideoPlayerSize, onCompileVideoMetadata, getFlipStateOfVideo, exportProject, importProject, setVideoPlayerSpaceContainer,
     }
 })

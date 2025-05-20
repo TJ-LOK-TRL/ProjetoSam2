@@ -49,8 +49,11 @@
         nextTick(() => {
             videoEditor.registerBox(text.value, {
                 getRect: (abs = false) => {
-                    return boxVideoRef.value?.getRect(abs)
+                    return boxTextRef.value?.getRect(abs)
                 },
+                flip: () => boxTextRef.value?.flip(),
+                getFlip: () => boxTextRef.value?.getFlip(),
+                getRotation: () => boxTextRef.value?.getRotation(),
                 box: boxTextRef.value,
             })
         })
