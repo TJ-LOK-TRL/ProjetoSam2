@@ -56,12 +56,15 @@
                 }
             }
 
-            videoEditor.maskHandler.video = video
-
-            const boxOfVideo = videoEditor.mapperBoxVideo[video.id]
-            videoEditor.maskHandler.canvasToApplyColorEffect = boxOfVideo.getCanvasToApplyColorEffect()
-            videoEditor.maskHandler.canvasToApplyColorEffect = boxOfVideo.getCanvasToApplyVideo()
-            videoEditor.maskHandler.getCanvasSize = boxOfVideo.getBoxVideoSize
+            
+            videoEditor.effectHandler.setVideoToApplyEffect(video)
+            const callbackId = 'MagicTools'
+            videoEditor.removeOnEditorElementSelected(callbackId)
+            videoEditor.onEditorElementSelected(callbackId, (selectedElement) => {
+                if (selectedElement?.id === video?.id) {
+                    videoEditor.effectHandler.setVideoToApplyEffect(video)
+                }
+            })
 
             videoEditor.changeTool('configSam', 'media')
         }

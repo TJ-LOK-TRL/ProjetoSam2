@@ -1,9 +1,10 @@
 export class VideoEditorRegister {
     constructor() {
         this.maskEffects = {};
+        this.preventResets = new Set();
     }
 
-    registerMaskEffect(video_id, obj_id, effect_id, effectData) {
+    registerMaskEffect(video_id, obj_id, effect_id, effectData, can_be_reset = true) {
         if (!this.maskEffects[video_id]) {
             this.maskEffects[video_id] = {};
         }
@@ -17,6 +18,11 @@ export class VideoEditorRegister {
         }
 
         this.maskEffects[video_id][obj_id][effect_id].push(effectData);
+        console.warn('Can_be_reset', can_be_reset);
+        if (!can_be_reset) {
+            console.warn('Effect cannot be reset', video_id, obj_id, effect_id);
+            this.preventResets.add(`${video_id}_${obj_id}_${effect_id}`);
+        }
     }
 
     getLastEffectOfVideo(video_id) {
@@ -65,6 +71,12 @@ export class VideoEditorRegister {
         if (!objectEffects) return;
 
         for (const effect_id in objectEffects) {
+            if (this.preventResets.has(`${video_id}_${obj_id}_${effect_id}`)) {
+                console.warn('Effect cannot be reset', video_id, obj_id, effect_id);
+                continue;
+            }
+
+            console.warn('Effect can be reset', video_id, obj_id, effect_id);
             this.maskEffects[video_id][obj_id][effect_id].push('reset');
         }
     }

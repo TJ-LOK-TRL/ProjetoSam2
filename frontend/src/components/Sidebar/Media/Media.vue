@@ -26,6 +26,10 @@
         { use_cache: false, src: "/videos/corrida.mp4" },
         { use_cache: false, src: "/videos/corrida_4xspeed.mp4" },
         { use_cache: false, src: "/videos/anatomical_model.mp4" },
+        { use_cache: false, src: "/videos/pessoa_correr_cutted.mp4" },
+        { use_cache: false, src: "/videos/football_min.mp4" },
+        { use_cache: false, src: "/videos/back_doll.mp4" },
+        { use_cache: false, src: "/videos/front_doll.mp4" },
     ])
 
     async function onFileUpload(file) {

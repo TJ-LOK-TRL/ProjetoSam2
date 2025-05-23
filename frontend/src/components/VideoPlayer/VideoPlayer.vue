@@ -63,9 +63,9 @@
         spaceContainerRef.value.style.height = `${displayHeight}px`
 
         //console.log('OldVideoSize:', videoWidth, videoHeight)
-        console.log('NewVideoSize:', videoWidth, videoHeight)
-        console.log('ContainerSize:', containerWidth, containerHeight)
-        console.log('DisplaySize:', displayWidth, displayHeight)
+        //console.log('NewVideoSize:', videoWidth, videoHeight)
+        //console.log('ContainerSize:', containerWidth, containerHeight)
+        //console.log('DisplaySize:', displayWidth, displayHeight)
 
         recalculateBoxsSize()
     }
@@ -133,7 +133,7 @@
             box.style.transform = 'none';
             //const boxRect = box.getBoundingClientRect();
             const boxRect = getRectWithZoom(box, videoEditorStore.zoomLevel)
-            console.log('Dimensões sem rotação:', boxRect);
+            //console.log('Dimensões sem rotação:', boxRect);
 
             if (!previousContainerRect) {
                 previousContainerRect = newContainerRect;
@@ -143,15 +143,15 @@
 
             const widthRatio = (newContainerRect.width) / previousContainerRect.width;
             const heightRatio = (newContainerRect.height) / previousContainerRect.height;
-            console.log(newContainerRect)
-            console.log('widthRatio:', widthRatio);
-            console.log('heightRatio:', heightRatio);
-            console.log('zoom:', videoEditorStore.zoomLevel)
+            //console.log(newContainerRect)
+            //console.log('widthRatio:', widthRatio);
+            //console.log('heightRatio:', heightRatio);
+            //console.log('zoom:', videoEditorStore.zoomLevel)
 
             const boxWidth = boxRect.width
             const boxHeight = boxRect.height
-            console.log('boxWidth:', boxWidth, box.style.width)
-            console.log('boxHeight:', boxHeight, box.style.height)
+            //console.log('boxWidth:', boxWidth, box.style.width)
+            //console.log('boxHeight:', boxHeight, box.style.height)
 
             // Calcula posição relativa atual (em relação ao container)
             const currentLeft = boxRect.left - newContainerRect.left;
@@ -168,13 +168,13 @@
             box.style.left = `${newBoxLeft}px`;
             box.style.top = `${newBoxTop}px`;
 
-            console.log(box)
-            console.log(boxRect)
-            console.log(box.style.width)
-            console.log(newBoxWidth);
-            console.log(newBoxHeight);
-            console.log(newBoxLeft);
-            console.log(newBoxTop);
+            //console.log(box)
+            //console.log(boxRect)
+            //console.log(box.style.width)
+            //console.log(newBoxWidth);
+            //console.log(newBoxHeight);
+            //console.log(newBoxLeft);
+            //console.log(newBoxTop);
 
             box.style.transform = originalTransform;
         });

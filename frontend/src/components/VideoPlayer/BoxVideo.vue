@@ -1,5 +1,6 @@
 <template>
-    <ResizableBox ref="boxVideoRef" class="video-box" :enable-resize="enableResize" @click="handleClick" :class="{ 'no-pointer-events': !video?.shouldBeDraw || !video?.visible, 'element-box-selected': video?.id === videoEditor?.selectedElement?.id && video?.visible && video?.shouldBeDraw}">
+    <ResizableBox ref="boxVideoRef" class="video-box" :enable-resize="enableResize" @click="handleClick"
+        :class="{ 'no-pointer-events': !video?.shouldBeDraw || !video?.visible, 'element-box-selected': video?.id === videoEditor?.selectedElement?.id && video?.visible && video?.shouldBeDraw}">
         <!-- <video></video> -->
         <canvas ref="videoCanvasRef" class="video-canvas"></canvas>
 
@@ -52,7 +53,7 @@
     const colorEffectCanvasRef = ref(null);
     const videoCanvasRef = ref(null);
     const shouldUpdateVideoMasks = ref(false);
-    const onDrawVideoCallbacks = ref(new Map()) 
+    const onDrawVideoCallbacks = ref(new Map())
     const drawVideoCallbacksCache = ref({});
 
     const lastDrawFrame = ref(-1)
@@ -66,7 +67,8 @@
             //shouldUpdateVideoMasks.value = tool === 'configSam' || tool === 'samEffects' || tool === 'colorEffect' || tool === 'overlayEffect' || tool === 'blendEffect'
             shouldUpdateVideoMasks.value = tool === 'configSam'
             if (videoEditor.maskHandler?.video?.id === video?.value?.id) {
-                enableResize.value = !maskType && tool !== 'samEffects' && tool !== 'colorEffect' && tool !== 'overlayEffect' && tool !== 'blendEffect'
+                //enableResize.value = !maskType && tool !== 'samEffects' && tool !== 'colorEffect' && tool !== 'overlayEffect' && tool !== 'blendEffect'
+                enableResize.value = !maskType
             }
             else {
                 enableResize.value = true
@@ -76,22 +78,22 @@
 
     //watch(() => video.value?.color, (newColor) => {
     //    if (!newColor || !video.value?.trackMasks) return;
-//
+    //
     //    videoEditor.isLoading = true;
-//
+    //
     //    const rgb = hexToRgb(newColor);
     //    if (!rgb) {
     //        videoEditor.isLoading = false;
     //        return;
     //    }
-//
+    //
     //    const maskColor = [rgb.r, rgb.g, rgb.b, 100];
-//
+    //
     //    const processingPromises = [];
-//
+    //
     //    for (const frameIdx of Object.keys(video.value.trackMasks)) {
     //        const frameData = video.value.trackMasks[frameIdx];
-//
+    //
     //        for (const objId of Object.keys(frameData)) {
     //            const maskData = frameData[objId];
     //            processingPromises.push(
@@ -105,7 +107,7 @@
     //            );
     //        }
     //    }
-//
+    //
     //    Promise.all(processingPromises)
     //        .then(() => {
     //            lastDrawFrame.value = -1;
@@ -237,9 +239,11 @@
                 return [0, 0]
             }
 
+            const rect = boxVideoRef.value.getRect()
+
             return [
-                box.offsetWidth || box.getBoundingClientRect().width,
-                box.offsetHeight || box.getBoundingClientRect().height
+                rect.width,
+                rect.height
             ]
         } catch (e) {
             console.error('Erro ao tentar acessar boxRef:', e)
@@ -249,7 +253,10 @@
     }
 
     function checkMaskHover(event) {
-        videoEditor.maskHandler.maskEvent(event, maskCanvasRef.value, video.value.masks, videoEditor.zoomLevel,
+        boxVideoRef.value.pauseTransform()
+        const detected = videoEditor.maskHandler.maskEvent(event, maskCanvasRef.value, video.value.masks,
+            boxVideoRef.value.getRotation(),
+            boxVideoRef.value.getFlip(),
             mask => {
                 if (videoEditor.maskHandler.activeMask?.id == mask.id || videoEditor.maskHandler.selectedMask?.id == mask.id)
                     return
@@ -264,10 +271,20 @@
                 }
             }
         )
+        boxVideoRef.value.restoreTransform()
+
+        if (detected) {
+            enableResize.value = false
+        } else {
+            enableResize.value = true
+        }
     }
 
     function checkMaskClick(event) {
-        videoEditor.maskHandler.maskEvent(event, maskCanvasRef.value, video.value.masks, videoEditor.zoomLevel,
+        boxVideoRef.value.pauseTransform()
+        const detected = videoEditor.maskHandler.maskEvent(event, maskCanvasRef.value, video.value.masks,
+            boxVideoRef.value.getRotation(),
+            boxVideoRef.value.getFlip(),
             mask => {
                 if (videoEditor.maskHandler.selectedMask?.id == mask.id) {
                     videoEditor.maskHandler.selectedMask = null;
@@ -283,6 +300,13 @@
 
             }
         )
+        boxVideoRef.value.restoreTransform()
+
+        if (detected) {
+            enableResize.value = false
+        } else {
+            enableResize.value = true
+        }
     }
 
     function onHoverLeave(event) {
@@ -377,17 +401,21 @@
         await updateVideoMasks()
     }
 
+    async function updateDetectionAndVisibleMasks(newMasks) {
+        nextTick(async () => {
+            videoEditor.maskHandler.drawDetectionMasks(maskCanvasRef.value, newMasks, ...getBoxVideoSize());
+            videoEditor.maskHandler.drawVisibleMasks(activeMaskCanvasRef.value, newMasks, ...getBoxVideoSize());
+            video.value.backgroundMask = await videoEditor.maskHandler.getBackgroundMask(video.value.masks, ...getBoxVideoSize());
+        });
+    }
+
     onMounted(() => {
         video.value = props.video
         video.value.onMetadataLoaded(() => {
             enableResize.value = true
 
             watch(() => video.value.masks, (newMasks) => {
-                nextTick(async () => {
-                    videoEditor.maskHandler.drawDetectionMasks(maskCanvasRef.value, newMasks, ...getBoxVideoSize());
-                    videoEditor.maskHandler.drawVisibleMasks(activeMaskCanvasRef.value, newMasks, ...getBoxVideoSize());
-                    video.value.backgroundMask = await videoEditor.maskHandler.getBackgroundMask(video.value.masks, ...getBoxVideoSize());
-                });
+                updateDetectionAndVisibleMasks(newMasks)
             }, { deep: true });
 
             video.value.onVideoHided(() => {
@@ -395,7 +423,7 @@
             })
 
             video.value.onFrameUpdated(onFrameUpdated)
-            
+
             video.value.element.addEventListener('seeked', async () => {
                 await drawVideo();
             }, { once: true });
@@ -404,29 +432,17 @@
                 videoEditor.registerBox(video.value, {
                     // Para obter a própria instância dentro do componente:
                     box: boxVideoRef,
-                    getCanvasToApplyColorEffect: () => {
-                        return colorEffectCanvasRef.value
-                    },
-                    getCanvasToApplyMask: () => {
-                        return maskCanvasRef.value
-                    },
-                    getCanvasToApplyVideo: () => {
-                        return videoCanvasRef.value
-                    },
-                    getCanvasToApplyActiveMask: () => {
-                        return activeMaskCanvasRef.value
-                    },
+                    getCanvasToApplyColorEffect: () => colorEffectCanvasRef.value,
+                    getCanvasToApplyMask: () => maskCanvasRef.value,
+                    getCanvasToApplyVideo: () => videoCanvasRef.value,
+                    getCanvasToApplyActiveMask: () => activeMaskCanvasRef.value,
                     clearVisibleCanvas: () => {
                         videoEditor.maskHandler.clearCanvas(activeMaskCanvasRef.value, ...getBoxVideoSize())
                         videoEditor.maskHandler.clearCanvas(colorEffectCanvasRef.value, ...getBoxVideoSize())
                     },
-                    clearActiveCanvas: () => {
-                        videoEditor.maskHandler.clearCanvas(activeMaskCanvasRef.value, ...getBoxVideoSize())
-                    },
+                    clearActiveCanvas: () => videoEditor.maskHandler.clearCanvas(activeMaskCanvasRef.value, ...getBoxVideoSize()),
                     getBoxVideoSize: getBoxVideoSize,
-                    getRect: (abs=false) => {
-                        return boxVideoRef.value?.getRect(abs)
-                    },
+                    getRect: (abs = false) => boxVideoRef.value?.getRect(abs),
                     getRotation: () => boxVideoRef.value?.getRotation(),
                     addOnDrawVideoCallback: (id, callback, allow_cache = true) => {
                         drawVideoCallbacksCache.value = {};
@@ -443,6 +459,7 @@
                     video: video.value,
                     flip: () => boxVideoRef.value?.flip(),
                     getFlip: () => boxVideoRef.value?.getFlip(),
+                    updateDetectionAndVisibleMasks: (newMasks) => updateDetectionAndVisibleMasks(newMasks),
                 })
                 await drawVideo()
             })
@@ -566,7 +583,7 @@
         background-color: #F44336;
     }
 
-    .video-box { 
+    .video-box {
         border: 1px solid transparent;
     }
 </style>

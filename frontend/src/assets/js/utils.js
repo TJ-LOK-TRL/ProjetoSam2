@@ -154,30 +154,53 @@ export function getStageNameOfVideo(video, suffix) {
     return video.file.name + suffix
 }
 
-// DO NOT WORK WELL
+export function calculateTimeByFrameIdx(frameIdx, fps) {
+    if (frameIdx < 0) {
+        return 0
+    }
+
+    const frameDuration = 1 / fps;
+
+    // Cálculo preciso do tempo
+    let targetTime = frameIdx / fps;
+    const targetTimeTruncated = Math.floor(targetTime * 1e6) / 1e6; // Irritante
+
+    // Verificação de precisão
+    if (Math.floor(targetTimeTruncated * fps) < frameIdx) {
+        // Ajuste preciso de meio frame duration
+        const safeAdjustment = (frameDuration / 2) * 0.999; // Fator de segurança extra
+        targetTime = targetTime + safeAdjustment;
+        console.log(`Ajustando seek: +${safeAdjustment} (metade do frame duration com margem)`);
+    }
+
+    return targetTime
+}
+
+// DO NOT WORK WELL; NOT USED ANYMORE; COULD BE REMOVED
 export function getOriginalDimensions(bounds, rotation) {
     const { x, y, width: w, height: h } = bounds
 
     // bounds is a POJO with shape: { x, y, w, h }, update if needed
     // alpha is the rotation IN RADIANS
-    const vertices = (alpha) => { const
+    const vertices = (alpha) => {
+        const
         A = { x: x + w * Math.sin(alpha), y },
         B = { x, y: y + h * Math.sin(alpha) },
         C = { x: x + w - w * Math.sin(alpha), y },
         D = { x, y: y + h - h * Math.sin(alpha) }
         return { A, B, C, D }
     }
-    
+
     // bounds is a POJO with shape: { x, y, w, h }, update if needed
     // vertices is a POJO with shape: { A, B, C, D }, as returned by the `vertices` method
     const sides = (vertices) => {
         const { A, B, C, D } = vertices,
-        EA = A.x - x,
-        ED = D.y - y,
-        AF = w - EA,
-        FB = h - ED,
-        H = Math.sqrt(EA * EA + ED * ED),
-        W = Math.sqrt(AF * AF + FB * FB)
+            EA = A.x - x,
+            ED = D.y - y,
+            AF = w - EA,
+            FB = h - ED,
+            H = Math.sqrt(EA * EA + ED * ED),
+            W = Math.sqrt(AF * AF + FB * FB)
         return { h: H, w: W }
     }
 
@@ -194,7 +217,7 @@ export function getOriginalDimensions(bounds, rotation) {
             Ay = y + h / 2 + r * Math.sin(angleA)
         return { newX: Ax, newY: Ay }
     }
-    
+
     // bounds is a POJO with shape: { x, y, w, h }, update if needed
     // rotations is... the rotation of the inner rectangle IN RADIANS
     const radians = Math.PI / 180 * rotation;
@@ -210,4 +233,5 @@ export function getRotation(element) {
     return Math.atan2(matrix.b, matrix.a) * (180 / Math.PI);
 }
 
+// CAN BE REMOVED
 window.getOriginalDimensions = getOriginalDimensions

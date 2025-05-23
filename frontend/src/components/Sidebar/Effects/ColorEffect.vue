@@ -89,11 +89,11 @@
         const boxOfVideo = videoEditor.getBoxOfVideo(video)
         console.log(settings)
 
+
         await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, mask.objId === -1 ? 'background' : 'object');
         await videoEditor.effectHandler.changeColorOfMask(video, mask, color, settings)
 
         const effect_id = EffectHandler.id(mask.objId === -1 ? EffectHandler.COLOR_BKG_EFFECT_ID : EffectHandler.COLOR_OBJ_EFFECT_ID, mask.objId)
-        console.log('EFFECT_ID:', effect_id)
         boxOfVideo.addOnDrawVideoCallback(effect_id, async img => {
             let frame_mask;
             if (mask.objId === -1) {        

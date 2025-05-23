@@ -373,6 +373,7 @@ def download():
 
         elements_metadata = metadata.get('elements_data', {})
         video_data = {}
+        count_video = 0
         #for idx, video_file in enumerate(videos):
         for idx, video_id in enumerate(elements_metadata.keys()):
             #video_id = list(elements_metadata.keys())[idx] if elements_metadata else str(idx)
@@ -403,7 +404,8 @@ def download():
                 chromaKeyData = element_metadata.get('chromaKeyDetectionData', {})
                 stageMasks = element_metadata.get('stageMasks', None)
                 masks = decode_masks(DataSaver.get_stage(stageMasks) or {}) if stageMasks else None    
-                video_file = videos[idx]                    
+                video_file = videos[count_video]   
+                count_video += 1                 
                 video_data[idx] = {
                     'idx': idx,
                     'video_id': video_id,

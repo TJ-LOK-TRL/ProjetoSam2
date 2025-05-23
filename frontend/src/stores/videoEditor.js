@@ -11,6 +11,8 @@ import EditorElementManager from "/src/assets/js/videoEditor/EditorElementManage
 import { base64ToBlob } from "/src/assets/js/utils.js"
 import { VideoEditorRegister } from "../assets/js/videoEditorRegister"
 
+
+
 export const useVideoEditor = defineStore('videoEditor', () => {
     const backend = useBackendStore()
     const elementManager = ref(new EditorElementManager())
@@ -40,7 +42,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     const videoPlayerHeightResized = ref(null)
 
     const selectedElement = ref(null)
-    const onEditorElementSelectedCallbacks = ref([])
+    const onEditorElementSelectedCallbacks = ref(new Map())
     const onFirstVideoMetadataLoadedCallbacks = ref([])
     const onVideoMetadataLoadedCallbacks = ref([])
 
@@ -126,10 +128,23 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         onElementRemovedCallbacks.value.forEach(callback => callback(editorElement))
     }
 
-    function cloneVideo(video) {
+    function cloneVideo(video, onAddBoxCallback) {
         const newVideo = createVideo(video.file, video.fps, video.frames)
-        newVideo.trackMasks = JSON.parse(JSON.stringify(video.trackMasks))
-        newVideo.track_id = video.track_id
+        
+        onAddMapBoxVideo((_newVideo, box) => {
+            if (newVideo.id === _newVideo.id) {
+                const flipped = getFlipStateOfVideo(video)
+                if (flipped) box.flip()
+                    
+                newVideo.track_id = video.track_id
+                newVideo.trackMasks = JSON.parse(JSON.stringify(video.trackMasks))
+                newVideo.masks = JSON.parse(JSON.stringify(video.masks))
+                box.updateDetectionAndVisibleMasks(JSON.parse(JSON.stringify(video.masks)))
+
+                onAddBoxCallback?.(newVideo, box)
+            }
+        })
+        
         return newVideo
     }
 
@@ -201,39 +216,45 @@ export const useVideoEditor = defineStore('videoEditor', () => {
             };
         });
 
-        const data = await backend.getMasksForVideo(video.file, videoObjectsInfo, options)
-        video.track_id = data.track_id
+        try {
+            const data = await backend.getMasksForVideo(video.file, videoObjectsInfo, options)
 
-        const trackMasksCopy = JSON.parse(JSON.stringify(video.trackMasks));
-        Object.keys(data.result).forEach(frameIdx => {
-            const frameData = data.result[frameIdx];
-            const newFrameIdx = parseInt(frameIdx);
+            video.track_id = data.track_id
 
-            if (!trackMasksCopy[newFrameIdx]) {
-                trackMasksCopy[newFrameIdx] = {};
-            }
+            const trackMasksCopy = JSON.parse(JSON.stringify(video.trackMasks));
+            Object.keys(data.result).forEach(frameIdx => {
+                const frameData = data.result[frameIdx];
+                const newFrameIdx = parseInt(frameIdx);
 
-            Object.keys(frameData).forEach(objId => {
-                const maskData = frameData[objId];
-                const maskBlob = base64ToBlob(maskData.data, 'image/png');
-                const maskURL = URL.createObjectURL(maskBlob);
+                if (!trackMasksCopy[newFrameIdx]) {
+                    trackMasksCopy[newFrameIdx] = {};
+                }
 
-                trackMasksCopy[newFrameIdx][objId] = {
-                    id: `${newFrameIdx}-${objId}`,
-                    objId: objId,
-                    frameIdx: newFrameIdx,
-                    shape: maskData.shape,
-                    url: maskURL,
-                    videoId: video.id,
-                };
+                Object.keys(frameData).forEach(objId => {
+                    const maskData = frameData[objId];
+                    const maskBlob = base64ToBlob(maskData.data, 'image/png');
+                    const maskURL = URL.createObjectURL(maskBlob);
 
-                //console.log(video.trackMasks[newFrameIdx]);
-                //console.log(`Máscara processada para frame ${newFrameIdx}, objeto ${objId}:`, maskURL);
+                    trackMasksCopy[newFrameIdx][objId] = {
+                        id: `${newFrameIdx}-${objId}`,
+                        objId: objId,
+                        frameIdx: newFrameIdx,
+                        shape: maskData.shape,
+                        url: maskURL,
+                        videoId: video.id,
+                    };
+
+                    //console.log(video.trackMasks[newFrameIdx]);
+                    //console.log(`Máscara processada para frame ${newFrameIdx}, objeto ${objId}:`, maskURL);
+                });
             });
-        });
 
-
-        return trackMasksCopy
+            return trackMasksCopy
+        }
+        catch (error) {
+            console.error('Erro ao gerar máscaras para o vídeo:', error);
+            return null;
+        }
     }
 
     function getVideos() {
@@ -265,18 +286,17 @@ export const useVideoEditor = defineStore('videoEditor', () => {
 
     function selectEditorElement(editorElement) {
         selectedElement.value = editorElement
-        onEditorElementSelectedCallbacks.value.forEach(callback => callback(editorElement));
-    }
-
-    function onEditorElementSelected(callback) {
-        onEditorElementSelectedCallbacks.value.push(callback)
-    }
-
-    function removeEditorElementSelectedCallback(callback) {
-        const index = onEditorElementSelectedCallbacks.value.indexOf(callback);
-        if (index !== -1) {
-            onEditorElementSelectedCallbacks.value.splice(index, 1);
+        for (const callback of onEditorElementSelectedCallbacks.value.values()) {
+            callback(editorElement)
         }
+    }
+
+    function onEditorElementSelected(id, callback) {
+        onEditorElementSelectedCallbacks.value.set(id, callback)
+    }
+
+    function removeOnEditorElementSelected(id) {
+        onEditorElementSelectedCallbacks.value.delete(id)
     }
 
     function onFirstVideoMetadataLoaded(callback) {
@@ -293,6 +313,13 @@ export const useVideoEditor = defineStore('videoEditor', () => {
 
     function onElementRemoved(callback) {
         onElementRemovedCallbacks.value.push(callback)
+    }
+
+    function removeOnElementRemoved(callback) {
+        const index = onElementRemovedCallbacks.value.indexOf(callback);
+        if (index !== -1) {
+            onElementRemovedCallbacks.value.splice(index, 1);
+        }
     }
 
     function reorderElements_OLD(currentId, targetId) {
@@ -609,8 +636,9 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         preventUnselectElementOnOutside, videoPlayerSpaceContainer,
         addVideo, addText, cloneVideo, getVideos, getTexts, getElements, generateMasksForFrame, selectEditorElement, setVideoPlayerContainer,
         onFirstVideoMetadataLoaded, onEditorElementSelected, onVideoMetadataLoaded, reorderElements, generateMasksForVideo,
-        removeEditorElementSelectedCallback, changeTool, changeToPreviousTool, removeElement, getBoxOfVideo, download, getVideoMetadata,
+        removeOnEditorElementSelected, changeTool, changeToPreviousTool, removeElement, getBoxOfVideo, download, getVideoMetadata,
         compileVideos, onElementAdded, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfVideo,
         setVideoPlayerSize, onCompileVideoMetadata, getFlipStateOfVideo, exportProject, importProject, setVideoPlayerSpaceContainer,
+        removeOnElementRemoved,
     }
 })

@@ -1,6 +1,7 @@
 import { defineStore } from "pinia"
 import { computed, ref } from "vue"
 import { useVideoEditor } from "/src/stores/videoEditor.js"
+import { calculateTimeByFrameIdx } from '@/assets/js/utils'
 
 export const useTimelineStore = defineStore('timeline', () => {
     const videoEditor = useVideoEditor()
@@ -113,7 +114,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 longestDuration = element.stOffset + elementDuration;
             }
         });
-    
+
         duration.value = longestDuration;
         maxRange.value = longestDuration;
         setTimelineInterval(minDuration.value, longestDuration)
@@ -193,7 +194,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     async function setCurrentTime(time, origin = 'user') {
         syncAll(time, origin)
-        
+
         currentTime.value = time
         const range = maxDuration.value - minDuration.value
         if (range === 0) {
@@ -215,7 +216,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             if (origin == 'timer' && isPlaying.value) {
                 await sync(element, time, false)
             }
-            
+
             else /*if (origin == 'user')*/ {
                 await sync(element, time, true, origin === 'reset')
             }
@@ -251,7 +252,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             }
         }
     }
-   
+
     function shouldRenderElement(element, time) {
         return time >= element.stOffset && time <= element.stOffset + element.duration / element.speed
     }
@@ -361,7 +362,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         updateTimelineMaxDuration();
         sync(element, currentTime.value);
     }
-    
+
     function setElementEnd(element, endTime) {
         element.end = Math.max(element.start || 0, Math.min(endTime, element.maxEnd));
         updateTimelineMaxDuration();
@@ -370,25 +371,25 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function setVideoSpeed(video, speed) {
         //const currentSpeed = video.speed || 1;
-    
+
         // Recalcula a duração como se estivesse a 1x
         //const baseDuration = (video.duration || video.maxEnd) * currentSpeed;
-    
+
         // Reset para 1x
         //video.speed = 1;
         //video.element.playbackRate = 1;
-    
+
         //video.start = video.start ?? 0;
         //video.end = video.start + baseDuration;
-    
+
         // Agora aplica o novo speed
         video.speed = speed;
         video.element.playbackRate = speed;
-    
+
         // Ajusta o novo end com base no novo speed
         //const logicalDuration = baseDuration / speed;
         //video.end = video.start + logicalDuration;
-    
+
         updateTimelineMaxDuration();
         sync(video, currentTime.value);
     }

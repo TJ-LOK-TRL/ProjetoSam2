@@ -95,7 +95,7 @@
     import StickyFooter from '@/components/Sidebar/StickyFooter.vue'
     import { useVideoEditor } from '@/stores/videoEditor'
     import { useTimelineStore } from '@/stores/timeline'
-    import { loadImageFromCache, getStageNameOfVideo } from '@/assets/js/utils'
+    import { loadImageFromCache, getStageNameOfVideo, calculateTimeByFrameIdx } from '@/assets/js/utils'
 
     const videoEditor = useVideoEditor()
     const timelineStore = useTimelineStore()
@@ -205,10 +205,11 @@
 
             try {
                 console.log('getting 1 mask...')
-                videoEditor.isLoading = true
                 const selectedMaskObjectId = videoEditor.maskHandler.selectedMaskObjectId
                 const currentFrame = video.getCurrentFrame()
                 const pointsToTrack = video.points.filter(point => point.objId === selectedMaskObjectId)
+                if (pointsToTrack.length === 0) return;
+                videoEditor.isLoading = true
                 const masks = await videoEditor.generateMasksForVideo(videoEditor.selectedElement, {
                     start_frame: currentFrame,
                     end_frame: currentFrame + 1,
@@ -216,37 +217,18 @@
                     stage_name: getStageNameOfVideo(video, '_one_mask')
                 }, pointsToTrack);
 
+                if (masks === null) {
+                    console.error("Máscaras não encontradas para o frame atual:", currentFrame, masks);
+                    return;
+                }
+
                 video.trackMasks = masks
 
                 const frameIdx = Math.min(...Object.keys(masks).map(Number));
-                const fps = video.fps;
-                const frameDuration = 1 / fps;
-
-                // Cálculo preciso do tempo
-                let targetTime = frameIdx / fps;
-                const targetTimeTruncated = Math.floor(targetTime * 1e6) / 1e6; // Irritante
-
-                // Verificação de precisão
-                if (Math.floor(targetTimeTruncated * fps) < frameIdx) {
-                    // Ajuste preciso de meio frame duration
-                    const safeAdjustment = (frameDuration / 2) * 0.999; // Fator de segurança extra
-                    targetTime = targetTime + safeAdjustment;
-                    console.log(`Ajustando seek: +${safeAdjustment} (metade do frame duration com margem)`);
-                }
+                const targetTime = calculateTimeByFrameIdx(frameIdx, video.fps);
 
                 await timelineStore.setCurrentTime(targetTime);
-
-                // Logs de verificação
-                console.log({
-                    frameDesejado: frameIdx,
-                    fps: fps,
-                    tempoCalculadoBruto: frameIdx / fps,
-                    tempoArredondado6dec: targetTimeTruncated,
-                    tempoAjustado: targetTime,
-                    frameResultanteEsperado: Math.floor(targetTime * fps),
-                    diff: targetTime - (frameIdx / fps)
-                });
-
+                
                 const maskFrame = masks[frameIdx];
                 const maskData = maskFrame?.[selectedMaskObjectId] || null;
 
@@ -381,11 +363,11 @@
     }
 
     onMounted(() => {
-        videoEditor.onEditorElementSelected(onEditorElementSelected)
+        videoEditor.onEditorElementSelected('ConfigSam', onEditorElementSelected)
     })
 
     onUnmounted(() => {
-        videoEditor.removeEditorElementSelectedCallback(onEditorElementSelected)
+        videoEditor.removeOnEditorElementSelected('ConfigSam')
         videoEditor.maskHandler.selectMaskType = null
         videoEditor.maskHandler.video.points.length = 0
     })

@@ -40,7 +40,7 @@
             </div>
 
             <div class="action-buttons">
-                <button class="action-btn start-over" @click="startOver">Start over</button>
+                <button class="action-btn start-over" @click="goBack()">Go Back</button>
                 <button class="action-btn next" @click="nextStep">Next</button>
             </div>
         </div>
@@ -53,6 +53,7 @@
     import { useVideoEditor } from '@/stores/videoEditor';
     import { useTimelineStore } from '@/stores/timeline';
     import EffectHandler from '@/assets/js/effectHandler.js';
+    import { calculateTimeByFrameIdx } from '@/assets/js/utils.js';
 
     const videoEditor = useVideoEditor();
     const timelineStore = useTimelineStore();
@@ -105,6 +106,7 @@
         }
 
         if (['Erase', 'Cut'].includes(effect.name)) {
+            console.log('Resetting effects');
             await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object');
         }
 
@@ -159,7 +161,7 @@
         }
 
         else if (effect.name === 'Split') {
-            splitEffect(video, mask, (box, newVideo) => newVideo.trackMasks?.[newVideo.frameIdx]?.[objId], effectId(EffectHandler.SPLIT_OBJ_EFFECT_ID, mask))
+            splitEffect(video, mask, (box, newVideo) => newVideo.trackMasks?.[newVideo.frameIdx]?.[objId], effectId(EffectHandler.SPLIT_BKG_EFFECT_ID, mask))
         }
 
         else if (effect.name == 'Flip') {
@@ -231,35 +233,20 @@
             splitEffect(video, mask, async (box, newVideo) => {
                 const obj_masks = Object.values(newVideo.trackMasks?.[newVideo.frameIdx] || {})
                 return await videoEditor.maskHandler.getBackgroundMask(obj_masks, ...box.getBoxVideoSize());
-            }, effectId(videoEditor.effectHandler.SPLIT_BKG_EFFECT_ID, mask))
+            }, effectId(videoEditor.effectHandler.SPLIT_OBJ_EFFECT_ID, mask))
         }
     };
 
     function splitEffect(video, mask, getFrameMask, id) {
         video.preventNextUpdateCallbacks()
 
-        const cloneVideo = videoEditor.cloneVideo(video)
-        videoEditor.onAddMapBoxVideo(async (newVideo, box) => {
-            if (newVideo.id !== cloneVideo.id) return
+        videoEditor.cloneVideo(video, async (newVideo, box) => {
             videoEditor.effectHandler.otherBoxes.add(box);
 
+            const frameIdx = Math.min(...Object.keys(video.trackMasks).map(Number));
+            const targetTime = calculateTimeByFrameIdx(frameIdx, video.fps);
+            
             timelineStore.setVideoSpeed(newVideo, video.speed)
-            const flipped = videoEditor.getFlipStateOfVideo(video)
-            if (flipped) box.flip()
-
-            const frameIdx = Math.min(...Object.keys(newVideo.trackMasks).map(Number));
-            const fps = video.fps;
-            const frameDuration = 1 / fps;
-            // Cálculo preciso do tempo
-            let targetTime = frameIdx / fps;
-            const targetTimeTruncated = Math.floor(targetTime * 1e6) / 1e6; // Irritante
-            // Verificação de precisão
-            if (Math.floor(targetTimeTruncated * fps) < frameIdx) {
-                // Ajuste preciso de meio frame duration
-                const safeAdjustment = (frameDuration / 2) * 0.999; // Fator de segurança extra
-                targetTime = targetTime + safeAdjustment;
-                console.log(`Ajustando seek: +${safeAdjustment} (metade do frame duration com margem)`);
-            }
             timelineStore.setStOffset(newVideo, targetTime);
             timelineStore.setElementStart(newVideo, targetTime);
 
@@ -268,8 +255,7 @@
             const getBoxVideoSize = box.getBoxVideoSize
             const outputCanvas = box.getCanvasToApplyVideo()
 
-            await videoEditor.effectHandler.cutObject(newVideo, mask, 0, outputCanvas, getBoxVideoSize)
-
+            await videoEditor.effectHandler.cutObject(newVideo, mask, 0, outputCanvas, getBoxVideoSize, true, false)
             box.addOnDrawVideoCallback(id, async (img) => {
                 const frame_mask = await getFrameMask(box, newVideo)
                 const [width, height] = box.getBoxVideoSize()
@@ -288,6 +274,22 @@
                 emptyCanvas.height = height;
                 return emptyCanvas;
             })
+
+            videoEditor.onEditorElementSelected(newVideo.id, (selectedElement) => {
+                if (selectedElement?.id === newVideo?.id) {
+                    videoEditor.effectHandler.setVideoToApplyEffect(newVideo)
+                }
+            })
+
+            const onRemove = (elementRemoved) => {
+                if (elementRemoved?.id === newVideo?.id) {
+                    videoEditor.effectHandler.otherBoxes.delete(box)
+                    videoEditor.removeOnEditorElementSelected(newVideo.id)
+                    videoEditor.removeOnElementRemoved(onRemove)
+                }
+            }
+
+            videoEditor.onElementRemoved(onRemove)
         })
     }
 
@@ -349,6 +351,19 @@
 
         videoEditor.changeTool('media', 'media')
     };
+
+    function goBack() {
+        console.log('Going back to previous step');
+        const video = videoEditor.maskHandler.video
+        video.points.length = 0
+        
+        const boxOfVideo = videoEditor.mapperBoxVideo[video.id]
+        boxOfVideo.clearVisibleCanvas()
+        video.masks.length = 0
+        video.trackMasks = {}
+        
+        videoEditor.changeTool('configSam', 'media')
+    }
 
     function effectId(id, mask) {
         return EffectHandler.id(id, mask.objId)
@@ -543,12 +558,11 @@
     }
 
     .start-over {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        color: rgb(41, 41, 41);
     }
 
     .start-over:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(121, 121, 121, 0.75);
     }
 
     .next {

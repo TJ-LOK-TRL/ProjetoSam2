@@ -151,7 +151,7 @@ export default class MaskHandler {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     }
 
-    drawDetectionMasks(canvas, masks, width, height) {
+    drawDetectionMasks2(canvas, masks, width, height) {
         if (!canvas) return;
 
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -201,6 +201,73 @@ export default class MaskHandler {
             ctx.globalCompositeOperation = "source-over";
             ctx.drawImage(tempCanvas, 0, 0);
         });
+    }
+
+    async drawDetectionMasks(canvas, masks, width, height) {
+        if (!canvas || !masks?.length) return;
+
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        canvas.width = width;
+        canvas.height = height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. Calcular área baseada em pixels brancos
+        const masksWithArea = await Promise.all(masks.map(async mask => {
+            const img = await loadImageFromCache(mask.url);
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+
+            tempCanvas.width = img.naturalWidth || img.width;
+            tempCanvas.height = img.naturalHeight || img.height;
+            tempCtx.drawImage(img, 0, 0);
+
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+
+            // Contar pixels brancos (RGB >= 200 para tolerância)
+            let whitePixels = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] > 200 && data[i + 1] > 200 && data[i + 2] > 200) {
+                    whitePixels++;
+                }
+            }
+
+            console.log(`Máscara ${mask.id} - Pixels brancos: ${whitePixels}`);
+            return { mask, img, area: whitePixels };
+        }));
+
+        // 2. Ordenar máscaras pela área (menores primeiro)
+        masksWithArea.sort((a, b) => b.area - a.area);
+
+        // 3. Desenhar em ordem (menores por último, ficando por cima)
+        for (const { mask, img, area } of masksWithArea) {
+            console.log('Desenhando máscara:', mask.id, area);
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            tempCtx.drawImage(img, 0, 0, width, height);
+
+            const imageData = tempCtx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            const [rNew, gNew, bNew] = mask.indexColor;
+
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] > 0) { // Se não for transparente
+                    if (data[i] < 50 && data[i + 1] < 50 && data[i + 2] < 50) {
+                        data[i + 3] = 0; // Preto → transparente
+                    } else {
+                        data[i] = rNew;
+                        data[i + 1] = gNew;
+                        data[i + 2] = bNew;
+                    }
+                }
+            }
+
+            tempCtx.putImageData(imageData, 0, 0);
+            ctx.drawImage(tempCanvas, 0, 0);
+        }
     }
 
     drawVisibleMasks(canvas, masks, width, height) {
@@ -351,20 +418,84 @@ export default class MaskHandler {
         ctx.restore();
     }
 
-    maskEvent(event, canvas, masks, zoom, onMouseHover, onMouseNotHover) {
+    maskEvent(event, canvas, masks, rotation, flipped, onMouseHover, onMouseNotHover) {
         const ctx = canvas.getContext('2d');
         const rect = canvas.getBoundingClientRect();
-        const x = (event.clientX - rect.left) / zoom;
-        const y = (event.clientY - rect.top) / zoom;
+
+
+
+        // 1. Guarda o estado atual como imagem (não como ImageData)
+        const originalWidth = canvas.width;
+        const originalHeight = canvas.height;
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = originalWidth;
+        tempCanvas.height = originalHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(canvas, 0, 0);
+
+        // 2. Redimensiona o canvas principal temporariamente
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+
+        // 3. Redesenha o conteúdo redimensionado
+        ctx.drawImage(tempCanvas,
+            0, 0, originalWidth, originalHeight,  // dimensões origem
+            0, 0, canvas.width, canvas.height     // dimensões destino
+        );
+
+
+
+        // Calcula a razão entre dimensões lógicas e físicas, Não é mais necessário pois dá sempre 1
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        // Aplica o zoom e o scaling
+        let x = (event.clientX - rect.left) * scaleX
+        let y = (event.clientY - rect.top) * scaleY
+
+        // Bola de debug no centro
+        //ctx.clearRect(0, 0, canvas.width, canvas.height);
+        //ctx.beginPath();
+        //ctx.arc(canvas.width / 2, canvas.height / 2, 5, 0, 2 * Math.PI);
+        //ctx.fillStyle = 'blue';
+        //ctx.fill();
+
+        // Aplica flip horizontal se houver
+        if (flipped) {
+            x = canvas.width - x;
+        }
+
+        // 4. Aplicar rotação
+        if (rotation !== 0) {
+            // Isto é classico, sempre a mesma formula para rotacionar x e y
+            const angleRad = -rotation * (Math.PI / 180);
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            const relX = x - centerX;
+            const relY = y - centerY;
+
+            x = centerX + (relX * Math.cos(angleRad) - relY * Math.sin(angleRad));
+            y = centerY + (relX * Math.sin(angleRad) + relY * Math.cos(angleRad));
+        }
+
+        // Bola de debug em (x, y)
+        //ctx.beginPath();
+        //ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        //ctx.fillStyle = 'red';
+        //ctx.fill();
 
         const pixel = ctx.getImageData(x, y, 1, 1).data;
         const [r, g, b] = pixel;
 
+        let detected = false;
+        //console.log(x, y, event.clientX, event.clientY, rect.left, rect.top, zoom);
         //console.log(`Pixel at (${x}, ${y}): RGB(${r}, ${g}, ${b})`, 'Extra info:', rect.left, rect.top);
         masks.forEach((mask, index) => {
             //const expectedColor = [(index * 50) % 255, (index * 80) % 255, (index * 120) % 255]; // MAX DE 51 cores ou seja mascaras
             const expectedColor = this.getIndexedColor(index) // Deve ser mais mas não calculei ainda
             if (r === expectedColor[0] && g === expectedColor[1] && b === expectedColor[2]) {
+                detected = true
                 onMouseHover(mask, index)
                 //console.log(`Pixel Hover: R:${r} G:${g} B:${b}`, expectedColor, true, mask.id);
             } else {
@@ -372,6 +503,8 @@ export default class MaskHandler {
                 //console.log(`Pixel Hover: R:${r} G:${g} B:${b}`, expectedColor, false);
             }
         });
+
+        return detected
     }
 
     async changeColor(img, outputCanvas, maskUrl, width, height, color, alpha, settings, detection = 255) {
@@ -1053,20 +1186,16 @@ export default class MaskHandler {
         maskCanvas.height = overlayVideoRect.height;
         const maskCtx = maskCanvas.getContext('2d');
 
-        // 1. Calcula a proporção entre os retângulos
-        const widthRatio = videoRect.width / overlayVideoRect.width;
-        const heightRatio = videoRect.height / overlayVideoRect.height;
-
         // Desenha a máscara ajustada ao offset
         this.drawImageWithRotation(
             maskCtx,
             maskImage,
-            0,
-            0,
-            videoRect.width,
-            videoRect.height,
             (videoRect.x - overlayVideoRect.x),
             (videoRect.y - overlayVideoRect.y),
+            videoRect.width,
+            videoRect.height,
+            overlayVideoRect.width / 2,
+            overlayVideoRect.height / 2,
             videoRect.rotation - overlayVideoRect.rotation // INVERSE overlayVideoRect.rotation?
         )
 
@@ -1091,8 +1220,8 @@ export default class MaskHandler {
             0,
             overlayVideoRect.width,
             overlayVideoRect.height,
-            0,
-            0,
+            overlayVideoRect.width / 2,
+            overlayVideoRect.height / 2,
             0,
         )
 
@@ -1118,26 +1247,18 @@ export default class MaskHandler {
             }
         }
 
-        console.log('Rect Mask:', videoRect)
-        console.log('Rect Overlay:', overlayVideoRect)
-        console.log('DiffX:', (overlayVideoRect.x - videoRect.x))
-        console.log('DiffY:', (overlayVideoRect.y - videoRect.y))
-        console.log('FinalMaskSizeX:', videoRect.width - (overlayVideoRect.x - videoRect.x))
-        console.log('FinalMaskSizeY:', videoRect.height - (overlayVideoRect.y - videoRect.y))
-        console.log('MaskWidth:', maskData.width)
-        console.log('MaskHeight:', maskData.height)
-        console.log('OverlayWidth:', overlayData.width)
-        console.log('OverlayHeight:', overlayData.height)
-        console.log('Rotation:', videoRect.rotation - overlayVideoRect.rotation)
-        console.log('widthRatio:', widthRatio)
-        console.log('heightRatio:', heightRatio)
+        console.log('OverlayRectSize:', overlayVideoRect.width, overlayVideoRect.height)
+        console.log('OverlayDataSize:', overlayData.width, overlayData.height)
+        console.log('MaskRectSize:', videoRect.width, videoRect.height)
+        console.log('MaskDataSize:', maskData.width, maskData.height)
 
 
+        // THIS IS DEBUGGING
         const alphaMask = 0.5; // transparência da máscara (0.0 a 1.0)
         if (alphaMask > 0) {
             for (let y = 0; y < overlayVideoRect.height; y++) {
                 for (let x = 0; x < overlayVideoRect.width; x++) {
-                    const idx = (y * overlayVideoRect.width + x) * 4;
+                    const idx = Math.round((y * overlayVideoRect.width + x) * 4);
 
                     const r1 = overlayData.data[idx];
                     const g1 = overlayData.data[idx + 1];
@@ -1162,69 +1283,30 @@ export default class MaskHandler {
         // 5. Atualiza o canvas principal
         const ctx = canvas.getContext('2d');
         ctx.putImageData(overlayData, 0, 0);
+
+        // Agora desenha uma bola no centro
+        const centerX = overlayVideoRect.width / 2;
+        const centerY = overlayVideoRect.height / 2;
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI); // raio 5
+        ctx.fillStyle = 'red';
+        ctx.fill();
     }
 
-    drawImageWithRotation(ctx, img, x, y, width, height, offsetX = 0, offsetY = 0, rotation = 0) {
-        if (!rotation) {
-            ctx.drawImage(img, x + offsetX, y + offsetY, width, height);
-            return;
-        }
-
-        ctx.save();
-        ctx.translate(x + width / 2, y + height / 2);
-        ctx.rotate(rotation * Math.PI / 180);
-        ctx.drawImage(img, -width / 2 + offsetX, -height / 2 + offsetY, width, height);
-        ctx.restore();
-    }
-
-    drawImageWithRotation2(ctx, img, x, y, width, height, offsetX = 0, offsetY = 0, rotation = 0) {
+    drawImageWithRotation(ctx, img, x, y, width, height, rotOriginX, rotOriginY, rotation = 0) {
         if (!rotation) {
             ctx.drawImage(img, x, y, width, height);
             return;
         }
 
         ctx.save();
-        ctx.translate(width / 2, height / 2);
+
+        ctx.translate(rotOriginX, rotOriginY);
         ctx.rotate(rotation * Math.PI / 180);
-        ctx.translate(-width / 2, -height / 2)
+        ctx.translate(-rotOriginX, -rotOriginY);
+
         ctx.drawImage(img, x, y, width, height);
-        ctx.restore();
-    }
-
-    drawImageWithRotation3(ctx, img, x, y, width, height, offsetX = 0, offsetY = 0, rotation = 0) {
-        if (rotation === 0) {
-            // Sem rotação, offset normal
-            ctx.drawImage(img, x + offsetX, y + offsetY, width, height);
-            return;
-        }
-
-        // 1) Move o (0,0) do ctx para o centro do retângulo onde queremos desenhar
-        const cx = x + width / 2;
-        const cy = y + height / 2;
-        ctx.save();
-        ctx.translate(cx, cy);
-
-        // 2) Roda o ctx
-        const rad = rotation * Math.PI / 180;
-        ctx.rotate(rad);
-
-        // 3) Ajusta o offset para os novos eixos rotacionados
-        //    x' = x*cos - y*sin ; y' = x*sin + y*cos
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
-        const adjX = offsetX * cos - offsetY * sin;
-        const adjY = offsetX * sin + offsetY * cos;
-
-        // 4) Desenha a imagem deslocada em relação ao centro
-        //    (–width/2, –height/2) leva o canto superior‐esquerdo até o centro antes do offset
-        ctx.drawImage(
-            img,
-            -width / 2 + adjX,
-            -height / 2 + adjY,
-            width,
-            height
-        );
-
         ctx.restore();
     }
 }   

@@ -62,10 +62,10 @@ export default class EffectHandler {
         return await this.maskHandler.eraseWithBackgroundReplacement(mask, extractedMasks, getCanvasOfFrame, outputCanvas, getCanvasSize);
     }
 
-    async cutObject(video, mask, detection = 255, outputCanvas = null, getCanvasSize = null, register = true) {
+    async cutObject(video, mask, detection = 255, outputCanvas = null, getCanvasSize = null, register = true, can_be_reset = true) {
         // register for backend download and history and ctrl-z
         if (register) {
-            this.register.registerMaskEffect(video.id, mask.objId, 'cutObjectEffect', detection);
+            this.register.registerMaskEffect(video.id, mask.objId, 'cutObjectEffect', detection, can_be_reset);
         }
 
         const frame = video.captureCurrentCanvasFrame();
@@ -80,8 +80,6 @@ export default class EffectHandler {
                 maskObjId: mask.objId,
             });
         }
-
-        console.log('OVERLAP VIDEO CALLED!')
 
         await this.maskHandler.overlapVideo(mask, videoRect, overlayVideoRect, outputCanvas, getCanvasSize)
     }
@@ -122,5 +120,12 @@ export default class EffectHandler {
 
     static id(effectId, objId) {
         return effectId + '_' + objId
+    }
+
+    setVideoToApplyEffect(video) {
+        this.videoEditor.maskHandler.video = video
+        const boxOfVideo = this.videoEditor.getBoxOfVideo(video)
+        this.videoEditor.maskHandler.canvasToApplyColorEffect = boxOfVideo.getCanvasToApplyVideo()
+        this.videoEditor.maskHandler.getCanvasSize = boxOfVideo.getBoxVideoSize
     }
 }

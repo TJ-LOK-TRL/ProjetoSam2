@@ -86,6 +86,9 @@ export const useBackendStore = defineStore('backend', () => {
         }
     }
 
+    // botao guardar 
+    
+
     async function download(video_files, metadata) {
         try {
             const formData = new FormData();
@@ -116,3 +119,4 @@ export const useBackendStore = defineStore('backend', () => {
 
     return { test, images, error, getMediaBasicData, getMasksForFrame, getMasksForVideo, download }
 })
+

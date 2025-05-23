@@ -192,6 +192,7 @@
         snapLines?.Destroy();
     });
 
+    let prevTransform = null;
     defineExpose({
         reload,
         boxRef,
@@ -230,6 +231,17 @@
         getRotation: () => rotation.value,
         flip: () => isFlipped.value = !isFlipped.value,
         getFlip: () => isFlipped.value,
+        pauseTransform: () => {
+            const box = boxRef.value;
+            if (!box) return;
+            prevTransform = box.style.transform;
+            box.style.transform = 'none';
+        },
+        restoreTransform: () => {
+            const box = boxRef.value;
+            if (!box) return;
+            box.style.transform = prevTransform;
+        },
     });
 
     function handleBoxClick() {
@@ -326,6 +338,7 @@
         transition: border 0.3s;
         border: 2px solid var(--main-color);
         background-color: transparent;
+        /*pointer-events: none;*/
     }
 
     .resize-controls-line {

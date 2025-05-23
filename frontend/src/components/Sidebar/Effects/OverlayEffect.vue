@@ -102,7 +102,7 @@
     async function updateOverlayType() {
         if (videoEditor.selectedElement?.type !== 'video') return
 
-        const overlayVideo = videoEditor.selectedElement
+        const overlayVideo = videoEditor.selectedElement // PROBLEM HERE
         const boxOverlayVideo = videoEditor.getBoxOfVideo(overlayVideo)
         boxOverlayVideo.removeOnDrawVideoCallback(EFFECT_OVERLAY_ID)
 

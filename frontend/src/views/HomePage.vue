@@ -71,6 +71,8 @@
                 videoEditor.removeElement(videoEditor.selectedElement)
             }
         })
+
+        window.getVideos = () => videoEditor.getVideos();
     })
 </script>
 
