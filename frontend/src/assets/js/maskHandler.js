@@ -439,8 +439,7 @@ export default class MaskHandler {
 
         // 3. Redesenha o conteúdo redimensionado
         ctx.drawImage(tempCanvas,
-            0, 0, originalWidth, originalHeight,  // dimensões origem
-            0, 0, canvas.width, canvas.height     // dimensões destino
+            0, 0, canvas.width, canvas.height
         );
 
 
@@ -1227,56 +1226,53 @@ export default class MaskHandler {
 
         const overlayData = tempCtx.getImageData(0, 0, overlayVideoRect.width, overlayVideoRect.height);
 
-        for (let y = 0; y < overlayVideoRect.height; y++) {
-            for (let x = 0; x < overlayVideoRect.width; x++) {
-                const idx = Math.round((y * overlayVideoRect.width + x) * 4);
+        //for (let y = 0; y < overlayVideoRect.height; y++) {
+        //    for (let x = 0; x < overlayVideoRect.width; x++) {
+        //        const idx = Math.round((y * overlayVideoRect.width + x) * 4);
 
-                if (maskData.data[idx] === undefined) {
-                    //console.log('IdxInvalidForMask')
-                    continue
-                }
+        //        if (maskData.data[idx] === undefined) {
+        //            //console.log('IdxInvalidForMask')
+        //            continue
+        //        }
 
-                if (overlayData.data[idx] === undefined) {
-                    console.log('IdxInvalidForOverlay')
-                    continue
-                }
+        //        if (overlayData.data[idx] === undefined) {
+        //            console.log('IdxInvalidForOverlay')
+        //            continue
+        //        }
 
-                if (maskData.data[idx] === 255) {
-                    overlayData.data[idx + 3] = 0;
-                }
+        //        if (maskData.data[idx] === 255) {
+        //            overlayData.data[idx + 3] = 0;
+        //        }
+        //    }
+        //}
+
+        // 7. Aplicar máscara (versão simplificada)
+        for (let i = 0; i < maskData.data.length; i += 4) {
+            if (maskData.data[i] > 250) {
+                overlayData.data[i + 3] = 0; // Transparência total
             }
         }
-
-        console.log('OverlayRectSize:', overlayVideoRect.width, overlayVideoRect.height)
-        console.log('OverlayDataSize:', overlayData.width, overlayData.height)
-        console.log('MaskRectSize:', videoRect.width, videoRect.height)
-        console.log('MaskDataSize:', maskData.width, maskData.height)
-
 
         // THIS IS DEBUGGING
         const alphaMask = 0.5; // transparência da máscara (0.0 a 1.0)
         if (alphaMask > 0) {
-            for (let y = 0; y < overlayVideoRect.height; y++) {
-                for (let x = 0; x < overlayVideoRect.width; x++) {
-                    const idx = Math.round((y * overlayVideoRect.width + x) * 4);
+            for (let i = 0; i < overlayData.data.length; i += 4) {
+                const r1 = overlayData.data[i];
+                const g1 = overlayData.data[i + 1];
+                const b1 = overlayData.data[i + 2];
+                const a1 = overlayData.data[i + 3];
 
-                    const r1 = overlayData.data[idx];
-                    const g1 = overlayData.data[idx + 1];
-                    const b1 = overlayData.data[idx + 2];
-                    const a1 = overlayData.data[idx + 3];
+                const r2 = maskData.data[i];
+                const g2 = maskData.data[i + 1];
+                const b2 = maskData.data[i + 2];
+                const a2 = maskData.data[i + 3] * alphaMask;
 
-                    const r2 = maskData.data[idx];
-                    const g2 = maskData.data[idx + 1];
-                    const b2 = maskData.data[idx + 2];
-                    const a2 = maskData.data[idx + 3] * alphaMask;
+                const alphaTotal = a2 + a1 * (1 - alphaMask);
 
-                    const alphaTotal = a2 + a1 * (1 - alphaMask);
-
-                    overlayData.data[idx] = (r2 * a2 + r1 * a1 * (1 - alphaMask)) / alphaTotal;
-                    overlayData.data[idx + 1] = (g2 * a2 + g1 * a1 * (1 - alphaMask)) / alphaTotal;
-                    overlayData.data[idx + 2] = (b2 * a2 + b1 * a1 * (1 - alphaMask)) / alphaTotal;
-                    overlayData.data[idx + 3] = alphaTotal;
-                }
+                overlayData.data[i] = (r2 * a2 + r1 * a1 * (1 - alphaMask)) / alphaTotal;
+                overlayData.data[i + 1] = (g2 * a2 + g1 * a1 * (1 - alphaMask)) / alphaTotal;
+                overlayData.data[i + 2] = (b2 * a2 + b1 * a1 * (1 - alphaMask)) / alphaTotal;
+                overlayData.data[i + 3] = alphaTotal;
             }
         }
 

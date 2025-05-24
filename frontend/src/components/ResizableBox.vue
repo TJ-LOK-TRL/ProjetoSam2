@@ -1,14 +1,12 @@
 <template>
     <div ref="boxRef" class="box" @mousedown="handleBoxClick" :style="{ transform: `rotate(${rotation}deg)` }">
-        <div class="flip-div" :style="{ transform: `scaleX(${isFlipped ? -1 : 1})` }">
+        <div class="flip-div" :style="{ transform: `scaleX(${isFlipped ? -1 : 1})`, opacity: opacity }">
             <slot></slot>
 
             <!-- BOTÃO DE ROTAÇÃO -->
             <div class="rotate-button" v-show="showResizeControls" @mousedown.stop.prevent="startRotate">
                 <i class="fas fa-rotate-right"></i> <!-- ou fa-rotate-left -->
             </div>
-
-
         </div>
         <div ref="resizeControlsRef" class="resize-controls" v-show="showResizeControls">
             <!-- TOP -->
@@ -57,6 +55,7 @@
     const ctrl_bl = ref(null), ctrl_bm = ref(null), ctrl_br = ref(null);
 
     const isFlipped = ref(false)
+    const opacity = ref(1);
     const rotation = ref(0);
     let rotating = false;
     let initialAngle = 0;
@@ -196,6 +195,9 @@
     defineExpose({
         reload,
         boxRef,
+        rotation,
+        isFlipped,
+        opacity,
         getRect: (abs = false) => {
             const box = boxRef.value;
             if (!box) return null;
@@ -227,8 +229,18 @@
             box.style.width = `${width}px`;
             box.style.height = `${height}px`;
         },
-
+        setOpacity: (value) => {
+            const box = boxRef.value;
+            if (!box) return;
+            opacity.value = value;
+        },
         getRotation: () => rotation.value,
+        setRotation: (angle) => {
+            const box = boxRef.value;
+            if (!box) return;
+            rotation.value = angle;
+            //box.style.transform = `rotate(${angle}deg)`;
+        },
         flip: () => isFlipped.value = !isFlipped.value,
         getFlip: () => isFlipped.value,
         pauseTransform: () => {

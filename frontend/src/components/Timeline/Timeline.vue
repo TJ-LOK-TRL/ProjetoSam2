@@ -20,10 +20,13 @@
             </div>
             <div class="zoom-container">
                 <div class="zoom-range-container">
-                    <i class="zoom-icon fas fa-magnifying-glass-minus" @click="timelineStore.zoomOut"></i>
-                    <input class="zoom-input" type="range" :min="timelineStore.minRange" :max="timelineStore.maxRange"
+                    <i class="zoom-icon fas fa-magnifying-glass-minus" 
+                    @click="timelineStore.zoomOut"></i>
+                    <input class="zoom-input" type="range" 
+                    :min="timelineStore.minRange" :max="timelineStore.maxRange"
                         :step="0.01" v-model="timelineStore.zoomInverted" />
-                    <i class="zoom-icon fas fa-magnifying-glass-plus" @click="timelineStore.zoomIn"></i>
+                    <i class="zoom-icon fas fa-magnifying-glass-plus"
+                     @click="timelineStore.zoomIn"></i>
                 </div>
                 <button class="zoom-fit" @click="timelineStore.zoomFit">Fit</button>
             </div>
@@ -32,12 +35,16 @@
         <div class="timeline-interactive">
             <TimelineBar />
 
-            <div class="timeline-frames-container" ref="timelineFramesContainerRef">
-                <Frames v-for="element in videoEditor.getElements()" :key="element.id" :element="element"
-                    :parent="timelineFramesContainerRef" class="timeline-video-frames" ref="framesComponents" />
+            <div class="timeline-frames-container" 
+            ref="timelineFramesContainerRef">
+                <Frames v-for="element in videoEditor.getElements()" 
+                :key="element.id" :element="element"
+                    :parent="timelineFramesContainerRef" 
+                    class="timeline-video-frames" ref="framesComponents" />
             </div>
 
-            <div class="timeline-selector" :style="timelineSelectorStyle"></div>
+            <div class="timeline-selector" 
+            :style="timelineSelectorStyle"></div>
         </div>
     </div>
 </template>

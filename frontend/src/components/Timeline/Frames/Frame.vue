@@ -209,7 +209,7 @@
     }
 
     watch(
-        () => [element?.value?.start, element?.value?.end],
+        () => [element?.value?.start, element?.value?.end, element?.value?.speed],
         () => {
             update();
         },

@@ -103,7 +103,7 @@
         if (videoEditor.selectedElement?.type !== 'video') return
 
         const overlayVideo = videoEditor.selectedElement // PROBLEM HERE
-        const boxOverlayVideo = videoEditor.getBoxOfVideo(overlayVideo)
+        const boxOverlayVideo = videoEditor.getBoxOfElement(overlayVideo)
         boxOverlayVideo.removeOnDrawVideoCallback(EFFECT_OVERLAY_ID)
 
         const type = currentOverlaySetting.value
@@ -156,8 +156,8 @@
         const videoOfMask = videoEditor.getVideos().find(v => v.id === mask.videoId);
         const trackMasks = videoOfMask.trackMasks;
 
-        const boxOfMask = videoEditor.getBoxOfVideo(videoOfMask);
-        const boxOfVideo = videoEditor.getBoxOfVideo(video);
+        const boxOfMask = videoEditor.getBoxOfElement(videoOfMask);
+        const boxOfVideo = videoEditor.getBoxOfElement(video);
 
         let lastMaskPosition = null;
 

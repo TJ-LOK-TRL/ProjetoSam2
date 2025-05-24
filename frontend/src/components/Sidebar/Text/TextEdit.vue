@@ -1,6 +1,6 @@
 <template>
     <div class="container">
-        <StickyHeader :show-icon="true">
+        <StickyHeader :show-icon="true" @icon-click="videoEditor.selectedElement = null">
             Edit Text
         </StickyHeader>
 
@@ -60,12 +60,7 @@
         </div>
 
         <StickyFooter>
-            <div class="button-add-text-container">
-                <button class="button-add-text" @click="videoEditor.selectedElement = null">
-                    <i class="fas fa-plus" />
-                    <label>Add Another Text Box</label>
-                </button>
-            </div>
+            <AddNewElementButton :label="'Add Another Text Box'" />
         </StickyFooter>
     </div>
 </template>
@@ -77,6 +72,7 @@
     import Dropdown from '@/components/Sidebar/Dropdown.vue'
     import ColorPicker from '@/components/Sidebar/ColorPicker.vue'
     import ToggleCard from '@/components/Sidebar/ToggleCard.vue'
+    import AddNewElementButton from '@/components/Sidebar/AddNewElementButton.vue'
     import { onMounted, ref, computed } from 'vue'
 
     const videoEditor = useVideoEditor()
@@ -107,7 +103,6 @@
         { label: '32px', size: '32px' },
         { label: '48px', size: '48px' },
     ]);
-
 
     const textValue = computed({
         get: () => textElement.value?.text || '',
@@ -177,12 +172,6 @@
             }
         }
     })
-
-    function applyFontToText(textElement, selectedFontClass) {
-        const fontFamily = fontMap[selectedFontClass] || 'sans-serif';
-        textElement.class = selectedFontClass;
-        textElement.font = fontFamily;
-    }
 
     onMounted(() => {
 
@@ -292,39 +281,5 @@
         text-align: center;
         font-size: 14px;
         cursor: pointer;
-    }
-
-
-    .button-add-text {
-        display: flex;
-        gap: 8px;
-        width: 100%;
-        font-family: Inter, sans-serif;
-        font-size: 0.8125rem;
-        line-height: 1rem;
-        letter-spacing: 0px;
-        font-weight: 400;
-        padding: 0px 16px;
-        border-radius: 10px;
-        height: 3rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        text-decoration: none;
-        user-select: none;
-        background-color: rgb(247, 247, 248);
-        border: 1px solid rgb(247, 247, 248);
-        color: rgb(24, 25, 27);
-        box-shadow: none;
-    }
-
-    .button-add-text>* {
-        pointer-events: none;
-    }
-
-    .button-add-text:hover {
-        background-color: rgb(238, 238, 239);
-        border: 1px solid rgb(238, 238, 239);
     }
 </style>

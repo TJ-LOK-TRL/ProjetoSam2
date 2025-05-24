@@ -124,7 +124,7 @@ export default class EffectHandler {
 
     setVideoToApplyEffect(video) {
         this.videoEditor.maskHandler.video = video
-        const boxOfVideo = this.videoEditor.getBoxOfVideo(video)
+        const boxOfVideo = this.videoEditor.getBoxOfElement(video)
         this.videoEditor.maskHandler.canvasToApplyColorEffect = boxOfVideo.getCanvasToApplyVideo()
         this.videoEditor.maskHandler.getCanvasSize = boxOfVideo.getBoxVideoSize
     }

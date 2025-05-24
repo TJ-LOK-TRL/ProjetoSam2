@@ -72,44 +72,35 @@ export const useBackendStore = defineStore('backend', () => {
                 end_frame: (options.end_frame || -1),
                 stage_name: (options.stage_name || null),
             });
-
             const response = await axios.post(`http://${ip.value}:${port.value}/video/mask`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
             });
-
             return response.data;
         } catch (error) {
             console.error("Erro na requisição:", error);
             throw error;
         }
     }
-
-    // botao guardar 
+    // FALTA botao guardar 
     
-
     async function download(video_files, metadata) {
         try {
             const formData = new FormData();
-
             // 1. Adiciona os vídeos como arquivos separados
             video_files.forEach(file => {
                 formData.append('videos[]', file);
             });
-
             // 2. Adiciona todos os metadados em um único JSON
             formData.append('metadata', JSON.stringify(metadata));
-
             const response = await axios.post(`http://${ip.value}:${port.value}/download`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
                 responseType: 'blob'
             });
-
             return response.data;
-
         } catch (error) {
             console.error('Erro no download:', error);
             throw error;
@@ -117,6 +108,7 @@ export const useBackendStore = defineStore('backend', () => {
     }
 
 
-    return { test, images, error, getMediaBasicData, getMasksForFrame, getMasksForVideo, download }
+    return { test, images, error, getMediaBasicData, getMasksForFrame, 
+        getMasksForVideo, download }
 })
 

@@ -86,7 +86,7 @@
 
         const video = videoEditor.maskHandler.video;
         const mask = videoEditor.maskHandler.maskToEdit
-        const boxOfVideo = videoEditor.getBoxOfVideo(video)
+        const boxOfVideo = videoEditor.getBoxOfElement(video)
         console.log(settings)
 
 

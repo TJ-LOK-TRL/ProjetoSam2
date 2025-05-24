@@ -3,14 +3,12 @@
         <StickyHeader>Add Media</StickyHeader>
         <UploadBox :accept="'video/*'" @on-file-upload="onFileUpload" />
         <StockVideos :videos="videos" @add-video="addVideo" />
-        <MagicTools />
     </div>
 </template>
 
 <script setup>
     import { onMounted, ref, nextTick } from 'vue'
     import StockVideos from './StockVideos.vue'
-    import MagicTools from './MagicTools.vue'
     import UploadBox from './UploadBox.vue'
     import StickyHeader from '@/components/Sidebar/StickyHeader.vue'
     import { useVideoEditor } from '@/stores/videoEditor';

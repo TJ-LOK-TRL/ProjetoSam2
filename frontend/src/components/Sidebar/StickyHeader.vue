@@ -1,8 +1,10 @@
 <template>
     <div class="sticky-header-container" :class="{ 'has-shadow': isScrolled }" ref="header">
         <div class="sticky-header-title">
-            <div class="title-icon" v-if="showIcon" @click="videoEditor.changeToPreviousTool()"><i class="fas fa-chevron-left"></i></div>
-            <span><slot></slot></span>
+            <div class="title-icon" v-if="showIcon" @click="handleIconClick"><i class="fas fa-chevron-left"></i></div>
+            <span>
+                <slot></slot>
+            </span>
         </div>
     </div>
 </template>
@@ -20,6 +22,8 @@
         }
     });
 
+    const emit = defineEmits(['icon-click'])
+
     const header = ref(null);
     const isScrolled = ref(false);
 
@@ -31,6 +35,11 @@
         } else {
             //console.log('Container not found');
         }
+    }
+
+    function handleIconClick() {
+        emit('icon-click')
+        videoEditor.changeToPreviousTool()
     }
 
     onMounted(async () => {

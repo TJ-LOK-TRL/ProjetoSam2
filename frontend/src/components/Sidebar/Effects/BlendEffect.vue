@@ -66,7 +66,7 @@
     }
 
     async function addEffectFile(file) {
-        const boxOfMainVideo = videoEditor.getBoxOfVideo(videoEditor.maskHandler.video)
+        const boxOfMainVideo = videoEditor.getBoxOfElement(videoEditor.maskHandler.video)
         await videoEditor.effectHandler.resetEffects(boxOfMainVideo, videoEditor.maskHandler.video, videoEditor.maskHandler.maskToEdit, videoEditor.maskHandler.maskToEdit.objId === -1 ? 'background' : 'object');
         const video = await videoEditor.addVideo(file)
         await addEffect(video);
@@ -78,7 +78,7 @@
             return
         }
 
-        const boxOfMainVideo = videoEditor.getBoxOfVideo(videoEditor.maskHandler.video)
+        const boxOfMainVideo = videoEditor.getBoxOfElement(videoEditor.maskHandler.video)
 
         videoEditor.selectedElement = video; // Define o vídeo como o elemento selecionado
         video.shouldBeDraw = false;

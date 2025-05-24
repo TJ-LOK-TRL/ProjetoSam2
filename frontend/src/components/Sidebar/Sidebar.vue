@@ -3,7 +3,7 @@
 
         <Search v-if="videoEditor.selectedTool === 'search'" />
         <Settings v-else-if="videoEditor.selectedTool === 'settings'" />
-        <Media v-else-if="videoEditor.selectedTool === 'media'" />
+        <MediaSelector v-else-if="videoEditor.selectedTool === 'media'" />
         <TextSelector v-else-if="videoEditor.selectedTool === 'text'" />
         <Projects v-else-if="videoEditor.selectedTool === 'projects'" />
         <ConfigSam v-else-if="videoEditor.selectedTool === 'configSam'" />
@@ -21,6 +21,7 @@
     import Settings from './Settings.vue'
     import Media from './Media/Media.vue'
     import TextSelector from './Text/Selector.vue'
+    import MediaSelector from './Media/Selector.vue'
     import ConfigSam from './ConfigSam.vue'
     import SamEffects from './Effects/SamEffects.vue'
     import ColorEffect from './Effects/ColorEffect.vue'

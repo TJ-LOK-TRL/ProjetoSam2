@@ -390,7 +390,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         selectedToolIcon.value = last.selectedToolIcon;
     }
 
-    function getBoxOfVideo(video) {
+    function getBoxOfElement(video) {
         if (!mapperBoxVideo.value[video.id]) {
             return null
         }
@@ -399,7 +399,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     }
 
     function getRectBoxOfVideo(video, abs = false) {
-        const box = getBoxOfVideo(video);
+        const box = getBoxOfElement(video);
         if (!box) {
             console.warn('getRectBoxOfVideo: Nenhum box encontrado para o vídeo.', video);
             return null;
@@ -415,7 +415,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     }
 
     function getFlipStateOfVideo(video) {
-        const box = getBoxOfVideo(video)
+        const box = getBoxOfElement(video)
         if (!box) {
             return null
         }
@@ -429,7 +429,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     }
 
     function getRotationOfVideo(video) {
-        const box = getBoxOfVideo(video)
+        const box = getBoxOfElement(video)
         if (!box) {
             return null
         }
@@ -511,7 +511,6 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                     });
                     videos_files.push(1);
                 }
-
                 metadata.elements_data[element.id] = await getCompileVideoMetadata(element_data, element);
 
                 console.log("Element data:", metadata.elements_data[element.id]);
@@ -547,7 +546,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     function exportProject() {
         return {
             videos: this.getVideos().map(video => {
-                const box = getBoxOfVideo(video)
+                const box = getBoxOfElement(video)
                 return {
                     id: video.id,
                     file: video.file,
@@ -609,18 +608,15 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         }
 
     }
-
     function onAddMapBoxVideo(callback) {
         onAddMapBoxVideoCallbacks.value.push(callback)
     }
-
     function removeOnAddMapBoxVideo(callback) {
         const index = onAddMapBoxVideoCallbacks.value.indexOf(callback);
         if (index !== -1) {
             onAddMapBoxVideoCallbacks.value.splice(index, 1);
         }
     }
-
     function registerBox(element, box) {
         mapperBoxVideo.value[element.id] = box
         onAddMapBoxVideoCallbacks.value.forEach(callback => {
@@ -636,7 +632,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         preventUnselectElementOnOutside, videoPlayerSpaceContainer,
         addVideo, addText, cloneVideo, getVideos, getTexts, getElements, generateMasksForFrame, selectEditorElement, setVideoPlayerContainer,
         onFirstVideoMetadataLoaded, onEditorElementSelected, onVideoMetadataLoaded, reorderElements, generateMasksForVideo,
-        removeOnEditorElementSelected, changeTool, changeToPreviousTool, removeElement, getBoxOfVideo, download, getVideoMetadata,
+        removeOnEditorElementSelected, changeTool, changeToPreviousTool, removeElement, getBoxOfElement, download, getVideoMetadata,
         compileVideos, onElementAdded, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfVideo,
         setVideoPlayerSize, onCompileVideoMetadata, getFlipStateOfVideo, exportProject, importProject, setVideoPlayerSpaceContainer,
         removeOnElementRemoved,

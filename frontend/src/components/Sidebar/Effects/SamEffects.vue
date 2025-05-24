@@ -96,13 +96,13 @@
         }
         const objId = mask.objId;
         const video = videoEditor.maskHandler.video
-        const boxOfVideo = videoEditor.getBoxOfVideo(video)
+        const boxOfVideo = videoEditor.getBoxOfElement(video)
 
         let selectedVideo = null
         let boxOfSelectedVideo = null
         if (videoEditor.selectedElement?.type === 'video') {
             selectedVideo = videoEditor.selectedElement
-            boxOfSelectedVideo = videoEditor.getBoxOfVideo(selectedVideo)
+            boxOfSelectedVideo = videoEditor.getBoxOfElement(selectedVideo)
         }
 
         if (['Erase', 'Cut'].includes(effect.name)) {
@@ -185,7 +185,7 @@
         }
         const objId = mask.objId;
         const video = videoEditor.maskHandler.video
-        const boxOfVideo = videoEditor.getBoxOfVideo(video)
+        const boxOfVideo = videoEditor.getBoxOfElement(video)
 
         if (['Erase', 'Cut'].includes(effect.name)) {
             await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background');

@@ -19,7 +19,7 @@
     import { computed, ref, onMounted, h } from 'vue'
 
     const props = defineProps({
-        modelValue: [String, Array],
+        modelValue: [String, Array, Boolean],
         multiple: Boolean
     })
     const emit = defineEmits(['update:modelValue'])
