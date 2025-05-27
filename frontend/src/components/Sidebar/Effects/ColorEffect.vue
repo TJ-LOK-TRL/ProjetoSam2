@@ -76,18 +76,14 @@
             currentColorType.value = effectState.color === null ? 'Default' : 'Color'
 
             colorCorrectionSettings.value.forEach(item => {
-                const key = item.name.toLowerCase()
-                if (key in effectState.settings) {
-                    item.value = effectState.settings[key]
-                }
-            })
+                const key = item.name.toLowerCase();
+                item.value = effectState.settings?.[key] ?? item.defaultValue;
+            });
 
             colorEffectSettings.value.forEach(item => {
-                const key = item.name.toLowerCase()
-                if (key in effectState.settings) {
-                    item.value = effectState.settings[key]
-                }
-            })
+                const key = item.name.toLowerCase();
+                item.value = effectState.settings?.[key] ?? item.defaultValue;
+            });
 
             console.log('colorCorrectionSettings.value =', colorCorrectionSettings.value)
             console.log('colorEffectSettings.value =', colorEffectSettings.value)

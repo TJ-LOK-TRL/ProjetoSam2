@@ -130,12 +130,12 @@ export const useVideoEditor = defineStore('videoEditor', () => {
 
     function cloneVideo(video, onAddBoxCallback) {
         const newVideo = createVideo(video.file, video.fps, video.frames)
-        
+
         onAddMapBoxVideo((_newVideo, box) => {
             if (newVideo.id === _newVideo.id) {
                 const flipped = getFlipStateOfVideo(video)
                 if (flipped) box.flip()
-                    
+
                 newVideo.track_id = video.track_id
                 newVideo.trackMasks = JSON.parse(JSON.stringify(video.trackMasks))
                 newVideo.masks = JSON.parse(JSON.stringify(video.masks))
@@ -144,7 +144,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                 onAddBoxCallback?.(newVideo, box)
             }
         })
-        
+
         return newVideo
     }
 
@@ -279,6 +279,13 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         //videoPlayerHeight.value = height
         videoPlayerWidthResized.value = width
         videoPlayerHeightResized.value = height
+    }
+
+    function getVideoPlayerSize() {
+        return {
+            width: videoPlayerWidthResized.value,
+            height: videoPlayerHeightResized.value
+        }
     }
 
     function selectEditorElement(editorElement) {
@@ -579,25 +586,20 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     async function importProject(projectData) {
         try {
 
-            // limpar elementos existentes
-            const videos = this.getVideos()
-            videos.forEach(video => this.removeElement(video))
+            // verificar estrutura de dados do projeto
+            console.log("Dados recebidos no importProject:", projectData)
 
-            const texts = this.getTexts()
-            texts.forEach(text => this.removeElement(text))
-
-            // limpar estados adicionais
-            this.selectedElement = null
-            this.mapperBoxVideo = {}
-            this.zoomLevel = 1
-
-            if(!projectData || !projectData.videos) {
+            // limpar editor
+            this.clearEditor()
+            if (!projectData || !projectData.videos || !Array.isArray(projectData.videos)) {
                 throw new Error("Dados do projeto inválidos ou ausentes.");
             }
 
             // carrega os videos do projeto
             for (const videoData of projectData.videos) {
-
+                if (!videoData.file) {
+                    throw new Error("Dados do vídeo inválidos ou ausentes.");
+                }
                 const video = await this.addVideo(videoData.file)
 
                 // propriedades do video
@@ -608,20 +610,23 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                 // configurar posiçao e transformaçoes
                 const box = this.mapperBoxVideo[video.id]
 
-                if (box && videoData.position) {
-                    box.setRect(videoData.position)
-                    if (videoData.rotation) box.setRotation(videoData.rotation)
-                    if (videoData.flipped) box.setFlip(videoData.flip)
+                if (box) {
+                    if (videoData.position) {
+                        box.setRect(videoData.position)
+                    }
+                    if (videoData.rotation) {
+                        box.setRotation(videoData.rotation)
+                    }
+                    if (videoData.flipped) {
+                        box.setFlip(videoData.flip)
+                    }
                 }
 
                 // aplicar efeitos se existirem
                 if (videoData.effects)
                     this.register.applyEffectsToVideo(video.id, videoData.effects)
 
-                // restaurar zoom level
-                if (projectData.zoomLevel) {
-                    this.zoomLevel = projectData.zoomLevel
-                }
+
             }
             return true
         } catch (error) {
@@ -630,7 +635,30 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         }
 
     }
+    function clearEditor() {
+        // Remove todos os vídeos
+        this.getVideos().forEach(video => {
+            try {
+                this.removeElement(video);
+            } catch (e) {
+                console.error('Erro ao remover vídeo:', e);
+            }
+        });
 
+        // Remove todos os textos
+        this.getTexts().forEach(text => {
+            try {
+                this.removeElement(text);
+            } catch (e) {
+                console.error('Erro ao remover texto:', e);
+            }
+        });
+
+        // Reseta estados
+        this.selectedElement = null;
+        this.mapperBoxVideo = {};
+        this.zoomLevel = 1;
+    }
     function onAddMapBoxVideo(callback) {
         onAddMapBoxVideoCallbacks.value.push(callback)
     }
@@ -660,6 +688,6 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         removeOnEditorElementSelected, changeTool, changeToPreviousTool, removeElement, getBoxOfElement, download, getVideoMetadata,
         compileVideos, onElementAdded, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfElement,
         setVideoPlayerSize, onCompileVideoMetadata, getFlipStateOfVideo, exportProject, importProject, setVideoPlayerSpaceContainer,
-        removeOnElementRemoved,
+        removeOnElementRemoved, getVideoPlayerSize
     }
 })

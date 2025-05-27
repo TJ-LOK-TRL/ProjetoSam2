@@ -33,11 +33,23 @@
             <hr class="content-group-divider visible" />
 
             <div class="content-group local-sidebar-div sidebar-div">
-                <SimpleInputCard class="rotation-container" v-model="roundedCorner" :label="'Round Corners'"
-                    :icon="'fa-solid fa-border-top-left'" />
-
-                <SimpleInputCard class="rotation-container" v-model="opacity" :showRange="true" :label="'Opacity'"
+                <SimpleInputCard class="opacity-container" v-model="opacity" :showRange="true" :label="'Opacity'"
                     :icon="'fas fa-droplet'" />
+
+                <div class="content-row-3">
+                    <SimpleInputCard class="round-container" v-model="roundedCorner" :label="'Round Corners'"
+                        :icon="'fa-solid fa-border-top-left'" />
+
+                    <button class="fit-button" @click="fitElement">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16"
+                            style="stroke-width: 1.5px;">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                stroke-width="1.5"
+                                d="M5.333 2h-2A1.333 1.333 0 0 0 2 3.333v2m12 0v-2A1.334 1.334 0 0 0 12.667 2h-2m0 12h2A1.334 1.334 0 0 0 14 12.667v-2m-12 0v2A1.333 1.333 0 0 0 3.333 14h2">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
 
                 <div class="content-row-3">
                     <SimpleInputCard class="rotation-container" v-model="rotation" :label="'Rotation'"
@@ -166,6 +178,20 @@
         videoEditor.maskHandler.setMaskToEdit(await videoEditor.maskHandler.getBackgroundMask([], ...videoEditor.maskHandler.getCanvasSize(), -3));
         videoEditor.changeTool('colorEffect')
     }
+
+    function fitElement() {
+        const boxElement = videoEditor.getBoxOfElement(mediaElement.value)
+        if (!boxElement) return
+
+        const size = videoEditor.getVideoPlayerSize()
+        const width = size.width
+        const height = size.height
+
+        boxElement.box.setPosition(0, 0)
+        boxElement.box.setSize(width, height)
+        boxElement.box.rotation = 0
+        if (boxElement.box.isFlipped) boxElement.box.flip()
+    }
 </script>
 
 <style scoped>
@@ -197,6 +223,16 @@
     }
 
     .rotation-container {
+        width: 100%;
+        height: 100%;
+    }
+
+    .opacity-container {
+        width: 100%;
+        height: 100%;
+    }
+
+    .round-container {
         width: 100%;
         height: 100%;
     }
@@ -236,5 +272,21 @@
         border: 1px solid rgb(231, 230, 230);
         margin-top: 10px;
         margin-bottom: 30px;
+    }
+
+    .fit-button {
+        all: unset;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        border: 1px solid #ddd;
+        border-radius: 0.5rem;
+        min-width: 47px;
+        min-height: 47px;
+        width: 47px;
+        height: 47px;
+        max-height: 47px;
+        max-width: 47px;
+        cursor: pointer;
     }
 </style>

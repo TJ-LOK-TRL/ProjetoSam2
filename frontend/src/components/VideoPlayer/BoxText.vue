@@ -3,7 +3,7 @@
         :class="{ 'element-box-selected': text?.id === videoEditor?.selectedElement?.id && text?.visible }"
         :style="{ pointerEvents: isEditing ? 'none' : 'auto' }" @click="videoEditor.selectEditorElement(text)">
         <div v-if="text" class="text-box" :class="text.style" :contenteditable="isEditing" ref="textRef"
-            :style="text.style" @blur="disableEdit" @keydown.enter.prevent="disableEdit">
+            :style="text.style" @blur="disableEdit" @input="onInput" @keydown.enter.prevent="disableEdit">
             {{ text.text }}
         </div>
     </ResizableBox>
@@ -40,7 +40,11 @@
 
     function disableEdit() {
         isEditing.value = false;
-        text.text = textRef.value?.innerText ?? '';
+        text.value.text = textRef.value?.innerText ?? '';
+    }
+
+    function onInput(e) {
+        text.value.text = e.target.innerText
     }
 
     onMounted(() => {

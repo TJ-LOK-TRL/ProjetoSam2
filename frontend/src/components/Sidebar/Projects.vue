@@ -6,11 +6,10 @@
                 Sem projetos disponíveis
             </div>
 
-            <div v-for="project in authStore.getProjects" :key="project.id" class="project-item"
-                >
+            <div v-for="project in authStore.getProjects" :key="project.id" class="project-item">
                 <div class="project-info" @click="loadProject(project)">
                     <span class="project-name">{{ project.name }}</span>
-                
+
                 </div>
                 <button class="delete-project-btn" @click.stop="deleteProject(project.id)">
                     <i class="fas fa-trash"></i>
@@ -41,21 +40,31 @@ function selectTool(tool) {
 
 async function loadProject(project) {
     try {
+
+        videoEditor.isLoading = true // Set loading state to true
         console.log('Loading project:', project)
 
-        const res = await authStore.fecthProjectById(project.id)
-        if (!res || !res.data) throw new Error('Failed to get project data')
-
-        const parsedData = JSON.parse(res.data)
-
-        const importedProject = await videoEditor.importProject(parsedData)
-        if (!importedProject) {
-            throw new Error('Failed to import project')
+        if (!project.data) {
+            throw new Error('Project data is empty')
         }
 
-        router.push('/')
+        const parsedData = typeof project.data === 'string'
+            ? JSON.parse(project.data)
+            : project.data;
+        console.log('Parsed project data:', parsedData)
+
+        // importar para o videoEditor
+        const importedProject = await videoEditor.importProject(parsedData)
+        if (!importedProject) {
+            throw new Error('Failed to import project to video editor')
+        }
+
+        router.push({path: '/', query: { projectId: project.id} })
     } catch (error) {
         console.error('Error loading project:', error)
+    }
+    finally {
+        videoEditor.isLoading = false // Set loading state to false
     }
 }
 

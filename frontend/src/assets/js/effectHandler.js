@@ -13,6 +13,62 @@ export default class EffectHandler {
     static ERASE_OBJ_EFFECT_ID = 9;
     static ERASE_BKG_EFFECT_ID = 10;
 
+    static CUT_EFFECT_NAME = 'cutObjectEffect'
+    static COLOR_EFFECT_NAME = 'colorEffect'
+    static BLEND_EFFECT_NAME = 'blendEffect'
+    static ERASE_EFFECT_NAME = 'backgroundRemoveEffect'
+    static OVERLAP_EFFECT_NAME = 'overlapVideo'
+
+    static OBJ_CALLBACKS_ID = [
+        this.CUT_OBJ_EFFECT_ID,
+        this.SPLIT_OBJ_EFFECT_ID,
+        this.COLOR_OBJ_EFFECT_ID,
+        this.BLEND_OBJ_EFFECT_ID,
+        this.ERASE_OBJ_EFFECT_ID,
+        this.COLOR_ALL_EFFECT_ID
+    ]
+
+    static BKG_CALLBACKS_ID = [
+        this.CUT_BKG_EFFECT_ID,
+        this.SPLIT_BKG_EFFECT_ID,
+        this.COLOR_BKG_EFFECT_ID,
+        this.BLEND_BKG_EFFECT_ID,
+        this.ERASE_BKG_EFFECT_ID,
+        this.COLOR_ALL_EFFECT_ID
+    ]
+
+    static NON_TRANSPARENCY_OBJ_EFFECTS = [
+        this.COLOR_OBJ_EFFECT_ID,
+        this.BLEND_OBJ_EFFECT_ID,
+        this.ERASE_OBJ_EFFECT_ID,
+        this.COLOR_ALL_EFFECT_ID
+    ]
+
+    static NON_TRANSPARENCY_BKG_EFFECTS = [
+        this.COLOR_BKG_EFFECT_ID,
+        this.BLEND_BKG_EFFECT_ID,
+        this.ERASE_BKG_EFFECT_ID,
+        this.COLOR_ALL_EFFECT_ID
+    ]
+
+    static ALL_EFFECTS = [
+        this.CUT_EFFECT_NAME,
+        this.COLOR_EFFECT_NAME,
+        this.BLEND_EFFECT_NAME,
+        this.ERASE_EFFECT_NAME,
+        this.OVERLAP_EFFECT_NAME
+    ]
+
+    static REQUIRE_COMPILE_EFFECTS = [
+        this.COLOR_EFFECT_NAME,
+        this.BLEND_EFFECT_NAME,
+        this.ERASE_EFFECT_NAME
+    ]
+
+    static TRANSPARENT_EFFECTS = [
+        this.CUT_EFFECT_NAME,
+    ]
+
     constructor(register, maskHandler) {
         this.register = register;
         this.maskHandler = maskHandler;
@@ -27,7 +83,7 @@ export default class EffectHandler {
 
         if (register) {
             // register for backend download and history and ctrl-z
-            this.register.registerMaskEffect(video.id, mask.objId, 'colorEffect', {
+            this.register.registerMaskEffect(video.id, mask.objId, EffectHandler.COLOR_EFFECT_NAME, {
                 color: color,
                 alpha: alpha,
                 settings: settings
@@ -40,7 +96,7 @@ export default class EffectHandler {
 
     async eraseWithBackgroundReplacement(video, mask, outputCanvas = null, getCanvasSize = null, register = true) {
         if (register) {
-            this.register.registerMaskEffect(video.id, mask.objId, 'backgroundRemoveEffect', null)
+            this.register.registerMaskEffect(video.id, mask.objId, EffectHandler.ERASE_EFFECT_NAME, null)
         }
 
         const extractedMasks = []
@@ -66,7 +122,7 @@ export default class EffectHandler {
     async cutObject(video, mask, detection = 255, outputCanvas = null, getCanvasSize = null, register = true, can_be_reset = true) {
         // register for backend download and history and ctrl-z
         if (register) {
-            this.register.registerMaskEffect(video.id, mask.objId, 'cutObjectEffect', detection, can_be_reset);
+            this.register.registerMaskEffect(video.id, mask.objId, EffectHandler.CUT_EFFECT_NAME, detection, can_be_reset);
         }
 
         const frame = video.captureCurrentCanvasFrame();
@@ -76,7 +132,7 @@ export default class EffectHandler {
     async overlapVideo(overlayVideo, refVideoId, mask, videoRect, overlayVideoRect, outputCanvas, getCanvasSize, register = true) {
         // register for backend download and history and ctrl-z
         if (register) {
-            this.register.registerMaskEffect(overlayVideo.id, -2, 'overlapVideo', {
+            this.register.registerMaskEffect(overlayVideo.id, -2, EffectHandler.OVERLAP_EFFECT_NAME, {
                 refVideoId: refVideoId,
                 maskObjId: mask.objId,
             });
@@ -85,12 +141,15 @@ export default class EffectHandler {
         await this.maskHandler.overlapVideo(mask, videoRect, overlayVideoRect, outputCanvas, getCanvasSize)
     }
 
-    async resetEffects(boxOfVideo, video, mask, type = 'object') {
+    async resetEffects(boxOfVideo, video, mask, type = 'object', exclude_transparency = false) {
         await this.changeColorOfMask(video, mask, null, {})
+
+        const bkg_effects = exclude_transparency ? EffectHandler.NON_TRANSPARENCY_BKG_EFFECTS : EffectHandler.BKG_CALLBACKS_ID
+        const obj_effects = exclude_transparency ? EffectHandler.NON_TRANSPARENCY_OBJ_EFFECTS : EffectHandler.OBJ_CALLBACKS_ID
+
         this.removeBoxCallbacks(
             boxOfVideo,
-            type === 'background' ? [EffectHandler.CUT_BKG_EFFECT_ID, EffectHandler.SPLIT_BKG_EFFECT_ID, EffectHandler.COLOR_BKG_EFFECT_ID, EffectHandler.BLEND_BKG_EFFECT_ID, EffectHandler.ERASE_BKG_EFFECT_ID, EffectHandler.COLOR_ALL_EFFECT_ID]
-                                  : [EffectHandler.CUT_OBJ_EFFECT_ID, EffectHandler.SPLIT_OBJ_EFFECT_ID, EffectHandler.COLOR_OBJ_EFFECT_ID, EffectHandler.BLEND_OBJ_EFFECT_ID, EffectHandler.ERASE_OBJ_EFFECT_ID, EffectHandler.COLOR_ALL_EFFECT_ID],
+            type === 'background' ? bkg_effects : obj_effects,
             mask.objId,
         );
 
@@ -101,10 +160,23 @@ export default class EffectHandler {
 
         effectVideos.clear()
 
-        this.register.registerResetForObject(video.id, mask.objId)
+        this.register.registerResetForObject(video.id, mask.objId, exclude_transparency ? [EffectHandler.CUT_EFFECT_NAME] : [])
 
         await boxOfVideo.drawVideo()
         await video.waitUntilVideoIsReady()
+    }
+
+    getSettedEffects(video_id, mask_id) {
+        const result = []
+
+        for (const effectName of EffectHandler.ALL_EFFECTS) {
+            const state = this.register.getLastStateOfEffect(video_id, mask_id, effectName)
+            if (state !== undefined) {
+                result.push(effectName)
+            }
+        }
+
+        return result
     }
 
     removeBoxCallbacks(box, ids, objId) {

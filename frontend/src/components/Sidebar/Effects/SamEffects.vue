@@ -245,7 +245,7 @@
 
             const frameIdx = Math.min(...Object.keys(video.trackMasks).map(Number));
             const targetTime = calculateTimeByFrameIdx(frameIdx, video.fps);
-            
+
             timelineStore.setVideoSpeed(newVideo, video.speed)
             timelineStore.setStOffset(newVideo, targetTime);
             timelineStore.setElementStart(newVideo, targetTime);
@@ -311,64 +311,82 @@
         })
     }
 
+    function shouldCompile() {
+        const video = videoEditor.maskHandler.video
+        const allMasks = [...video.masks, video.backgroundMask]
+        for (const mask of allMasks) {
+            const settedEffects = videoEditor.effectHandler.getSettedEffects(video.id, mask.objId)
+
+            for (const effect of settedEffects) {
+                if (EffectHandler.REQUIRE_COMPILE_EFFECTS.includes(effect)) {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
     async function nextStep() {
         console.log('Proceeding to next step');
 
         const video = videoEditor.maskHandler.video
-        //const effects = videoEditor.register.getLastEffectOfVideo(video.id)
+        const boxOfVideo = videoEditor.getBoxOfElement(video)
+        if (shouldCompile()) {
+            const data = await videoEditor.compileVideos([videoEditor.maskHandler.video, ...videoEditor.effectHandler.bkgEffectVideos, ...videoEditor.effectHandler.objEffectVideos], false);
+            if (!data) {
+                console.error('Failed to download video data');
+                return;
+            }
 
-        const data = await videoEditor.compileVideos([videoEditor.maskHandler.video])
-        if (!data) {
-            console.error('Failed to download video data');
-            return;
+            resetAll(true)
+
+            const blob = new Blob([data], { type: 'video/mp4' });
+            const file = new File([blob], 'video.mp4', { type: 'video/mp4' });
+            const url = window.URL.createObjectURL(blob);
+
+            const metadata = await videoEditor.getVideoMetadata(file)
+
+            video.fps = metadata.fps
+            video.frames = metadata.frames
+            video.element.src = url
+            video.element.load();
+            video.element.addEventListener('loadeddata', () => {
+                video.element.currentTime = timelineStore.currentTime;
+            });
+            video.points.length = 0
+            video.flipped = false
+            video.file = file
+
+
+            videoEditor.getVideos().forEach(v => {
+                if (!v.shouldBeDraw)
+                    videoEditor.removeElement(v)
+            });
         }
 
-        const blob = new Blob([data], { type: 'video/mp4' });
-        const file = new File([blob], 'video.mp4', { type: 'video/mp4' });
-        const url = window.URL.createObjectURL(blob);
-
-        const metadata = await videoEditor.getVideoMetadata(file)
-
-        video.fps = metadata.fps
-        video.frames = metadata.frames
-        video.element.src = url
-        video.element.load();
-        video.element.addEventListener('loadeddata', () => {
-            video.element.currentTime = timelineStore.currentTime;
-        });
-        video.points.length = 0
-        video.flipped = false
-        
-
-        videoEditor.getVideos().forEach(v => {
-            if (!v.shouldBeDraw)
-                videoEditor.removeElement(v)
-        });
-
-        const boxOfVideo = videoEditor.mapperBoxVideo[video.id]
-        boxOfVideo.clearVisibleCanvas()
         video.masks.length = 0
-
+        boxOfVideo.clearCache()
+        boxOfVideo.clearActiveCanvas()
         videoEditor.changeTool('media', 'media')
     };
 
     function goBack() {
         console.log('Going back to previous step');
+        resetAll(false)
+        videoEditor.changeTool('configSam', 'media')
+    }
+
+    function resetAll(exclude_transparency) {
         const video = videoEditor.maskHandler.video
         const boxOfVideo = videoEditor.getBoxOfElement(video)
-
         video.masks.forEach(mask => {
-            videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object')
-            videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background')
+            videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object', exclude_transparency)
+            videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background', exclude_transparency)
         })
 
-        videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'object')
-        videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'background')
-
-        boxOfVideo.clearVisibleCanvas()
-        video.masks.length = 0
-        
-        videoEditor.changeTool('configSam', 'media')
+        videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'object', exclude_transparency)
+        videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'background', exclude_transparency)
     }
 
     function effectId(id, mask) {

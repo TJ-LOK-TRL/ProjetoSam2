@@ -1,6 +1,5 @@
 <template>
     <div class="sidebar-container">
-
         <Search v-if="videoEditor.selectedTool === 'search'" />
         <Settings v-else-if="videoEditor.selectedTool === 'settings'" />
         <MediaSelector v-else-if="videoEditor.selectedTool === 'media'" />
@@ -12,6 +11,7 @@
         <OverlayEffect v-else-if="videoEditor.selectedTool === 'overlayEffect'" />
         <BlendEffect v-else-if="videoEditor.selectedTool === 'blendEffect'" />
         <RemoveColor v-else-if="videoEditor.selectedTool === 'removeColor'" />
+        <MediaElements v-else-if="videoEditor.selectedTool === 'mediaElements'" />
     </div>
 </template>
 
@@ -19,9 +19,9 @@
 <script setup>
     import Search from './Search.vue'
     import Settings from './Settings.vue'
-    import Media from './Media/Media.vue'
     import TextSelector from './Text/Selector.vue'
     import MediaSelector from './Media/Selector.vue'
+    import MediaElements from './MediaElements/ListMediaElements.vue'
     import ConfigSam from './ConfigSam.vue'
     import SamEffects from './Effects/SamEffects.vue'
     import ColorEffect from './Effects/ColorEffect.vue'

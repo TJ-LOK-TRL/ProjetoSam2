@@ -31,6 +31,14 @@
             <p class="toolbar-item-label">Text</p>
         </div>
 
+        <div class="toolbar-item" @click="selectTool('mediaElements')"
+            :class="{ 'selected': videoEditor.selectedToolIcon === 'mediaElements' }">
+            <div class="toolbar-item-icon-container">
+                <i class="toolbar-item-icon fas fa-e"></i>
+            </div>
+            <p class="toolbar-item-label">Elements</p>
+        </div>
+
         <div class="toolbar-item" @click="selectTool('projects')"
             :class="{ 'selected': videoEditor.selectedToolIcon === 'projects' }">
             <div class="toolbar-item-icon-container">

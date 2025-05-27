@@ -335,7 +335,7 @@
         let img = video.value.element
         img = await handleChromaKey(img, video.value.chromaKeyDetectionData)
         for (const [id, callbackData] of onDrawVideoCallbacks.value.entries()) {
-            console.log('CALLING CALLBACK', id, callbackData)
+            //console.log('CALLING CALLBACK', id, callbackData)
             const { callback, allow_cache } = callbackData
             if (!useCache || !allow_cache) {
                 img = await callback(img);
@@ -463,6 +463,9 @@
                     removeOnDrawVideoCallback: (id) => {
                         drawVideoCallbacksCache.value = {};
                         onDrawVideoCallbacks.value.delete(id)
+                    },
+                    clearCache: () => {
+                        drawVideoCallbacksCache.value = {};
                     },
                     drawVideo: drawVideo,
                     video: video.value,

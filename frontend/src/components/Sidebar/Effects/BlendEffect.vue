@@ -88,12 +88,13 @@
         const mask = videoEditor.maskHandler.maskToEdit;
         (mask.objId === -1 ? videoEditor.effectHandler.bkgEffectVideos : videoEditor.effectHandler.objEffectVideos).add(video);
 
-        videoEditor.register.registerMaskEffect(mainVideo.id, mask.objId, 'blendEffect', {
+        videoEditor.register.registerMaskEffect(mainVideo.id, mask.objId, EffectHandler.BLEND_EFFECT_NAME, {
             blendVideoId: video.id,
         });
 
         await video.waitUntilVideoIsReady()
-        await videoEditor.effectHandler.changeColorOfMask(video, mask, null, {}, 255, 255)
+        //await videoEditor.effectHandler.changeColorOfMask(video, mask, null, {}, 255, 255)
+        await videoEditor.maskHandler.changeColorOfMask(video.captureCurrentCanvasFrame(), mask, null, {}, 255, 255);
 
         const effect_id = EffectHandler.id(mask.objId === -1 ? EffectHandler.BLEND_BKG_EFFECT_ID : EffectHandler.BLEND_OBJ_EFFECT_ID, mask.objId)
         boxOfMainVideo.addOnDrawVideoCallback(effect_id, async img => {

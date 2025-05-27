@@ -28,17 +28,17 @@ export class VideoEditorRegister {
     getLastEffectOfVideo(video_id) {
         const videoEffects = this.maskEffects?.[video_id];
         if (!videoEffects) return undefined;
-    
+
         const lastEffects = {};
-        
+
         // Percorre todos os object_ids do vídeo
         for (const obj_id in videoEffects) {
             lastEffects[obj_id] = {};
-            
+
             // Percorre todos os effectIds do objeto
             for (const effect_id in videoEffects[obj_id]) {
                 const effectHistory = videoEffects[obj_id][effect_id];
-                
+
                 // Pega apenas o último elemento do array (histórico)
                 if (effectHistory.length > 0) {
                     const value = effectHistory[effectHistory.length - 1]
@@ -48,11 +48,11 @@ export class VideoEditorRegister {
                 }
             }
         }
-    
+
         return lastEffects;
     }
 
-    getLastStateOfEffect(video_id, obj_id, effect_id) {
+    getLastValidStateOfEffect(video_id, obj_id, effect_id) {
         const effectHistory = this.maskEffects?.[video_id]?.[obj_id]?.[effect_id];
         if (!effectHistory || effectHistory.length === 0) return undefined;
 
@@ -67,10 +67,18 @@ export class VideoEditorRegister {
         return undefined; // Apenas resets ou nenhum valor válido
     }
 
+    getLastStateOfEffect(video_id, obj_id, effect_id) {
+        const effectHistory = this.maskEffects?.[video_id]?.[obj_id]?.[effect_id];
+        if (!effectHistory || effectHistory.length === 0) return undefined;
+
+        const lastValue = effectHistory[effectHistory.length - 1];
+        return lastValue === 'reset' ? undefined : lastValue;
+    }
+
     registerReset(video_id) {
         const videoEffects = this.maskEffects?.[video_id];
         if (!videoEffects) return;
-    
+
         for (const obj_id in videoEffects) {
             for (const effect_id in videoEffects[obj_id]) {
                 this.maskEffects[video_id][obj_id][effect_id].push('reset');
@@ -78,7 +86,7 @@ export class VideoEditorRegister {
         }
     }
 
-    registerResetForObject(video_id, obj_id) {
+    registerResetForObject(video_id, obj_id, exceptionsEffectId = []) {
         const videoEffects = this.maskEffects?.[video_id];
         if (!videoEffects) return;
 
@@ -86,6 +94,12 @@ export class VideoEditorRegister {
         if (!objectEffects) return;
 
         for (const effect_id in objectEffects) {
+            // Pula se o efeito estiver nas exceções
+            if (exceptionsEffectId.includes(effect_id)) {
+                console.warn('Skipping reset for exception effect:', video_id, obj_id, effect_id);
+                continue;
+            }
+
             if (this.preventResets.has(`${video_id}_${obj_id}_${effect_id}`)) {
                 console.warn('Effect cannot be reset', video_id, obj_id, effect_id);
                 continue;
