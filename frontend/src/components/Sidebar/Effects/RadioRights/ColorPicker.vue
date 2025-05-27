@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-    import { ref } from 'vue'
+    import { computed } from 'vue'
 
     const props = defineProps({
         selectedColor: {
@@ -22,9 +22,12 @@
         },
     })
 
-    const emits = defineEmits(['change'])
+    const emits = defineEmits(['change', 'update:selectedColor'])
 
-    const selectedColor = ref(props.selectedColor)
+    const selectedColor = computed({
+        get: () => props.selectedColor,
+        set: (value) => emits('update:selectedColor', value)
+    });
 
     // Verifica se a cor é clara com base na luminância
     function isLightColor(hex) {

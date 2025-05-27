@@ -24,6 +24,7 @@ export default class VideoMedia extends Media {
         this.isPlaying = false
         this.visible = true
         this.skipNextUpdateCallbacks = false
+        this.volume = 1.0 // volume do vídeo
 
         // coisas de masks
         this.use_cache = null
@@ -31,9 +32,12 @@ export default class VideoMedia extends Media {
         this.backgroundMask = null
         this.masks = []
         this.trackMasks = {}
+        this.previewTrackMasks = {}
         this.points = []
         this.isSelectingMask = false
         this.maskColor = null
+        this.maskObjects = []
+        this.currentId = 0
 
         // coisas de chroma key
         this.chromaKeyDetectionData = null

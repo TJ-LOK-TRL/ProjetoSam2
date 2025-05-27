@@ -129,6 +129,22 @@ export function getGaussianKernel(radius) {
     return kernel.map(v => v / sum);
 }
 
+export function joinTrackedMasks(existingMasks, newMasks) {
+    const merged = { ...existingMasks };
+
+    for (const frameIdx in newMasks) {
+        if (!merged[frameIdx]) {
+            merged[frameIdx] = {};
+        }
+
+        for (const objId in newMasks[frameIdx]) {
+            merged[frameIdx][objId] = newMasks[frameIdx][objId];
+        }
+    }
+
+    return merged;
+}
+
 /**
  * Corrige um DOMRect visual (com zoom) para valores lógicos, compensando o scale.
  * @param {DOMRect} rect - O bounding rect retornado por getBoundingClientRect().
@@ -184,10 +200,10 @@ export function getOriginalDimensions(bounds, rotation) {
     // alpha is the rotation IN RADIANS
     const vertices = (alpha) => {
         const
-        A = { x: x + w * Math.sin(alpha), y },
-        B = { x, y: y + h * Math.sin(alpha) },
-        C = { x: x + w - w * Math.sin(alpha), y },
-        D = { x, y: y + h - h * Math.sin(alpha) }
+            A = { x: x + w * Math.sin(alpha), y },
+            B = { x, y: y + h * Math.sin(alpha) },
+            C = { x: x + w - w * Math.sin(alpha), y },
+            D = { x, y: y + h - h * Math.sin(alpha) }
         return { A, B, C, D }
     }
 

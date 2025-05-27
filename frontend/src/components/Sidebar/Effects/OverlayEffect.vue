@@ -8,16 +8,15 @@
         <StockVideos :videos="videos" @add-video="addVideo" />
         <div class="local-sidebar-div sidebar-div">
             <p class="section-title">Overlay settings</p>
-            <ConfigRadio :settings="overlaySettings" :selected-radio="currentOverlaySetting"
+            <ConfigRadio :settings="overlaySettings" v-model:selectedRadio="currentOverlaySetting"
                 :radio-name="'overlay-radio'" @change="onOverlayTypeChange" class="aside-box" />
         </div>
-        <ChromaKey :title="'Chroma Key'" :tolerance="parseFloat(chromaKeyDetectionData.tolerance)"
-            @update="onChromeKeyUpdate" />
+        <ChromaKey :title="'Chroma Key'" v-model="chromaKeyDetectionData" />
     </div>
 </template>
 
 <script setup>
-    import { ref } from 'vue'
+    import { ref, watch, computed } from 'vue'
     import UploadBox from '@/components/Sidebar/Media/UploadBox.vue'
     import StockVideos from '@/components/Sidebar/Media/StockVideos.vue'
     import StickyHeader from '@/components/Sidebar/StickyHeader.vue'
@@ -71,18 +70,21 @@
         }
     }
 
-    async function onChromeKeyUpdate(data) {
-        chromaKeyDetectionData.value = data;
+    watch(chromaKeyDetectionData, async () => {
         await applyChromaKeyOnSelectedElement()
-    }
+    }, { deep: true })
 
     async function applyChromaKey(video) {
         if (!video) return;
 
+        const pos = typeof chromaKeyDetectionData.value.position === 'string'
+            ? chromaKeyDetectionData.value.position.split(',').map(Number)
+            : chromaKeyDetectionData.value.position
+
         video.chromaKeyDetectionData = {
             detectionType: chromaKeyDetectionData.value.detectionType,
             selectedColor: chromaKeyDetectionData.value.selectedColor,
-            position: chromaKeyDetectionData.value.position.split(',').map(Number),
+            position: pos,
             tolerance: chromaKeyDetectionData.value.tolerance,
         }
     }
@@ -113,9 +115,9 @@
         }
 
         const video = videoEditor.maskHandler.video
-        const videoRect = videoEditor.getRectBoxOfVideo(video)
-        const overlayVideoRect = videoEditor.getRectBoxOfVideo(overlayVideo)
-        
+        const videoRect = videoEditor.getRectBoxOfElement(video)
+        const overlayVideoRect = videoEditor.getRectBoxOfElement(overlayVideo)
+
         const objId = videoEditor.maskHandler.maskToEdit.objId
 
         const mask = video.trackMasks?.[video.frameIdx]?.[objId]
@@ -137,8 +139,8 @@
             outputCtx.drawImage(img, 0, 0, width, height)
             await videoEditor.maskHandler.overlapVideo(
                 frame_mask,
-                videoEditor.getRectBoxOfVideo(video),
-                videoEditor.getRectBoxOfVideo(overlayVideo),
+                videoEditor.getRectBoxOfElement(video),
+                videoEditor.getRectBoxOfElement(overlayVideo),
                 outputCanvas,
                 getBoxVideoSize
             )
@@ -181,9 +183,9 @@
                 video.hide()
                 return;
             };
-            
+
             if (!video.visible) video.show()
-            
+
             const [x, y] = position;
             const rectVideo = boxOfVideo.box.getRect();
 

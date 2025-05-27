@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-    import { ref } from 'vue'
+    import { ref, computed } from 'vue'
     
     const props = defineProps({
         settings: Array,
@@ -29,10 +29,14 @@
         }
     });
 
-    const radioName = ref(props.radioName || 'radio')
-    const selectedRadio = ref(props.selectedRadio || null)
+    const emit = defineEmits(['change', 'update:selectedRadio'])
 
-    const emit = defineEmits(['change']);
+    const radioName = ref(props.radioName || 'radio')
+
+    const selectedRadio = computed({
+        get: () => props.selectedRadio,
+        set: (value) => emit('update:selectedRadio', value)
+    })
 
     function onChange(setting) {
         emit('change', setting)

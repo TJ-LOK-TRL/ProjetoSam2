@@ -88,7 +88,7 @@
         activeEffect.value = effect;
         console.log(`Applying object effect: ${effect.name}`);
 
-        videoEditor.maskHandler.maskToEdit = videoEditor.maskHandler.selectedMask
+        videoEditor.maskHandler.setMaskToEdit(videoEditor.maskHandler.selectedMask)
         const mask = videoEditor.maskHandler.maskToEdit
         if (!mask) {
             console.warn('No background mask available for the selected element.');
@@ -177,10 +177,10 @@
         activeBackgroundEffect.value = effect;
         console.log(`Applying background effect: ${effect}`);
 
-        videoEditor.maskHandler.maskToEdit = videoEditor.maskHandler.video.backgroundMask
+        videoEditor.maskHandler.setMaskToEdit(videoEditor.maskHandler.video.backgroundMask)
         const mask = videoEditor.maskHandler.maskToEdit
         if (!mask) {
-            console.warn('No background mask available for the selected element.');
+            console.warn('No background mask available for the selected element.', mask);
             return;
         }
         const objId = mask.objId;
@@ -355,12 +355,18 @@
     function goBack() {
         console.log('Going back to previous step');
         const video = videoEditor.maskHandler.video
-        video.points.length = 0
-        
-        const boxOfVideo = videoEditor.mapperBoxVideo[video.id]
+        const boxOfVideo = videoEditor.getBoxOfElement(video)
+
+        video.masks.forEach(mask => {
+            videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object')
+            videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background')
+        })
+
+        videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'object')
+        videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'background')
+
         boxOfVideo.clearVisibleCanvas()
         video.masks.length = 0
-        video.trackMasks = {}
         
         videoEditor.changeTool('configSam', 'media')
     }
@@ -370,7 +376,7 @@
     }
 
     watch(() => videoEditor.maskHandler.selectedMask, () => {
-        videoEditor.maskHandler.maskToEdit = videoEditor.maskHandler.selectedMask
+        videoEditor.maskHandler.setMaskToEdit(videoEditor.maskHandler.selectedMask)
     }, { deep: true })
 
     onMounted(() => {

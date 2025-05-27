@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useVideoEditor } from '@/stores/videoEditor'
+import { useBackendStore } from '@/stores/backend'
 
 const LS_KEY = 'myapp_users'
 const LS_PROJECTS = 'myapp_projects'
@@ -23,6 +24,7 @@ export const useAuthStore = defineStore('auth', {
     getProjects: (state) => state.currentUser?.projects || []
   },
   actions: {
+    
     _save() {
       localStorage.setItem(LS_KEY, JSON.stringify(this.users))
       this._saveCurrentUser()
@@ -60,7 +62,7 @@ export const useAuthStore = defineStore('auth', {
       if (this.currentUser) {
         localStorage.setItem('currentUser', JSON.stringify(this.currentUser))
         localStorage.setItem(LS_PROJECTS, JSON.stringify(this.currentUser.projects))
-        
+
         const index = this.users.findIndex(u => u.email === this.currentUser.email)
         if (index !== -1) {
           this.users[index] = this.currentUser
@@ -71,8 +73,8 @@ export const useAuthStore = defineStore('auth', {
     async _generateThumbnail() {
       try {
         const videoEditor = useVideoEditor()
-        const videos = videoEditor.getVideos() // Método que você precisa implementar
-        if(videos.length === 0) return null
+        const videos = videoEditor.getVideos() 
+        if (videos.length === 0) return null
         return 'thumbail-placeholder'
       } catch (error) {
         console.error('Error generating thumbnail:', error)
@@ -81,35 +83,58 @@ export const useAuthStore = defineStore('auth', {
     },
     async saveProject(projectName) {
       if (!this.currentUser) return false
-      const videoEditor = useVideoEditor()  
-      const projectData = videoEditor.exportProject() // Método que você precisa implementar
+      const videoEditor = useVideoEditor()
+      const projectData = videoEditor.exportProject() 
       const thumbnail = await this._generateThumbnail()
-      const project = {
-        id: Date.now().toString(),
+
+      const newProject = {
         name: projectName,
-        createdAt: new Date().toISOString(),
-        data: projectData,        // dados do editor de video
-        thumbnail: thumbnail      // miniatura do projeto
+        user_email: this.currentUser.email, 
+        data: JSON.stringify(projectData), // dados do projeto
+        thumbnail // miniatura do projeto
       }
-      this.currentUser.projects.push(project)
-      this._saveCurrentUser()               // guarda no LocalStorage
-      return project
+      try{
+        const response = await axios.post('http://localhost:5175/projects', newProject)
+        const savedProject = response.data
+        this.currentUser.projects.push(savedProject) // adiciona o projeto ao user atual
+        this._saveCurrentUser() // guarda no LocalStorage
+        return savedProject
+      } catch (error) {
+        console.error('Error saving project:', error)
+        return null
+      }
     },
     async loadProject(projectId) {
-      if (!this.currentUser) return false
       const project = this.currentUser.projects.find(p => p.id === projectId)
-      if (!project) return false
+      if (!project) {
+        console.error('Project not found:', projectId)
+        return null
+      }
+
       const videoEditor = useVideoEditor()
-      await videoEditor.importProject(project.data) 
+      const success = await videoEditor.importProject(project.data)
+      return success
+    },
+
+
+    async deleteProject(projectId) {
+      if (!this.currentUser) return false
+
+      // remove o projeto pelo Id
+      this.currentUser.projects = this.currentUser.projects.filter(p => p.id !== projectId)
+      this._saveCurrentUser() // guarda no LocalStorage
       return true
     },
-    deleteProject(projectId) {
-      if (!this.currentUser) return false
-      const projectIndex = this.currentUser.projects.findIndex(p => p.id === projectId)
-      if (projectIndex === -1) return false
-      this.currentUser.projecsts.splice(projectIndex, 1)
-      this._saveCurrentUser()
-      return true
+
+    async fetchProjectById(projectId) {
+      try {
+        const backend = useBackendStore()
+        const response = await backend.get(`/projects/${projectId}`)
+            return response.data
+      } catch(error) {
+        console.error('Error fetching project by ID:', error)
+        return null
+      }
     }
   }
 })

@@ -17,7 +17,37 @@ export default class MaskHandler {
 
         this.getCanvasSize = null
         this.canvasToApplyColorEffect = null
-        this.maskToEdit = null
+
+        this.maskToEdit = null;
+        this.maskToEditCallbacks = new Map();
+    }
+
+    async setMaskToEdit(newValue) {
+        this.maskToEdit = newValue;
+        for (const [id, callback] of this.maskToEditCallbacks.entries()) {
+            try {
+                await callback(newValue);
+            } catch (err) {
+                console.error(`Erro no callback '${id}':`, err);
+            }
+        }
+    };
+
+    /**
+     * Registra um callback que será chamado toda vez que maskToEdit mudar.
+     * @param {string} id - Identificador único para o callback.
+     * @param {function} callback - Função a ser chamada com o novo valor.
+     */
+    onMaskToEditChange(id, callback) {
+        this.maskToEditCallbacks.set(id, callback);
+    }
+
+    /**
+     * Remove um callback registrado anteriormente.
+     * @param {string} id - Identificador usado em onMaskToEditChange.
+     */
+    removeOnMaskToEditCallback(id) {
+        this.maskToEditCallbacks.delete(id);
     }
 
     async preprocessImage(mask, maskColor, borderOptions = { width: 0, color: [0, 255, 0, 255] }) {
@@ -803,7 +833,7 @@ export default class MaskHandler {
         return tempData;
     }
 
-    async getBackgroundMask(masks, width, height) {
+    async getBackgroundMask(masks, width, height, id = -1) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         canvas.width = width;
@@ -866,7 +896,7 @@ export default class MaskHandler {
 
         ctx.putImageData(finalImageData, 0, 0);
 
-        return { id: 'background', objId: -1, url: canvas.toDataURL() };
+        return { id: 'background', objId: id, url: canvas.toDataURL() };
     }
 
     applyChromaKeyOnCanvas(originalImage, outputCanvas, color, tolerance, width, height) {

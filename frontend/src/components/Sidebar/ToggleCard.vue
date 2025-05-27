@@ -3,8 +3,10 @@
         <div class="toggle-card">
             <!-- Key movida para o template -->
             <template v-for="(item, index) in internalItems" :key="index">
-                <button :class="{ active: isActive(item.value) }" @click="handleClick(item.value)">
-                    <component :is="item.content" />
+                <button class="toggle-card-button" @click="handleClick(item.value)">
+                    <div class="toggle-card-button-inner" :class="{ active: isActive(item.value) }">
+                        <component :is="item.content" />
+                    </div>
                 </button>
             </template>
         </div>
@@ -48,8 +50,13 @@
     onMounted(() => {
         const nodes = slotContainer.value?.children || []
         internalItems.value = Array.from(nodes).map((node) => {
-            const value = node.dataset.value
+            const rawValue = node.dataset.value
             const icon = node.innerHTML
+            let value = rawValue
+
+            if (rawValue === 'true') value = true
+            else if (rawValue === 'false') value = false
+            else if (!isNaN(rawValue)) value = Number(rawValue)
 
             return {
                 value,
@@ -69,23 +76,30 @@
         display: flex;
         justify-content: space-around;
         align-items: center;
-        gap: 8px;
         border: 1px solid #ddd;
         border-radius: 8px;
         width: 100%;
         height: 100%;
-        padding: 8px;
     }
 
-    .toggle-card button {
+    .toggle-card-button {
         all: unset;
-        padding: 5px 10px;
-        cursor: pointer;
+        width: 100%;
+        padding: 8px;
         border-radius: 0.5rem;
-        height: 20px;
+        cursor: pointer;
     }
 
-    .toggle-card button.active {
+    .toggle-card-button-inner {
+        padding: 5px 10px;
+        border-radius: 0.5rem;
+    }
+
+    .toggle-card-button-inner.active {
         background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .toggle-card-button-inner:first-child {
+        text-align: center;
     }
 </style>

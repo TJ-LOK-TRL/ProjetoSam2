@@ -41,23 +41,21 @@ function selectTool(tool) {
 
 async function loadProject(project) {
     try {
-        // 1. Primeiro redireciona para o editor
-        router.push('/')  // Ou a rota correta do seu editor
-        
-        // 2. Espera um pouco para garantir que o editor está pronto
-        await new Promise(resolve => setTimeout(resolve, 100))
-        
-        // 3. Agora carrega o projeto
-        const success = await authStore.loadProject(project.id)
-        
-        if (!success) {
-            alert('Failed to load project')
-            router.push('/')  // Volta se falhar
+        console.log('Loading project:', project)
+
+        const res = await authStore.fecthProjectById(project.id)
+        if (!res || !res.data) throw new Error('Failed to get project data')
+
+        const parsedData = JSON.parse(res.data)
+
+        const importedProject = await videoEditor.importProject(parsedData)
+        if (!importedProject) {
+            throw new Error('Failed to import project')
         }
+
+        router.push('/')
     } catch (error) {
         console.error('Error loading project:', error)
-        alert('Error loading project')
-        router.push('/')
     }
 }
 

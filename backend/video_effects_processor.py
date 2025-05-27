@@ -1135,11 +1135,12 @@ class VideoEffectsProcessor:
         render_infos: List[RenderInfo],
     ) -> np.ndarray:
         """Aplica efeitos a um frame individual."""
-        if (not masks or not effects_config) and (not chroma_key_data):
+        if (not masks and not effects_config) and (not chroma_key_data):
             #print('EFFECTS_CONFIG:', effects_config, bool(masks))
             return frame
 
-        current_frame_masks = masks.get(frame_idx, {})
+
+        current_frame_masks = masks.get(frame_idx, {}) if masks else {}
         processed_frame = frame
         
         width = frame.shape[1]
@@ -1148,6 +1149,82 @@ class VideoEffectsProcessor:
         if enable_transparency and chroma_key_data:
             processed_frame = VideoEffectsProcessor.apply_chroma_key(frame, chroma_key_data)
         
+        for back_id in ['-1', '-3']:
+            effects = effects_config.get(back_id, {})
+            if effects:
+                other_masks = [m for m in current_frame_masks.values()] if back_id == '-1' else []
+                background_mask = VideoEffectsProcessor.get_background_mask(other_masks, layer_width, layer_height)
+                background_mask = cv2.resize(background_mask, (layer_width, layer_height))
+                background_mask = cv2.flip(background_mask, 1) if flipped else background_mask
+                if background_mask is not None:
+                    if enable_transparency:
+                        if 'cutObjectEffect' in effects:
+                            detection = effects.get('cutObjectEffect', 255)
+                            # 1. Garante que a máscara tem apenas 1 canal
+                            _background_mask = background_mask
+                            if _background_mask.ndim == 3:
+                                #_background_mask = cv2.cvtColor(background_mask, cv2.COLOR_BGR2GRAY)
+                                _background_mask = background_mask[:, :, 0]
+                            
+                            # 2. Cria máscara binária (objeto = 255, fundo = 0)
+                            _, obj_mask = cv2.threshold(_background_mask, 254, 255, cv2.THRESH_BINARY)
+                            
+                            if detection == 0:
+                                obj_mask = cv2.bitwise_not(obj_mask) # Black turns white and white turns black
+                            
+                            # 3. Converte para BGRA se necessário
+                            if processed_frame.shape[2] == 3:
+                                processed_frame = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2BGRA)
+                            
+                            # 4. Aplica transparência - método mais robusto
+                            alpha_channel = np.ones((height, width), dtype=np.uint8) * 255
+                            alpha_channel[obj_mask == 255] = 0
+                            processed_frame[:, :, 3] = alpha_channel
+
+                    # Processa fundo se necessário
+                    background_effect = effects.get('colorEffect', None)
+                    if background_effect:
+                        settings = background_effect.get('settings', {})
+                        color = hexToRgb(background_effect.get('color'))
+                        
+                        original_alpha = None
+
+                        # Verifica se a imagem tem 4 canais (RGBA)
+                        if processed_frame.shape[2] == 4:
+                            original_alpha = processed_frame[:, :, 3].copy()  # guarda o canal alfa
+                            processed_frame = processed_frame[:, :, :3]       # usa apenas os 3 canais RGB
+                        
+                        result = VideoEffectsProcessor.change_color(
+                            processed_frame,
+                            background_mask,
+                            frame.shape[1],
+                            frame.shape[0],
+                            color,
+                            settings,
+                        )
+                        
+                        if result is not None:
+                            processed_frame = result
+                            
+                            # Recoloca o canal alfa se ele existia
+                            if original_alpha is not None and processed_frame.shape[2] == 3:
+                                processed_frame = np.dstack((processed_frame, original_alpha)) 
+
+                    effect = effects.get('blendEffect', None)
+                    if effect:
+                        ref_video_id = effect.get('blendVideoId')
+                        ref_video_data = next((v for v in video_data.values() if v.get('video_id') == ref_video_id), None)
+                        if ref_video_data:
+                            ref_video_idx = ref_video_data.get('idx')
+                            if ref_video_idx:
+                                ref_video_ri: RenderInfo = render_infos[ref_video_idx]
+                                ref_video_layer = ref_video_ri.layer
+                                ret, ref_video_frame = ref_video_ri.get_frame_by_idx(frame_idx)
+                                if ret:
+                                    ref_video_frame = cv2.resize(ref_video_frame, (int(ref_video_layer.width), int(ref_video_layer.height)))
+                                    ref_video_frame = cv2.flip(ref_video_frame, 1) if ref_video_layer.flipped else ref_video_frame
+                                    processed_frame = VideoEffectsProcessor.apply_blend(frame, ref_video_frame, background_mask)
+
         # Processa máscaras de objetos
         for obj_id, mask in current_frame_masks.items():
             effects = effects_config.get(str(obj_id), {})
@@ -1248,82 +1325,6 @@ class VideoEffectsProcessor:
                             ref_video_frame = cv2.flip(ref_video_frame, 1) if ref_video_layer.flipped else ref_video_frame
                             processed_frame = VideoEffectsProcessor.apply_blend(frame, ref_video_frame, mask)
 
-        effects = effects_config.get('-1', {})
-        if effects:
-            other_masks = [m for m in current_frame_masks.values()]
-            background_mask = VideoEffectsProcessor.get_background_mask(other_masks, layer_width, layer_height)
-            background_mask = cv2.resize(background_mask, (layer_width, layer_height))
-            background_mask = cv2.flip(background_mask, 1) if flipped else background_mask
-            if background_mask is not None:
-                if enable_transparency:
-                    if 'cutObjectEffect' in effects:
-                        detection = effects.get('cutObjectEffect', 255)
-                        # 1. Garante que a máscara tem apenas 1 canal
-                        _background_mask = background_mask
-                        if _background_mask.ndim == 3:
-                            #_background_mask = cv2.cvtColor(background_mask, cv2.COLOR_BGR2GRAY)
-                            _background_mask = background_mask[:, :, 0]
-                        
-                        # 2. Cria máscara binária (objeto = 255, fundo = 0)
-                        _, obj_mask = cv2.threshold(_background_mask, 254, 255, cv2.THRESH_BINARY)
-                        
-                        if detection == 0:
-                            obj_mask = cv2.bitwise_not(obj_mask) # Black turns white and white turns black
-                        
-                        # 3. Converte para BGRA se necessário
-                        if processed_frame.shape[2] == 3:
-                            processed_frame = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2BGRA)
-                        
-                        # 4. Aplica transparência - método mais robusto
-                        alpha_channel = np.ones((height, width), dtype=np.uint8) * 255
-                        alpha_channel[obj_mask == 255] = 0
-                        processed_frame[:, :, 3] = alpha_channel
-
-                # Processa fundo se necessário
-                background_effect = effects.get('colorEffect', None)
-                if background_effect:
-                    settings = background_effect.get('settings', {})
-                    color = hexToRgb(background_effect.get('color'))
-                    
-                    original_alpha = None
-
-                    # Verifica se a imagem tem 4 canais (RGBA)
-                    if processed_frame.shape[2] == 4:
-                        original_alpha = processed_frame[:, :, 3].copy()  # guarda o canal alfa
-                        processed_frame = processed_frame[:, :, :3]       # usa apenas os 3 canais RGB
-                    
-                    result = VideoEffectsProcessor.change_color(
-                        processed_frame,
-                        background_mask,
-                        frame.shape[1],
-                        frame.shape[0],
-                        color,
-                        settings,
-                    )
-                    
-                    if result is not None:
-                        processed_frame = result
-                        
-                        # Recoloca o canal alfa se ele existia
-                        if original_alpha is not None and processed_frame.shape[2] == 3:
-                            processed_frame = np.dstack((processed_frame, original_alpha)) 
-
-                effect = effects.get('blendEffect', None)
-                if effect:
-                    ref_video_id = effect.get('blendVideoId')
-                    ref_video_data = next((v for v in video_data.values() if v.get('video_id') == ref_video_id), None)
-                    if ref_video_data:
-                        ref_video_idx = ref_video_data.get('idx')
-                        if ref_video_idx:
-                            ref_video_ri: RenderInfo = render_infos[ref_video_idx]
-                            ref_video_layer = ref_video_ri.layer
-                            ret, ref_video_frame = ref_video_ri.get_frame_by_idx(frame_idx)
-                            if ret:
-                                ref_video_frame = cv2.resize(ref_video_frame, (int(ref_video_layer.width), int(ref_video_layer.height)))
-                                ref_video_frame = cv2.flip(ref_video_frame, 1) if ref_video_layer.flipped else ref_video_frame
-                                processed_frame = VideoEffectsProcessor.apply_blend(frame, ref_video_frame, background_mask)
-
-
         effects = effects_config.get('-2', {})
         if effects and 'overlapVideo' in effects:
             overlap_video_info = effects.get('overlapVideo', {})
@@ -1406,7 +1407,7 @@ class VideoEffectsProcessor:
         if (not masks or not effects_config) and (not chroma_key_data):
             return frame
 
-        current_frame_masks = masks.get(frame_idx, {})
+        current_frame_masks = masks.get(frame_idx, {}) if masks else {}
         processed_frame = frame
         
         width = frame.shape[1]

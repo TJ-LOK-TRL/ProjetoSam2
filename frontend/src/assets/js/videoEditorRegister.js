@@ -52,6 +52,21 @@ export class VideoEditorRegister {
         return lastEffects;
     }
 
+    getLastStateOfEffect(video_id, obj_id, effect_id) {
+        const effectHistory = this.maskEffects?.[video_id]?.[obj_id]?.[effect_id];
+        if (!effectHistory || effectHistory.length === 0) return undefined;
+
+        // Percorre o histórico de trás para frente, ignorando resets
+        for (let i = effectHistory.length - 1; i >= 0; i--) {
+            const value = effectHistory[i];
+            if (value !== 'reset') {
+                return value;
+            }
+        }
+
+        return undefined; // Apenas resets ou nenhum valor válido
+    }
+
     registerReset(video_id) {
         const videoEffects = this.maskEffects?.[video_id];
         if (!videoEffects) return;

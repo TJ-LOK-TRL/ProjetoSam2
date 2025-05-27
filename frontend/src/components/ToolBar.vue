@@ -73,9 +73,7 @@ onMounted(() => {
     selectTool('media')
 })
 
-
 const logout = async () => {
-    
     await authStore.logout()
     router.push('/login')
 }

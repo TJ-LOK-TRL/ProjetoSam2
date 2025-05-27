@@ -16,7 +16,7 @@
         <!-- Mostrar os pontos -->
         <div v-for="(point, index) in video?.points" :key="index"
             v-show="point.show && videoEditor.maskHandler.selectedMaskObjectId == point.objId"
-            :style="{ top: point.y + 'px',  left: point.x + 'px' }"
+            :style="{ top: (100 * point.y / point.height) + '%',  left: (100 * point.x / point.width) + '%' }"
             :class="{ point: true, add: point.type === 'add', remove: point.type === 'remove' }">
             <i v-if="point.type == 'add'" class="fas fa-plus"></i>
             <i v-else-if="point.type == 'remove'" class="fas fa-minus"></i>
@@ -202,14 +202,22 @@
             const y = (event.clientY - rect.top) / zoom;
             const realX = ((event.clientX - rect.left) / rect.width) * video.value.width;
             const realY = ((event.clientY - rect.top) / rect.height) * video.value.height;
+            const width = rect.width / zoom;
+            const height = rect.height / zoom;
+            const id = crypto.randomUUID();
             console.log('X:', x)
             console.log('Y:', y)
+            console.log('Width:', rect.width)
+            console.log('Height:', rect.height)
             console.log('RealX:', realX)
             console.log('RealY:', realY)
             console.log('rect.width =', rect.width)
             console.log('rect.height =', rect.height)
             console.log('video.value.width =', video.value.width)
             console.log('video.value.height =', video.value.height)
+            console.log('x% =', (100 * x / width) + '%')
+            console.log('y% =', (100 * y / height) + '%')
+            console.log('id =', id)
             const show = true;
             const clickRadius = 10;
 
@@ -222,8 +230,8 @@
             if (pointIndex !== -1) {
                 video.value.points.splice(pointIndex, 1);
             } else {
-                video.value.points.push({ x, y, realX, realY, type, show, objId });
-                console.log("Ponto adicionado:", { x, y, realX, realY, type, show, objId });
+                video.value.points.push({ x, y, realX, realY, width, height, type, show, objId, id });
+                console.log("Ponto adicionado:", { x, y, realX, realY, width, height, type, show, objId, id });
             }
         }
 
@@ -288,12 +296,13 @@
             mask => {
                 if (videoEditor.maskHandler.selectedMask?.id == mask.id) {
                     videoEditor.maskHandler.selectedMask = null;
+                    videoEditor.maskHandler.setMaskToEdit(videoEditor.maskHandler.selectedMask)
                     videoEditor.maskHandler.drawVisibleMasks(activeMaskCanvasRef.value, video.value.masks, ...getBoxVideoSize())
                     return
                 }
 
                 videoEditor.maskHandler.selectedMask = mask;
-                videoEditor.maskHandler.maskToEdit = videoEditor.maskHandler.selectedMask
+                videoEditor.maskHandler.setMaskToEdit(videoEditor.maskHandler.selectedMask)
                 videoEditor.maskHandler.drawVisibleMasks(activeMaskCanvasRef.value, video.value.masks, ...getBoxVideoSize())
             },
             mask => {
@@ -560,6 +569,7 @@
         width: 100%;
         height: 100%;
         pointer-events: none;
+        border-radius: inherit;
     }
 
     .point {

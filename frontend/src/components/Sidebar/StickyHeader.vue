@@ -19,6 +19,10 @@
         showIcon: {
             type: Boolean,
             default: false
+        },
+        prevDestination: {
+            type: String,
+            default: null
         }
     });
 
@@ -39,7 +43,11 @@
 
     function handleIconClick() {
         emit('icon-click')
-        videoEditor.changeToPreviousTool()
+        if (props.prevDestination) {
+            videoEditor.changeTool(props.prevDestination);
+        } else {
+            videoEditor.changeToPreviousTool();
+        }
     }
 
     onMounted(async () => {

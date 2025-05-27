@@ -1,6 +1,6 @@
 <template>
     <div ref="boxRef" class="box" @mousedown="handleBoxClick" :style="{ transform: `rotate(${rotation}deg)` }">
-        <div class="flip-div" :style="{ transform: `scaleX(${isFlipped ? -1 : 1})`, opacity: opacity }">
+        <div class="flip-div" :style="{ transform: `scaleX(${isFlipped ? -1 : 1})`, opacity: opacity, borderRadius: `${roundedCorner}px` }">
             <slot></slot>
 
             <!-- BOTÃO DE ROTAÇÃO -->
@@ -57,6 +57,7 @@
     const isFlipped = ref(false)
     const opacity = ref(1);
     const rotation = ref(0);
+    const roundedCorner = ref(0);
     let rotating = false;
     let initialAngle = 0;
     let angleOffset = 0;
@@ -198,6 +199,7 @@
         rotation,
         isFlipped,
         opacity,
+        roundedCorner,
         getRect: (abs = false) => {
             const box = boxRef.value;
             if (!box) return null;

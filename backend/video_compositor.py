@@ -21,6 +21,8 @@ class LayerInfo:
     flipped: bool = False
     draw: bool = True
     fps: int = 30
+    opacity: float = 1.0
+    border_radius: int = 0
     
     @property
     def x(self) -> float:
@@ -230,6 +232,62 @@ class VideoCompositor:
         self.fps = fps
         self.layers: List[LayerInfo] = []
 
+    @staticmethod
+    def rect_with_rounded_corners(image: np.ndarray, radius: int, thickness: int = 0, color: Tuple[int, int, int, int] = (0, 0, 0, 255)) -> np.ndarray:
+        h, w = image.shape[:2]
+
+        # Se thickness for zero, não desenhamos borda, apenas retornamos imagem original com cantos arredondados (via alpha)
+        if thickness == 0:
+            result = image.copy()
+            if result.shape[2] == 3:
+                result = cv2.cvtColor(result, cv2.COLOR_BGR2BGRA)
+            
+            # Cria máscara de cantos arredondados para o alpha
+            mask = np.zeros((h, w), dtype=np.uint8)
+            cv2.rectangle(mask, (radius, 0), (w - radius, h), 255, -1)
+            cv2.rectangle(mask, (0, radius), (w, h - radius), 255, -1)
+            cv2.circle(mask, (radius, radius), radius, 255, -1)
+            cv2.circle(mask, (w - radius - 1, radius), radius, 255, -1)
+            cv2.circle(mask, (radius, h - radius - 1), radius, 255, -1)
+            cv2.circle(mask, (w - radius - 1, h - radius - 1), radius, 255, -1)
+
+            result[..., 3] = (result[..., 3].astype(np.float32) * (mask / 255)).astype(np.uint8)
+            return result
+
+        # Se thickness > 0, criamos imagem maior com borda
+        new_image = np.ones((h + 2*thickness, w + 2*thickness, 4), np.uint8) * 255
+        new_image[:, :, 3] = 0
+
+        # Círculos (4 cantos)
+        cv2.ellipse(new_image, (int(radius + thickness/2), int(radius + thickness/2)), (radius, radius), 180, 0, 90, color, thickness)
+        cv2.ellipse(new_image, (int(w - radius + 3*thickness/2 - 1), int(radius + thickness/2)), (radius, radius), 270, 0, 90, color, thickness)
+        cv2.ellipse(new_image, (int(radius + thickness/2), int(h - radius + 3*thickness/2 - 1)), (radius, radius), 90, 0, 90, color, thickness)
+        cv2.ellipse(new_image, (int(w - radius + 3*thickness/2 - 1), int(h - radius + 3*thickness/2 - 1)), (radius, radius), 0, 0, 90, color, thickness)
+
+        # Linhas (4 lados)
+        cv2.line(new_image, (int(radius + thickness/2), int(thickness/2)), (int(w - radius + 3*thickness/2 - 1), int(thickness/2)), color, thickness)
+        cv2.line(new_image, (int(thickness/2), int(radius + thickness/2)), (int(thickness/2), int(h - radius + 3*thickness/2)), color, thickness)
+        cv2.line(new_image, (int(radius + thickness/2), int(h + 3*thickness/2)), (int(w - radius + 3*thickness/2 - 1), int(h + 3*thickness/2)), color, thickness)
+        cv2.line(new_image, (int(w + 3*thickness/2), int(radius + thickness/2)), (int(w + 3*thickness/2), int(h - radius + 3*thickness/2)), color, thickness)
+
+        # Máscara para blend
+        mask = new_image[:, :, 3].copy()
+        mask = cv2.floodFill(mask, None, (int(w/2 + thickness), int(h/2 + thickness)), 128)[1]
+        mask[mask != 128] = 0
+        mask[mask == 128] = 1
+        mask = np.stack((mask, mask, mask), axis=2)
+
+        # Blending
+        temp = np.zeros_like(new_image[:, :, :3])
+        temp[(thickness - 1):(h + thickness - 1), (thickness - 1):(w + thickness - 1)] = image.copy()
+        new_image[:, :, :3] = new_image[:, :, :3] * (1 - mask) + temp * mask
+
+        # Alpha final
+        temp = new_image[:, :, 3].copy()
+        new_image[:, :, 3] = cv2.floodFill(temp, None, (int(w/2 + thickness), int(h/2 + thickness)), 255)[1]
+
+        return new_image
+    
     def add_layer(self, layer: LayerInfo) -> None:
         """Adiciona uma layer à composição, ordenando-a pelo layer_idx."""
         self.layers.append(layer)
@@ -313,7 +371,10 @@ class VideoCompositor:
         
         if frame is None:
             return False
-                
+                                
+        if layer.border_radius > 0:
+            frame = VideoCompositor.rect_with_rounded_corners(frame, int(layer.border_radius))
+                                
         # Aplica rotação ao frame
         if layer.rotation:
             if frame.shape[2] == 3:
@@ -359,7 +420,7 @@ class VideoCompositor:
         # Região de interesse (ROI) no frame composto
         roi = composite[y1:y2, x1:x2]
         frame = frame[fy1:fy2, fx1:fx2]
-                       
+            
         frame = on_frame(
             render_info, 
             frame, 
@@ -374,7 +435,15 @@ class VideoCompositor:
         
         if frame is None:
             return False
-                    
+        
+        if layer.opacity < 1.0:
+            if frame.shape[2] == 4:
+                frame[..., 3] = (frame[..., 3] * layer.opacity).astype(np.uint8)
+            else:
+                # Se não tiver canal alfa, adiciona um com opacidade
+                alpha = np.full(frame.shape[:2], int(255 * layer.opacity), dtype=np.uint8)
+                frame = np.dstack((frame, alpha))
+                             
         if frame.shape[2] == 4:  # Se tem alpha channel
             alpha = frame[..., 3] / 255.0
             for c in range(3):
@@ -430,6 +499,19 @@ class VideoCompositor:
             ri.capture.release()
             
 if __name__ == "__main__":
+    
+    # Cria uma imagem 200x200 vermelha
+    test_img = np.zeros((200, 200, 3), dtype=np.uint8)
+    test_img[:, :] = (0, 0, 255)  # Vermelho em BGR
+
+    # Aplica bordas arredondadas com raio 30
+    rounded_img = VideoCompositor.rect_with_rounded_corners(test_img, 75, 0)
+
+    # Salva para verificação
+    cv2.imwrite('test_rounded_corners.png', rounded_img)
+    
+    exit(1)
+    
     # Exemplo de uso
     compositor = VideoCompositor("output.mp4", 1280, 720, fps=30.0)
     

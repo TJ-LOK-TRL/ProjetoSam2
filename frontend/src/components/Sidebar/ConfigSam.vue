@@ -1,11 +1,11 @@
 <template>
     <div class="container">
-        <StickyHeader :show-icon="false">
+        <StickyHeader :show-icon="true" :prev-destination="'media'">
             <div class="header">
                 <p>Select objects</p>
-                <p class="description">Adjust the selection of your object, or add additional objects. Press "Track
+                <!--<p class="description">Adjust the selection of your object, or add additional objects. Press "Track
                     objects" to
-                    track your objects throughout the video</p>
+                    track your objects throughout the video</p>-->
             </div>
         </StickyHeader>
 
@@ -22,7 +22,7 @@
             </div>
 
             <div class="track-objects-container">
-                <div v-for="(obj, index) in maskObjects" :key="obj.id" class="object-container"
+                <div v-for="(obj, index) in video.maskObjects" :key="obj.id" class="object-container"
                     :class="{ 'not-selected': obj.id != videoEditor.maskHandler.selectedMaskObjectId }">
                     <div class="object-left">
                         <img v-if="obj.src" class="object-image" :src="obj.src" alt="">
@@ -90,27 +90,27 @@
 </template>
 
 <script setup>
-    import { ref, watch, onMounted, onUnmounted } from 'vue'
+    import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
     import StickyHeader from '@/components/Sidebar/StickyHeader.vue'
     import StickyFooter from '@/components/Sidebar/StickyFooter.vue'
     import { useVideoEditor } from '@/stores/videoEditor'
     import { useTimelineStore } from '@/stores/timeline'
-    import { loadImageFromCache, getStageNameOfVideo, calculateTimeByFrameIdx } from '@/assets/js/utils'
+    import { loadImageFromCache, getStageNameOfVideo, calculateTimeByFrameIdx, joinTrackedMasks } from '@/assets/js/utils'
 
     const videoEditor = useVideoEditor()
     const timelineStore = useTimelineStore()
+    const cacheTrackVideos = ref({}); // If trackMasks already exists, we will use it to restore the state if no changes are made
+    const originalPoints = ref([]);
 
-    const maskObjects = ref([])
-
-    let currentId = 0;
+    const video = computed(() => videoEditor.maskHandler.video);
 
     function addNewObject() {
         const newObject = {
-            id: ++currentId,
-            name: `Object ${currentId}`,
+            id: ++video.value.currentId,
+            name: `Object ${video.value.currentId}`,
             src: null,
         }
-        maskObjects.value.push(newObject)
+        video.value.maskObjects.push(newObject)
     }
 
     function onAddClick() {
@@ -131,64 +131,89 @@
     }
 
     function onClearClick(objId) {
-        maskObjects.value = maskObjects.value.filter(obj => obj.id !== objId);
+        video.value.maskObjects = video.value.maskObjects.filter(obj => obj.id !== objId);
 
-        const video = videoEditor.maskHandler.video;
-        const frame = video.getCurrentFrame();
+        const frame = video.value.getCurrentFrame();
 
-        if (video.trackMasks?.[frame]) {
-            delete video.trackMasks[frame][objId];
+        if (video.value.trackMasks?.[frame]) {
+            delete video.value.trackMasks[frame][objId];
         }
     }
 
     function reset() {
-        if (videoEditor.selectedElement.type === 'video') {
-            videoEditor.maskHandler.selectMaskType = null
-            videoEditor.selectedElement.points.length = 0
-            videoEditor.selectedElement.trackMasks = {}
-            maskObjects.value.length = 0
-            currentId = 0
-            return
+        videoEditor.maskHandler.selectMaskType = null
+        video.value.points.length = 0
+        video.value.trackMasks = {}
+        video.value.previewTrackMasks = {}
+        video.value.maskObjects.length = 0
+        video.value.currentId = 0
+        video.value.masks.length = 0
+    }
+
+    function hasChanged() {
+        if (video.value.points.length !== originalPoints.value.length) {
+            return true;
         }
 
-        console.error('elemento selecionado deveria ser do tipo vídeo')
+        for (let i = 0; i < video.value.points.length; i++) {
+            const point = video.value.points[i];
+            const originalPoint = originalPoints.value[i];
+            if (point.id !== originalPoint.id) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     async function track() {
-        const video = videoEditor.maskHandler.video
         try {
             console.log('getting masks...')
-            videoEditor.isLoading = true
 
-            const masks = await videoEditor.generateMasksForVideo(video, {
-                start_frame: Math.floor(video.start * video.fps),
-                end_frame: Math.floor(video.end * video.fps),
-                stage_name: getStageNameOfVideo(video, '_track_masks'),
-            });
+            const currentFrameNumber = Math.floor(video.value.fps * (timelineStore.currentTime - video.value.stOffset))
 
-            videoEditor.isLoading = false
-            video.trackMasks = masks
-            videoEditor.maskHandler.selectMaskType = null
+            if (!hasChanged()) {
+                video.value.trackMasks = joinTrackedMasks({}, cacheTrackVideos.value);
+            } else {
+                videoEditor.isLoading = true
 
-            const currentFrameNumber = Math.floor(video.fps * (timelineStore.currentTime - video.stOffset))
+                const [track_id, masks] = await videoEditor.generateMasksForVideo(video.value, {
+                    start_frame: Math.floor(video.value.start * video.value.fps),
+                    end_frame: Math.floor(video.value.end * video.value.fps),
+                    stage_name: getStageNameOfVideo(video.value, '_track_masks'),
+                });
 
+                videoEditor.isLoading = false
+
+                if (masks === null) {
+                    console.error("Máscaras não encontradas para o vídeo:", video.value.id, masks);
+                    return;
+                }
+
+                video.value.track_id = track_id
+                video.value.trackMasks = joinTrackedMasks(video.value.trackMasks, masks);
+                videoEditor.maskHandler.selectMaskType = null
+            }
+            
+            const masks = video.value.trackMasks
             if (!masks[currentFrameNumber]) {
-                console.error("Máscaras não encontradas para o frame atual:", currentFrameNumber, masks, video.fps);
+                console.error("Máscaras não encontradas para o frame atual:", currentFrameNumber, masks, video.value.fps);
                 return;
             }
-
+            
+            video.value.masks.length = 0;
             Object.keys(masks[currentFrameNumber]).forEach((objId, index) => {
-                video.masks.push({
+                video.value.masks.push({
                     id: masks[currentFrameNumber][objId].id,
                     url: masks[currentFrameNumber][objId].url,
-                    videoId: video.id,
+                    videoId: video.value.id,
                     objId: objId,
                     frameIdx: currentFrameNumber,
                     indexColor: videoEditor.maskHandler.getIndexedColor(index),
                 })
             });
 
-            videoEditor.selectedTool = 'samEffects'
+            videoEditor.changeTool('samEffects')
 
             return;
         } catch (error) {
@@ -199,22 +224,21 @@
     }
 
     async function onEditorElementSelected(editorElement) {
-        if (editorElement.type === 'video' && editorElement == videoEditor.maskHandler.video) {
-            const video = editorElement
-            if (video.points.length === 0) return
+        if (editorElement.type === 'video' && editorElement == video.value) {
+            if (video.value.points.length === 0) return
 
             try {
                 console.log('getting 1 mask...')
                 const selectedMaskObjectId = videoEditor.maskHandler.selectedMaskObjectId
-                const currentFrame = video.getCurrentFrame()
-                const pointsToTrack = video.points.filter(point => point.objId === selectedMaskObjectId)
+                const currentFrame = video.value.getCurrentFrame()
+                const pointsToTrack = video.value.points.filter(point => point.objId === selectedMaskObjectId)
                 if (pointsToTrack.length === 0) return;
                 videoEditor.isLoading = true
-                const masks = await videoEditor.generateMasksForVideo(videoEditor.selectedElement, {
+                const [track_id, masks] = await videoEditor.generateMasksForVideo(video.value, {
                     start_frame: currentFrame,
                     end_frame: currentFrame + 1,
                     ann_obj_id: selectedMaskObjectId,
-                    stage_name: getStageNameOfVideo(video, '_one_mask')
+                    stage_name: getStageNameOfVideo(video.value, '_one_mask'),
                 }, pointsToTrack);
 
                 if (masks === null) {
@@ -222,13 +246,15 @@
                     return;
                 }
 
-                video.trackMasks = masks
+                video.value.track_id = track_id
+                video.value.trackMasks = joinTrackedMasks(video.value.trackMasks, masks);
+                video.value.previewTrackMasks = joinTrackedMasks(video.value.previewTrackMasks, masks);
 
                 const frameIdx = Math.min(...Object.keys(masks).map(Number));
-                const targetTime = calculateTimeByFrameIdx(frameIdx, video.fps);
+                const targetTime = calculateTimeByFrameIdx(frameIdx, video.value.fps);
 
                 await timelineStore.setCurrentTime(targetTime);
-                
+
                 const maskFrame = masks[frameIdx];
                 const maskData = maskFrame?.[selectedMaskObjectId] || null;
 
@@ -237,9 +263,9 @@
                     return;
                 }
 
-                const objImgUrl = await extractObjectFromImage(video, maskData);
-                const centeredUrl = await centerObjectInImage(objImgUrl, video.width, video.height);
-                const currentObj = maskObjects.value.find(obj => obj.id === videoEditor.maskHandler.selectedMaskObjectId);
+                const objImgUrl = await extractObjectFromImage(video.value, maskData);
+                const centeredUrl = await centerObjectInImage(objImgUrl, video.value.width, video.value.height);
+                const currentObj = video.value.maskObjects.find(obj => obj.id === videoEditor.maskHandler.selectedMaskObjectId);
                 if (currentObj) {
                     currentObj.src = centeredUrl;
                 }
@@ -251,7 +277,8 @@
                 videoEditor.isLoading = false;
             }
         } else {
-            console.warn('Elemento selecionado não é um vídeo ou não é o vídeo correto:', editorElement, videoEditor.maskHandler.video);
+            console.warn('Elemento selecionado não é um vídeo ou não é o vídeo correto:', editorElement, video.value);
+            videoEditor.changeToPreviousTool();
         }
     }
 
@@ -363,13 +390,18 @@
     }
 
     onMounted(() => {
+        originalPoints.value = JSON.parse(JSON.stringify(video.value.points))
+        cacheTrackVideos.value = JSON.parse(JSON.stringify(video.value.trackMasks))
+        video.value.trackMasks = {}
+        video.value.trackMasks = JSON.parse(JSON.stringify(video.value.previewTrackMasks))
+
         videoEditor.onEditorElementSelected('ConfigSam', onEditorElementSelected)
     })
 
     onUnmounted(() => {
         videoEditor.removeOnEditorElementSelected('ConfigSam')
         videoEditor.maskHandler.selectMaskType = null
-        videoEditor.maskHandler.video.points.length = 0
+        videoEditor.maskHandler.selectedMaskObjectId = null
     })
 
 </script>

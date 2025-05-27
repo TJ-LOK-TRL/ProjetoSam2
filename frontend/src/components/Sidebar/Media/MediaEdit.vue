@@ -6,11 +6,22 @@
 
         <div class="content">
             <div class="content-group local-sidebar-div sidebar-div">
-                <div class="time-range-card-container">
-                    <TimeRangeCard v-model:start="startTime" v-model:end="endTime" />
+                <div class="content-row-3">
+                    <SimpleButtonCard :label="'Animations'" :icon="'fa-brands fa-fly'" @on-click="" />
+
+                    <SimpleButtonCard :label="'Adjust'" :icon="'fas fa-sliders'" @on-click="adjustVideo" />
                 </div>
 
+                <TimeRangeCard v-model:start="startTime" v-model:end="endTime" />
+
                 <SpeedControls v-model="currentSpeed" />
+
+                <div class="content-row-3">
+                    <SingleToggleCard class="volume-toggle-container" v-model="volume" :iconOn="'fas fa-volume-high'"
+                        :iconOff="'fas fa-volume-xmark'" :stateValue="'0%'" :state="false" />
+
+                    <SimpleInputCard class="volume-range-container" v-model="volume" :showRange="true" />
+                </div>
             </div>
 
             <hr class="content-group-divider" />
@@ -22,6 +33,9 @@
             <hr class="content-group-divider visible" />
 
             <div class="content-group local-sidebar-div sidebar-div">
+                <SimpleInputCard class="rotation-container" v-model="roundedCorner" :label="'Round Corners'"
+                    :icon="'fa-solid fa-border-top-left'" />
+
                 <SimpleInputCard class="rotation-container" v-model="opacity" :showRange="true" :label="'Opacity'"
                     :icon="'fas fa-droplet'" />
 
@@ -31,7 +45,7 @@
 
                     <ToggleCard class="flip-container" v-model="flip">
                         <template #default>
-                            <div data-value="flip"><i class="fa-solid fa-arrows-up-down" /></div>
+                            <div data-value="true"><i class="fa-solid fa-arrows-up-down" /></div>
                         </template>
                     </ToggleCard>
                 </div>
@@ -56,6 +70,8 @@
     import AddNewElementButton from '@/components/Sidebar/AddNewElementButton.vue'
     import ToggleCard from '@/components/Sidebar/ToggleCard.vue'
     import MagicTools from './MagicTools.vue'
+    import SimpleButtonCard from '@/components/Sidebar/SimpleButtonCard.vue'
+    import SingleToggleCard from '@/components/Sidebar/SingleToggleCard.vue'
 
     const videoEditor = useVideoEditor()
     const timelineStore = useTimelineStore()
@@ -122,12 +138,39 @@
             boxElement.box.opacity = val
         }
     })
+
+    const roundedCorner = computed({
+        get: () => {
+            const boxElement = videoEditor.getBoxOfElement(mediaElement.value)
+            if (!boxElement) return 0
+            return boxElement.box.roundedCorner === 50
+        },
+        set: (val) => {
+            const boxElement = videoEditor.getBoxOfElement(mediaElement.value)
+            if (!boxElement) return
+            boxElement.box.roundedCorner = val ? 50 : 0
+        }
+    })
+
+    const volume = computed({
+        get: () => {
+            return Math.round(mediaElement.value.volume * 100) + '%'
+        },
+        set: (val) => {
+            mediaElement.value.volume = parseFloat(val) / 100
+        }
+    })
+
+    async function adjustVideo() {
+        videoEditor.effectHandler.setVideoToApplyEffect(mediaElement.value)
+        videoEditor.maskHandler.setMaskToEdit(await videoEditor.maskHandler.getBackgroundMask([], ...videoEditor.maskHandler.getCanvasSize(), -3));
+        videoEditor.changeTool('colorEffect')
+    }
 </script>
 
 <style scoped>
     .container {
         width: 100%;
-        height: 100%;
     }
 
     .content {
@@ -156,6 +199,17 @@
     .rotation-container {
         width: 100%;
         height: 100%;
+    }
+
+    .volume-range-container {
+        width: calc(80% - 10px);
+        height: 100%;
+    }
+
+    .volume-toggle-container {
+        width: 20%;
+        height: 48px;
+        color: rgb(119, 119, 126);
     }
 
     .file-name {

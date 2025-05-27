@@ -39,10 +39,13 @@ CORS(app)
 # Definição da pasta de imagens
 IMAGES_FOLDER = 'images'
 SEGMENTED_FOLDER = 'segmented'
+# DEFINIR PASTA DE PROJETOS
+PROJECTS_FOLDER = 'projects'
 
 # Criar pastas se não existirem
 os.makedirs(IMAGES_FOLDER, exist_ok=True)
 os.makedirs(SEGMENTED_FOLDER, exist_ok=True)
+os.makedirs(PROJECTS_FOLDER, exist_ok=True)
 
 @app.route('/test')
 def test():
@@ -307,6 +310,46 @@ def get_masks_of_video():
         except PermissionError:
             print(f"Não foi possível remover o arquivo: {temp_path}")
 
+@app.route('/projects', methods=['POST'])
+def save_project():
+    print("\nRota para salvar um projeto\n")
+    try:
+        project = request.get_json()
+
+        name = project.get('name')
+        email = project.get('user_email')
+        data = project.get('data')
+        thumbnail = project.get('thumbnail', None)
+
+        if not name or not email or not data:
+            return jsonify({'error': 'Nome, email e dados do projeto são obrigatórios'}), 400
+        
+        user_folder = os.path.join(PROJECTS_FOLDER, email)
+        os.makedirs(user_folder, exist_ok=True)
+
+        # gerar ID unico para o projeto
+        projectId = str(int(time.time() * 1000))  # ID baseado no timestamp atual
+
+        # guardar como ficheiro JSON
+        project_path = os.path.join(user_folder, f'{projectId}.json')
+        with open(project_path, 'w') as f:
+            json.dump({
+                'name': name,
+                'email': email,
+                'data': data,
+                'thumbnail': thumbnail,
+                'projectId': projectId
+            }, f, indent=2) # o q faz com o indent=2 é que formata o JSON para ficar mais legível
+        return jsonify({
+            'id': projectId,
+            'name': name,
+            'user_email': email,
+            'thumbnail': thumbnail,
+        }), 201
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/download', methods=['POST'])
 def download():
     print("\n=== INÍCIO DA REQUISIÇÃO DE DOWNLOAD ===")
@@ -387,6 +430,8 @@ def download():
             element_type = element_metadata.get('type', 'video')
             rotation = element_metadata.get('rotation', 0)
             flipped = element_metadata.get('flipped', False)
+            opacity = element_metadata.get('opacity', 1.0)
+            border_radius = element_metadata.get('borderRadius', 0)
             speed = element_metadata.get('speed', 1)
             draw = element_metadata.get('draw', True)
             st_offset = element_metadata.get('st_offset', 0)
@@ -453,6 +498,8 @@ def download():
                 speed=speed,
                 flipped=flipped,
                 draw=draw,
+                opacity=opacity,
+                border_radius=border_radius,
             ))
         
         def process_frame(

@@ -7,10 +7,11 @@ export default class EffectHandler {
     static SPLIT_BKG_EFFECT_ID = 3;
     static COLOR_OBJ_EFFECT_ID = 4;
     static COLOR_BKG_EFFECT_ID = 5;
-    static BLEND_OBJ_EFFECT_ID = 6;
-    static BLEND_BKG_EFFECT_ID = 7;
-    static ERASE_OBJ_EFFECT_ID = 8;
-    static ERASE_BKG_EFFECT_ID = 9;
+    static COLOR_ALL_EFFECT_ID = 6;
+    static BLEND_OBJ_EFFECT_ID = 7;
+    static BLEND_BKG_EFFECT_ID = 8;
+    static ERASE_OBJ_EFFECT_ID = 9;
+    static ERASE_BKG_EFFECT_ID = 10;
 
     constructor(register, maskHandler) {
         this.register = register;
@@ -88,8 +89,8 @@ export default class EffectHandler {
         await this.changeColorOfMask(video, mask, null, {})
         this.removeBoxCallbacks(
             boxOfVideo,
-            type === 'background' ? [EffectHandler.CUT_BKG_EFFECT_ID, EffectHandler.SPLIT_BKG_EFFECT_ID, EffectHandler.COLOR_BKG_EFFECT_ID, EffectHandler.BLEND_BKG_EFFECT_ID, EffectHandler.ERASE_BKG_EFFECT_ID]
-                                  : [EffectHandler.CUT_OBJ_EFFECT_ID, EffectHandler.SPLIT_OBJ_EFFECT_ID, EffectHandler.COLOR_OBJ_EFFECT_ID, EffectHandler.BLEND_OBJ_EFFECT_ID, EffectHandler.ERASE_OBJ_EFFECT_ID],
+            type === 'background' ? [EffectHandler.CUT_BKG_EFFECT_ID, EffectHandler.SPLIT_BKG_EFFECT_ID, EffectHandler.COLOR_BKG_EFFECT_ID, EffectHandler.BLEND_BKG_EFFECT_ID, EffectHandler.ERASE_BKG_EFFECT_ID, EffectHandler.COLOR_ALL_EFFECT_ID]
+                                  : [EffectHandler.CUT_OBJ_EFFECT_ID, EffectHandler.SPLIT_OBJ_EFFECT_ID, EffectHandler.COLOR_OBJ_EFFECT_ID, EffectHandler.BLEND_OBJ_EFFECT_ID, EffectHandler.ERASE_OBJ_EFFECT_ID, EffectHandler.COLOR_ALL_EFFECT_ID],
             mask.objId,
         );
 

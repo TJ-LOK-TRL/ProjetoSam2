@@ -5,8 +5,7 @@
                 Remove Color
             </StickyHeader>
 
-            <ChromaKey :title="'Chroma Key'" :tolerance="parseFloat(chromaKeyDetectionData.tolerance)"
-                @update="onChromeKeyUpdate" />
+            <ChromaKey :title="'Chroma Key'" v-model="chromaKeyDetectionData" />
         </div>
         <StickyFooter>
             <div class="reset-button-container">
@@ -32,18 +31,21 @@
         tolerance: 100,
     })
 
-    async function onChromeKeyUpdate(data) {
-        chromaKeyDetectionData.value = data;
+    watch(chromaKeyDetectionData, async () => {
         await applyChromaKeyOnSelectedElement()
-    }
+    }, { deep: true })
 
     async function applyChromaKey(video) {
         if (!video) return;
 
+        const pos = typeof chromaKeyDetectionData.value.position === 'string'
+            ? chromaKeyDetectionData.value.position.split(',').map(Number)
+            : chromaKeyDetectionData.value.position
+
         video.chromaKeyDetectionData = {
             detectionType: chromaKeyDetectionData.value.detectionType,
             selectedColor: chromaKeyDetectionData.value.selectedColor,
-            position: chromaKeyDetectionData.value.position.split(',').map(Number),
+            position: pos,
             tolerance: chromaKeyDetectionData.value.tolerance,
         }
     }
@@ -60,14 +62,48 @@
         if (video && video.type === 'video') {
             video.chromaKeyDetectionData = null;
         }
-    }
-    
-    watch(() => videoEditor.selectedElement, (selectedElement) => {
-        console.log('here:', videoEditor.selectedElement)
-        if (!selectedElement || selectedElement.type !== 'video') {
-            videoEditor.changeTool('media')
+
+        chromaKeyDetectionData.value = {
+            detectionType: 'Position',
+            selectedColor: '#ff0000',
+            position: '0,0',
+            tolerance: 0,
         }
-    })
+    }
+
+    // Quando o elemento selecionado mudar, atualiza os dados para o que já existe nele
+    watch(() => videoEditor.selectedElement, (newEl) => {
+        if (!newEl || newEl.type !== 'video') {
+            videoEditor.changeTool('media')
+            // Reset local ao padrão, caso não seja vídeo
+            chromaKeyDetectionData.value = {
+                detectionType: 'Position',
+                selectedColor: '#ff0000',
+                position: '0,0',
+                tolerance: 100,
+            }
+            return
+        }
+        // Se o elemento tem dados, atualiza local
+        if (newEl.chromaKeyDetectionData) {
+            const d = newEl.chromaKeyDetectionData
+            chromaKeyDetectionData.value = {
+                detectionType: d.detectionType || 'Position',
+                selectedColor: d.selectedColor || '#ff0000',
+                // Converter array para string se necessário
+                position: Array.isArray(d.position) ? d.position.join(',') : (d.position || '0,0'),
+                tolerance: d.tolerance || 100,
+            }
+        } else {
+            // Se não tem dados, reset padrão
+            chromaKeyDetectionData.value = {
+                detectionType: 'Position',
+                selectedColor: '#ff0000',
+                position: '0,0',
+                tolerance: 100,
+            }
+        }
+    }, { immediate: true })
 </script>
 
 <style>

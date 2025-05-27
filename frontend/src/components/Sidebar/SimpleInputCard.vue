@@ -1,10 +1,18 @@
 <template>
     <div class="simple-input-container">
-        <i class="simple-input-icon" :class="icon"></i>
-        <label class="simple-input-label">{{ label }}</label>
+        <i v-if="icon" class="simple-input-icon" :class="icon"></i>
+        <label v-if="label" class="simple-input-label">{{ label }}</label>
         <input v-if="showRange" class="simple-input-range" type="range" :min="min" :max="max" :step="step"
-            :value="parseFloat(modelValue.toString().match(/[\d.]+/))" @input="$emit('update:modelValue', $event.target.value)" />
-        <input class="simple-input-input" type="text" :value="modelValue"
+            :value="parseFloat(modelValue.toString().match(/[\d.]+/))"
+            @input="$emit('update:modelValue', $event.target.value)" 
+            :style="{ marginLeft: label ? '8px' : '0' }" />
+
+        <label v-if="typeof modelValue === 'boolean'" class="toggle-switch">
+            <input type="checkbox" :checked="modelValue" @change="$emit('update:modelValue', $event.target.checked)" />
+            <span class="slider" />
+        </label>
+
+        <input v-else class="simple-input-input" type="text" :value="modelValue"
             @input="$emit('update:modelValue', $event.target.value)" />
     </div>
 </template>
@@ -13,7 +21,7 @@
 
     defineProps({
         modelValue: {
-            type: [String, Number],
+            type: [String, Number, Boolean],
             required: true
         },
         label: {
@@ -77,7 +85,6 @@
         border-radius: 5px;
         outline: none;
         color: var(--main-color);
-        margin-left: 8px;
         margin-right: 8px;
     }
 
@@ -95,5 +102,52 @@
         width: 65px;
         border: none;
         text-align: center;
+    }
+
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        margin-top: 4px;
+        margin-bottom: 4px;
+        width: 36px;
+        height: 20px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        background-color: #ccc;
+        border-radius: 34px;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        transition: 0.2s;
+    }
+
+    .slider::before {
+        content: "";
+        position: absolute;
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        border-radius: 50%;
+        transition: 0.2s;
+    }
+
+    input:checked+.slider {
+        background-color: var(--main-color, #4CAF50);
+    }
+
+    input:checked+.slider::before {
+        transform: translateX(16px);
     }
 </style>

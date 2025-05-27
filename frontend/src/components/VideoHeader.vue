@@ -8,7 +8,7 @@
                     <span>{{ projectName }}</span>
                     <i class="fas fa-edit edit-icon"></i>
                 </div>
-                <input v-else v-model="projectName" @blur="stopEditing" @keydown.enter="stopEditing"
+                <input v-else v-model="projectName" @blur="stopEditing" @keydown.enter="stopEditing" ref="inputProjectName"
                     class="project-name-input" />
             </div>
 
@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useVideoEditor } from '@/stores/videoEditor'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -48,6 +48,7 @@ const projectName = ref("Project Name")
 const isEditing = ref(false)
 const canUndo = ref(false)
 const canRedo = ref(false)
+const inputProjectName = ref(null)
 
 function undoAction() {
     console.log('Undo clicked')
@@ -59,6 +60,7 @@ function redoAction() {
 
 function startEditing() {
     isEditing.value = true
+    nextTick(() => inputProjectName.value.focus())
 }
 
 function stopEditing() {
@@ -163,6 +165,7 @@ function saveProject() {
 }
 
 .project-name-input {
+    all: unset;
     font-size: 17px;
     font-weight: 500;
     padding: 4px 8px;
