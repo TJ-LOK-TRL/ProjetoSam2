@@ -1,12 +1,14 @@
 <template>
     <div class="list-media-elements-container">
         <StickyHeader :showIcon="false">
-            Media Elements
+            <div class="list-media-title-container" :style="`justify-content: ${titleAlign}`">
+                {{ title }}
+            </div>
         </StickyHeader>
 
         <div class="local-sidebar-div sidebar-div">
             <!-- Filtro dos tipos -->
-            <div class="filter-buttons">
+            <div class="filter-buttons" :style="`justify-content: ${titleAlign}`">
                 <button v-for="type in filterTypes" :key="type" :class="{ selected: selectedFilter === type }"
                     @click="selectedFilter = type" type="button">
                     {{ type.charAt(0).toUpperCase() + type.slice(1) }}
@@ -14,9 +16,9 @@
             </div>
 
             <!-- Lista em grid -->
-            <ul class="media-elements-grid">
+            <ul class="media-elements-grid" :style="`grid-template-columns: repeat(${gridColumns}, 1fr);`">
                 <li v-for="(element, index) in filteredElements" :key="index" class="media-element"
-                    @click="onElementClick(element)">
+                    @click="onElementClick(element)" :class="{ selected: selectable && selectedElements.has(element) }">
                     <div v-if="elementType(element) === 'text'" class="text-element">
                         {{ element.text }}
                     </div>
@@ -25,6 +27,15 @@
                     <div v-else class="unknown-element">Unknown type</div>
                 </li>
             </ul>
+
+            <div class="bottom-buttons" v-if="props.showButtonDone || props.showButtonCancel">
+                <button v-if="props.showButtonCancel" class="cancel-button" @click="emit('onButtonClicked', 'cancel')">
+                    Cancel
+                </button>
+                <button v-if="props.showButtonDone" class="done-button" @click="emit('onButtonClicked', 'done')">
+                    Done
+                </button>
+            </div>
         </div>
     </div>
 </template>
@@ -36,8 +47,21 @@
 
     const videoEditor = useVideoEditor()
 
-    const filterTypes = ['all', 'text', 'video', 'object']
+    const props = defineProps({
+        allowedTypes: { type: Array, default: () => ['all', 'text', 'video', 'object'] },
+        gridColumns: { type: Number, default: 2 },
+        title: { type: String, default: 'Media Elements' },
+        titleAlign: { type: String, default: 'left' },
+        showButtonDone: { type: Boolean, default: false },
+        showButtonCancel: { type: Boolean, default: false },
+        selectable: { type: Boolean, default: false }
+    })
+
+    const filterTypes = computed(() => props.allowedTypes)
     const selectedFilter = ref('all')
+    const selectedElements = ref(new Set())
+
+    const emit = defineEmits(['onElementSelected', 'onButtonClicked'])
 
     function getImageOfVideo(video) {
         const boxOfVideo = videoEditor.getBoxOfElement(video)
@@ -47,17 +71,10 @@
         return canvas.toDataURL('image/png')  // converte o canvas para Data URL
     }
 
-    // Função para decidir o tipo do elemento (configurável)
     function elementType(element) {
-        // Aqui você pode usar sua lógica para classificar:
-        // exemplo simples:
         if (!element.type) return 'unknown'
-
-        // Exemplo para configurar critérios:
         if (element.type === 'text' || (element.text && typeof element.text === 'string')) return 'text'
-
         if (element.type === 'video' || element.mediaType === 'video') return 'video'
-
         if (element.type === 'object' || element.mediaType === 'object') return 'object'
 
         return 'unknown'
@@ -71,15 +88,14 @@
     })
 
     function onElementClick(element) {
-        // Só printa, pode substituir pelo que quiser
-        videoEditor.selectEditorElement(element)
-        if (elementType(element) === 'text') {
-            videoEditor.changeTool('text', 'text')
-        } else if (elementType(element) === 'video' || elementType(element) === 'object') {
-            videoEditor.changeTool('media', 'media')
-        } else {
-            console.log('Unknown Element Clicked:', element)
+        if (props.selectable) {
+            if (selectedElements.value.has(element)) {
+                selectedElements.value.delete(element)
+            } else {
+                selectedElements.value.add(element)
+            }
         }
+        emit('onElementSelected', { element, type: elementType(element) })
     }
 </script>
 
@@ -87,6 +103,12 @@
     .list-media-elements-container {
         font-family: Arial, sans-serif;
         color: #333;
+    }
+
+    .list-media-title-container {
+        display: flex;
+        width: 100%;
+        height: 100%;
     }
 
     .section-title {
@@ -121,7 +143,7 @@
 
     .media-elements-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        /* grid-template-columns: repeat(2, 1fr); */
         gap: 1rem;
         list-style: none;
         padding: 0;
@@ -161,5 +183,45 @@
         max-height: 70px;
         object-fit: contain;
         border-radius: 4px;
+    }
+
+    .bottom-buttons {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1rem;
+        gap: 0.5rem;
+    }
+
+    .bottom-buttons button {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .cancel-button {
+        background-color: #eee;
+        color: #444;
+    }
+
+    .cancel-button:hover {
+        background-color: #ddd;
+    }
+
+    .done-button {
+        background-color: var(--main-color);
+        color: white;
+    }
+
+    .done-button:hover {
+        background-color: var(--main-color);
+    }
+
+    .media-element.selected {
+        background-color: #e0f7fa;
+        border: 2px solid var(--main-color);
+        border-radius: 8px;
     }
 </style>

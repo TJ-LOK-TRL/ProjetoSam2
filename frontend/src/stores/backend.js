@@ -54,7 +54,7 @@ export const useBackendStore = defineStore('backend', () => {
         formData.append('video', videoFile);
 
         // Adicione outros parâmetros como strings
-        formData.append('scale_factor', (options.scale_factor || 0.5).toString());
+        formData.append('scale_factor', (options.scale_factor || 1).toString());
         formData.append('start_frame', (options.start_frame || 0).toString());
         formData.append('end_frame', (options.end_frame || -1).toString());
         formData.append('video_objects', JSON.stringify(videoObjectsInfo));
@@ -67,7 +67,7 @@ export const useBackendStore = defineStore('backend', () => {
             console.log("Enviando requisição com:", {
                 video: videoFile.name,
                 video_objects: videoObjectsInfo,
-                scale: (options.scale_factor || 0.5),
+                scale: (options.scale_factor || 1),
                 start_frame: (options.start_frame || 0),
                 end_frame: (options.end_frame || -1),
                 stage_name: (options.stage_name || null),

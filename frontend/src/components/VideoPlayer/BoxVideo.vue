@@ -1,6 +1,7 @@
 <template>
     <ResizableBox ref="boxVideoRef" class="video-box" :enable-resize="enableResize" @click="handleClick"
-        :class="{ 'no-pointer-events': !video?.shouldBeDraw || !video?.visible, 'element-box-selected': video?.id === videoEditor?.selectedElement?.id && video?.visible && video?.shouldBeDraw}">
+        :class="{ 'no-pointer-events': !video?.shouldBeDraw || !video?.visible, 
+        'element-box-selected': video?.id === videoEditor?.selectedElement?.id && video?.visible && video?.shouldBeDraw}">
         <!-- <video></video> -->
         <canvas ref="videoCanvasRef" class="video-canvas"></canvas>
 
@@ -31,7 +32,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted, defineExpose, watch, nextTick, onBeforeUnmount, onUnmounted } from 'vue';
+    import { ref, onMounted, defineExpose, watch, nextTick, onBeforeUnmount, onUnmounted, computed } from 'vue';
     import ResizableBox from '@/components/ResizableBox.vue';
     import { useVideoEditor } from '@/stores/videoEditor';
     import { useTimelineStore } from '@/stores/timeline'
@@ -53,6 +54,9 @@
     const colorEffectCanvasRef = ref(null);
     const videoCanvasRef = ref(null);
     const shouldUpdateVideoMasks = ref(false);
+    const isBoundingMaskActive = computed(() => {
+        return videoEditor.selectedToolIcon === 'sam' && videoEditor.effectHandler.originalVideo?.samState === 'SamEffects'
+    });
     const onDrawVideoCallbacks = ref(new Map())
     const drawVideoCallbacksCache = ref({});
 
@@ -62,10 +66,11 @@
     let videoAnimationFrameId = null
 
     watch(
-        [() => videoEditor.maskHandler.selectMaskType, () => videoEditor.selectedTool],
+        [() => videoEditor.maskHandler.selectMaskType, () => videoEditor.selectedTool, () => videoEditor.selectedToolIcon],
         ([maskType, tool]) => {
             //shouldUpdateVideoMasks.value = tool === 'configSam' || tool === 'samEffects' || tool === 'colorEffect' || tool === 'overlayEffect' || tool === 'blendEffect'
-            shouldUpdateVideoMasks.value = tool === 'configSam'
+            console.log('AQUI:', videoEditor.effectHandler.originalVideo?.samState)
+            shouldUpdateVideoMasks.value = tool === 'sam' && videoEditor.effectHandler.originalVideo?.samState === 'ConfigSam'
             if (videoEditor.maskHandler?.video?.id === video?.value?.id) {
                 //enableResize.value = !maskType && tool !== 'samEffects' && tool !== 'colorEffect' && tool !== 'overlayEffect' && tool !== 'blendEffect'
                 enableResize.value = !maskType
@@ -75,6 +80,17 @@
             }
         }
     )
+
+    watch(isBoundingMaskActive, () => {
+        videoEditor.maskHandler.clearCanvas(activeMaskCanvasRef.value, ...getBoxVideoSize())
+        if (isBoundingMaskActive.value) {
+            updateDetectionAndVisibleMasks(video.value.masks)
+        }
+
+        if (shouldUpdateVideoMasks.value) {
+            updateVideoMasks()
+        }
+    })
 
     //watch(() => video.value?.color, (newColor) => {
     //    if (!newColor || !video.value?.trackMasks) return;
@@ -261,6 +277,8 @@
     }
 
     function checkMaskHover(event) {
+        if (!isBoundingMaskActive.value) return
+
         boxVideoRef.value.pauseTransform()
         const detected = videoEditor.maskHandler.maskEvent(event, maskCanvasRef.value, video.value.masks,
             boxVideoRef.value.getRotation(),
@@ -289,6 +307,8 @@
     }
 
     function checkMaskClick(event) {
+        if (!isBoundingMaskActive.value) return
+
         boxVideoRef.value.pauseTransform()
         const detected = videoEditor.maskHandler.maskEvent(event, maskCanvasRef.value, video.value.masks,
             boxVideoRef.value.getRotation(),
@@ -319,6 +339,8 @@
     }
 
     function onHoverLeave(event) {
+        if (!isBoundingMaskActive.value) return
+
         if (videoEditor.maskHandler.activeMaskId != null) {
             videoEditor.maskHandler.activeMaskId = null
             videoEditor.maskHandler.drawVisibleMasks(activeMaskCanvasRef.value, video.value.masks, ...getBoxVideoSize())
@@ -485,6 +507,14 @@
 
         boxVideoRef.value.boxRef.insertBefore(video.value.element, boxVideoRef.value.boxRef.firstChild);
         video.value.element.style.opacity = 0;
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'r') {
+                console.warn('[DEBUG] Limpando todos os onDrawVideoCallbacks');
+                onDrawVideoCallbacks.value.clear();
+                drawVideoCallbacksCache.value = {};
+            }
+        });
     });
 
     onUnmounted(() => {

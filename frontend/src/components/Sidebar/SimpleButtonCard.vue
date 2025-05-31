@@ -59,10 +59,12 @@
         letter-spacing: 0px;
         font-weight: 500;
         color: rgb(39, 37, 37);
+        pointer-events: none;
     }
 
     .simple-button-icon {
         font-size: 18px;
         color: rgb(81, 76, 77);
+        pointer-events: none;
     }
 </style>

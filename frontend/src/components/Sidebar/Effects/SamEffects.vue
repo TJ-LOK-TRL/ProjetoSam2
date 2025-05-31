@@ -12,7 +12,6 @@
                     <input type="color" v-model="selectedColor">
                     <button @click="surpriseMe" class="surprise-btn">Surprise Me</button>
                 </div>
-
                 <div class="effect-grid">
                     <hr>
                     <div class="effect-category">
@@ -24,7 +23,6 @@
                             </button>
                         </div>
                     </div>
-
                     <hr>
                     <div class="effect-category">
                         <h4>Background</h4>
@@ -70,7 +68,7 @@
         { id: 4, name: 'Overlay', icon: 'fa-layer-group' },
         { id: 5, name: 'Cut', icon: 'fa-hand-scissors' },
         { id: 6, name: 'Split', icon: 'fa-table-columns' },
-        { id: 7, name: 'Flip', icon: 'fa-arrows-alt-h' }
+        { id: 7, name: 'Text Follow', icon: 'fa-arrows-alt-h' }
     ];
 
     const backgroundEffects = [
@@ -107,7 +105,8 @@
 
         if (['Erase', 'Cut'].includes(effect.name)) {
             console.log('Resetting effects');
-            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object');
+            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask,
+             'object');
         }
 
         if (!mask) {
@@ -124,12 +123,14 @@
         }
 
         else if (effect.name === 'Erase') {
-            const worked = await videoEditor.effectHandler.eraseWithBackgroundReplacement(video, mask)
+            const worked = await videoEditor.effectHandler.eraseWithBackgroundReplacement(video,
+             mask)
             if (!worked) {
                 await videoEditor.effectHandler.changeColorOfMask(video, mask, '#000000', {})
             }
 
-            boxOfVideo.addOnDrawVideoCallback(effectId(EffectHandler.ERASE_OBJ_EFFECT_ID, mask), async img => {
+            boxOfVideo.addOnDrawVideoCallback(effectId(EffectHandler.ERASE_OBJ_EFFECT_ID, mask),
+             async img => {
                 const [width, height] = boxOfVideo.getBoxVideoSize()
                 const frame_mask = video.trackMasks?.[video.frameIdx]?.[objId]
                 if (frame_mask) {
@@ -138,9 +139,11 @@
                     outputCanvas.height = height
                     const outputCtx = outputCanvas.getContext('2d')
                     outputCtx.drawImage(img, 0, 0, width, height)
-                    const worked = await videoEditor.effectHandler.eraseWithBackgroundReplacement(video, mask, outputCanvas, null, false)
+                    const worked = await videoEditor.effectHandler.eraseWithBackgroundReplacement(
+                        video, mask, outputCanvas, null, false)
                     if (!worked) {
-                        await videoEditor.effectHandler.changeColorOfMask(video, mask, '#000000', {}, 255, 255, outputCanvas, null, false)
+                        await videoEditor.effectHandler.changeColorOfMask(video, mask, 
+                        '#000000', {}, 255, 255, outputCanvas, null, false)
                     }
                     return outputCanvas
                 }
@@ -157,15 +160,23 @@
         }
 
         else if (effect.name === 'Cut') {
-            await cutEffect(video, mask, boxOfVideo, (box, video) => video.trackMasks?.[video.frameIdx]?.[objId], effectId(EffectHandler.CUT_OBJ_EFFECT_ID, mask))
+            await cutEffect(video, mask, boxOfVideo, (box, video) => 
+            video.trackMasks?.[video.frameIdx]?.[objId], 
+            effectId(EffectHandler.CUT_OBJ_EFFECT_ID, mask))
         }
 
         else if (effect.name === 'Split') {
-            splitEffect(video, mask, (box, newVideo) => newVideo.trackMasks?.[newVideo.frameIdx]?.[objId], effectId(EffectHandler.SPLIT_BKG_EFFECT_ID, mask))
+            splitEffect(video, mask, (box, newVideo) =>
+             newVideo.trackMasks?.[newVideo.frameIdx]?.[objId],
+              effectId(EffectHandler.SPLIT_BKG_EFFECT_ID, mask))
         }
 
-        else if (effect.name == 'Flip') {
-            (boxOfSelectedVideo || boxOfVideo).flip()
+        else if (effect.name == 'Text Follow') {
+            videoEditor.promptElementSelection(null, async (elements) => {
+                for (const element of elements) {
+                    await videoEditor.effectHandler.handleVideoFollowMask(element, videoEditor.maskHandler.maskToEdit)
+                }
+            })
         }
         //
         //else if (effect.name === 'Empty') {
@@ -188,7 +199,8 @@
         const boxOfVideo = videoEditor.getBoxOfElement(video)
 
         if (['Erase', 'Cut'].includes(effect.name)) {
-            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background');
+            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 
+            'background');
         }
 
         if (effect.name === 'Color') {
@@ -198,7 +210,8 @@
         else if (effect.name === 'Erase') {
             await videoEditor.effectHandler.changeColorOfMask(video, mask, '#000000', {})
 
-            boxOfVideo.addOnDrawVideoCallback(effectId(EffectHandler.ERASE_OBJ_EFFECT_ID, mask), async img => {
+            boxOfVideo.addOnDrawVideoCallback(effectId(EffectHandler.ERASE_OBJ_EFFECT_ID, 
+            mask), async img => {
                 const [width, height] = boxOfVideo.getBoxVideoSize()
                 const frame_mask = video.trackMasks?.[video.frameIdx]?.[objId]
                 if (frame_mask) {
@@ -207,7 +220,8 @@
                     outputCanvas.height = height
                     const outputCtx = outputCanvas.getContext('2d')
                     outputCtx.drawImage(img, 0, 0, width, height)
-                    await videoEditor.effectHandler.changeColorOfMask(video, mask, '#000000', {}, 255, 255, outputCanvas, null, false)
+                    await videoEditor.effectHandler.changeColorOfMask(video, 
+                    mask, '#000000', {}, 255, 255, outputCanvas, null, false)
                     return outputCanvas
                 }
                 return img
@@ -215,7 +229,8 @@
         }
 
         else if (effect.name === 'Original') {
-            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background')
+            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask,
+             'background')
         }
 
         else if (effect.name === 'Blend') {
@@ -224,15 +239,19 @@
 
         else if (effect.name === 'Cut') {
             await cutEffect(video, mask, boxOfVideo, async (box, video) => {
-                const obj_masks = Object.values(video.trackMasks?.[video.frameIdx] || {})
-                return await videoEditor.maskHandler.getBackgroundMask(obj_masks, ...box.getBoxVideoSize());
+                const obj_masks = Object.values(
+                    video.trackMasks?.[video.frameIdx] || {})
+                return await videoEditor.maskHandler.getBackgroundMask(
+                    obj_masks, ...box.getBoxVideoSize());
             }, effectId(EffectHandler.CUT_BKG_EFFECT_ID, mask))
         }
 
         else if (effect.name === 'Split') {
             splitEffect(video, mask, async (box, newVideo) => {
-                const obj_masks = Object.values(newVideo.trackMasks?.[newVideo.frameIdx] || {})
-                return await videoEditor.maskHandler.getBackgroundMask(obj_masks, ...box.getBoxVideoSize());
+                const obj_masks = Object.values(
+                    newVideo.trackMasks?.[newVideo.frameIdx] || {})
+                return await videoEditor.maskHandler.getBackgroundMask(
+                    obj_masks, ...box.getBoxVideoSize());
             }, effectId(videoEditor.effectHandler.SPLIT_OBJ_EFFECT_ID, mask))
         }
     };
@@ -241,21 +260,22 @@
         video.preventNextUpdateCallbacks()
 
         videoEditor.cloneVideo(video, async (newVideo, box) => {
-            videoEditor.effectHandler.otherBoxes.add(box);
+            videoEditor.effectHandler.addRelatedVideo(newVideo);
 
             const frameIdx = Math.min(...Object.keys(video.trackMasks).map(Number));
             const targetTime = calculateTimeByFrameIdx(frameIdx, video.fps);
 
             timelineStore.setVideoSpeed(newVideo, video.speed)
-            timelineStore.setStOffset(newVideo, targetTime);
-            timelineStore.setElementStart(newVideo, targetTime);
+            //timelineStore.setStOffset(newVideo, targetTime);
+            //timelineStore.setElementStart(newVideo, targetTime);
 
             await newVideo.waitUntilVideoIsReady()
 
             const getBoxVideoSize = box.getBoxVideoSize
             const outputCanvas = box.getCanvasToApplyVideo()
 
-            await videoEditor.effectHandler.cutObject(newVideo, mask, 0, outputCanvas, getBoxVideoSize, true, false)
+            await videoEditor.effectHandler.cutObject(newVideo, mask, 0, 
+            outputCanvas, getBoxVideoSize, true, false)
             box.addOnDrawVideoCallback(id, async (img) => {
                 const frame_mask = await getFrameMask(box, newVideo)
                 const [width, height] = box.getBoxVideoSize()
@@ -265,7 +285,8 @@
                     outputCanvas.height = height
                     const outputCtx = outputCanvas.getContext('2d')
                     outputCtx.drawImage(img, 0, 0, width, height)
-                    await videoEditor.maskHandler.changeColorOfMask(img, frame_mask, null, {}, 0, 0, outputCanvas, getBoxVideoSize);
+                    await videoEditor.maskHandler.changeColorOfMask(
+                        img, frame_mask, null, {}, 0, 0, outputCanvas, getBoxVideoSize);
                     return outputCanvas
                 }
                 // Criar canvas vazio e transparente
@@ -274,22 +295,6 @@
                 emptyCanvas.height = height;
                 return emptyCanvas;
             })
-
-            videoEditor.onEditorElementSelected(newVideo.id, (selectedElement) => {
-                if (selectedElement?.id === newVideo?.id) {
-                    videoEditor.effectHandler.setVideoToApplyEffect(newVideo)
-                }
-            })
-
-            const onRemove = (elementRemoved) => {
-                if (elementRemoved?.id === newVideo?.id) {
-                    videoEditor.effectHandler.otherBoxes.delete(box)
-                    videoEditor.removeOnEditorElementSelected(newVideo.id)
-                    videoEditor.removeOnElementRemoved(onRemove)
-                }
-            }
-
-            videoEditor.onElementRemoved(onRemove)
         })
     }
 
@@ -311,9 +316,8 @@
         })
     }
 
-    function shouldCompile() {
-        const video = videoEditor.maskHandler.video
-        const allMasks = [...video.masks, video.backgroundMask]
+    function shouldCompile(video) {
+        const allMasks = [...video.masks, video.backgroundMask].filter(Boolean)
         for (const mask of allMasks) {
             const settedEffects = videoEditor.effectHandler.getSettedEffects(video.id, mask.objId)
 
@@ -327,19 +331,40 @@
         return false
     }
 
-    async function nextStep() {
-        console.log('Proceeding to next step');
-
-        const video = videoEditor.maskHandler.video
+    async function compileVideo(video) {
         const boxOfVideo = videoEditor.getBoxOfElement(video)
-        if (shouldCompile()) {
-            const data = await videoEditor.compileVideos([videoEditor.maskHandler.video, ...videoEditor.effectHandler.bkgEffectVideos, ...videoEditor.effectHandler.objEffectVideos], false);
+        const { width, height } = videoEditor.getRectBoxOfElement(video);
+        if (shouldCompile(video)) {
+
+            function referenceVideo(metadata, compileVideo) {
+                if (compileVideo.id === video.id) {
+                    metadata.x = 0
+                    metadata.y = 0
+                    return metadata
+                }
+            }
+
+            videoEditor.onCompileVideoMetadata(referenceVideo)
+
+            const data = await videoEditor.compileVideos(
+                [
+                    video,
+                    ...(videoEditor.effectHandler.bkgEffectVideos.get(video.id) || []),
+                    ...(videoEditor.effectHandler.objEffectVideos.get(video.id) || [])
+                ],
+                false,
+                width,
+                height
+            );
+
+            videoEditor.removeOnCompileVideoMetadataCallback(referenceVideo)
+
             if (!data) {
                 console.error('Failed to download video data');
                 return;
             }
 
-            resetAll(true)
+            resetAll(video, true)
 
             const blob = new Blob([data], { type: 'video/mp4' });
             const file = new File([blob], 'video.mp4', { type: 'video/mp4' });
@@ -355,38 +380,56 @@
                 video.element.currentTime = timelineStore.currentTime;
             });
             video.points.length = 0
-            video.flipped = false
             video.file = file
-
-
-            videoEditor.getVideos().forEach(v => {
-                if (!v.shouldBeDraw)
-                    videoEditor.removeElement(v)
-            });
         }
 
         video.masks.length = 0
         boxOfVideo.clearCache()
         boxOfVideo.clearActiveCanvas()
+    }
+
+    async function nextStep() {
+        console.log('Proceeding to next step');
+
+        const videosToCompile = videoEditor.effectHandler.getAllEffectVideos()
+        for (const video of videosToCompile) {
+            await compileVideo(video)
+        }
+
+        videoEditor.getVideos().forEach(v => {
+            if (!v.shouldBeDraw)
+                videoEditor.removeElement(v)
+        });
+
+        videoEditor.samState = null
         videoEditor.changeTool('media', 'media')
     };
 
-    function goBack() {
+    async function goBack() {
         console.log('Going back to previous step');
-        resetAll(false)
-        videoEditor.changeTool('configSam', 'media')
+        const videosToCompile = videoEditor.effectHandler.getAllEffectVideos()
+        for (const video of videosToCompile) {
+            await resetAll(video, false)
+        }
+
+        videoEditor.effectHandler.deleteRelatedVideos(videoEditor.effectHandler.originalVideo)
+        videoEditor.effectHandler.originalVideo.samState = 'ConfigSam'
+        videoEditor.selectEditorElement(videoEditor.effectHandler.originalVideo)
+        videoEditor.changeTool('sam', 'sam')
     }
 
-    function resetAll(exclude_transparency) {
-        const video = videoEditor.maskHandler.video
-        const boxOfVideo = videoEditor.getBoxOfElement(video)
-        video.masks.forEach(mask => {
-            videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object', exclude_transparency)
-            videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background', exclude_transparency)
-        })
+    async function resetAll(video, exclude_transparency) {
+        const boxOfVideo = videoEditor.getBoxOfElement(video);
 
-        videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'object', exclude_transparency)
-        videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'background', exclude_transparency)
+        for (const mask of video.masks) {
+            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object', exclude_transparency);
+            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background', exclude_transparency);
+        }
+
+        if (video.backgroundMask) {
+            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'object', exclude_transparency);
+            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, video.backgroundMask, 'background', exclude_transparency);
+        }
     }
 
     function effectId(id, mask) {
@@ -398,11 +441,22 @@
     }, { deep: true })
 
     onMounted(() => {
+        const video = videoEditor.effectHandler.originalVideo
+        video.samState = 'SamEffects'
 
+        videoEditor.onEditorElementSelected('SameEffects', e => {
+            const allowVideos = videoEditor.effectHandler.getAllEffectVideos();
+            const isAllowed = allowVideos.some(v => v?.id === e?.id);
+            
+            if (!isAllowed) {
+                videoEditor.changeTool('sam', 'sam');
+            }
+        });
     })
 
     onUnmounted(() => {
         //videoEditor.maskHandler.video.masks.length = 0
+        videoEditor.removeOnEditorElementSelected('SameEffects')
     })
 
 </script>

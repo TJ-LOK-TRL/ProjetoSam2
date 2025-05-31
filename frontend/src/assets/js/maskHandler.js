@@ -1284,7 +1284,7 @@ export default class MaskHandler {
         }
 
         // THIS IS DEBUGGING
-        const alphaMask = 0.5; // transparência da máscara (0.0 a 1.0)
+        const alphaMask = 0; // transparência da máscara (0.0 a 1.0)
         if (alphaMask > 0) {
             for (let i = 0; i < overlayData.data.length; i += 4) {
                 const r1 = overlayData.data[i];
@@ -1311,13 +1311,12 @@ export default class MaskHandler {
         ctx.putImageData(overlayData, 0, 0);
 
         // Agora desenha uma bola no centro
-        const centerX = overlayVideoRect.width / 2;
-        const centerY = overlayVideoRect.height / 2;
-
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI); // raio 5
-        ctx.fillStyle = 'red';
-        ctx.fill();
+        //const centerX = overlayVideoRect.width / 2;
+        //const centerY = overlayVideoRect.height / 2;
+        //ctx.beginPath();
+        //ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI); // raio 5
+        //ctx.fillStyle = 'red';
+        //ctx.fill();
     }
 
     drawImageWithRotation(ctx, img, x, y, width, height, rotOriginX, rotOriginY, rotation = 0) {

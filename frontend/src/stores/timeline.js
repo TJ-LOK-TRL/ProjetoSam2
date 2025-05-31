@@ -248,6 +248,9 @@ export const useTimelineStore = defineStore('timeline', () => {
         } else {
             element.hide()
             if (element.type === 'video') {
+                if (setTime) {
+                    await element.setTime(element.start);
+                }
                 await element.pause()
             }
         }

@@ -22,13 +22,12 @@
     import StickyHeader from '@/components/Sidebar/StickyHeader.vue'
     import ConfigRadio from '@/components/Sidebar/Effects/ConfigRadio.vue'
     import ChromaKey from '@/components/Sidebar/Effects/ChromaKey.vue'
+    import EffectHandler from '@/assets/js/effectHandler.js';
     import { useVideoEditor } from '@/stores/videoEditor';
     import { useTimelineStore } from '@/stores/timeline'
 
     const videoEditor = useVideoEditor();
     const timelineStore = useTimelineStore();
-    const EFFECT_OVERLAY_ID = 4
-    const EFFECT_OVERLAY_FOLLOW = 5
 
     const overlaySettings = ref([
         { name: 'Back' },
@@ -106,7 +105,7 @@
 
         const overlayVideo = videoEditor.selectedElement // PROBLEM HERE
         const boxOverlayVideo = videoEditor.getBoxOfElement(overlayVideo)
-        boxOverlayVideo.removeOnDrawVideoCallback(EFFECT_OVERLAY_ID)
+        boxOverlayVideo.removeOnDrawVideoCallback(EffectHandler.OVERLAY_TYPE_EFFECT_ID)
 
         const type = currentOverlaySetting.value
         if (type === 'Front') {
@@ -128,7 +127,7 @@
 
         await videoEditor.effectHandler.overlapVideo(overlayVideo, video.id, mask, videoRect, overlayVideoRect, outputCanvas, getBoxVideoSize)
 
-        boxOverlayVideo.addOnDrawVideoCallback(EFFECT_OVERLAY_ID, async (img) => {
+        boxOverlayVideo.addOnDrawVideoCallback(EffectHandler.OVERLAY_TYPE_EFFECT_ID, async (img) => {
             const frame_mask = video.trackMasks?.[video.frameIdx]?.[objId]
             if (!frame_mask) return
             const outputCanvas = document.createElement('canvas')
@@ -148,97 +147,8 @@
         })
 
         video.onVideoDeleted(() => {
-            boxOverlayVideo.removeOnDrawVideoCallback(EFFECT_OVERLAY_ID)
+            boxOverlayVideo.removeOnDrawVideoCallback(EffectHandler.OVERLAY_TYPE_EFFECT_ID)
         })
-    }
-
-    async function handleVideoFollowMask(video) {
-        const mask = videoEditor.maskHandler.maskToEdit;
-        const objId = mask.objId;
-        const videoOfMask = videoEditor.getVideos().find(v => v.id === mask.videoId);
-        const trackMasks = videoOfMask.trackMasks;
-
-        const boxOfMask = videoEditor.getBoxOfElement(videoOfMask);
-        const boxOfVideo = videoEditor.getBoxOfElement(video);
-
-        let lastMaskPosition = null;
-
-        const getMaskPosition = async (boxOfMask, objId) => {
-            const rectMask = boxOfMask.getRect();
-            const currentFrame = Math.floor(timelineStore.currentTime * boxOfMask.video.fps);
-            const currentMask = trackMasks?.[currentFrame]?.[objId];
-            if (!currentMask) {
-                return null;
-            }
-
-            const position = await videoEditor.maskHandler.getCenterPositionOfBinaryMask(currentMask, rectMask.width, rectMask.height);
-            return position
-        }
-
-        const functionFollow = async () => {
-            if (!boxOfVideo?.box) return;
-
-            const position = await getMaskPosition(boxOfMask, objId)
-            if (!position) {
-                video.hide()
-                return;
-            };
-
-            if (!video.visible) video.show()
-
-            const [x, y] = position;
-            const rectVideo = boxOfVideo.box.getRect();
-
-            // Se é a primeira execução, apenas armazena a posição
-            if (!lastMaskPosition) {
-                const cx = x - (rectVideo.width / 2)
-                const cy = y - (rectVideo.height / 2)
-                boxOfVideo.box.setPosition(cx, cy);
-                lastMaskPosition = { x, y };
-                return;
-            }
-
-            // Calcula quanto a máscara se moveu desde a última posição
-            const dx = x - lastMaskPosition.x;
-            const dy = y - lastMaskPosition.y;
-
-            // Atualiza a posição do vídeo aplicando o mesmo deslocamento
-            const newX = rectVideo.x + dx;
-            const newY = rectVideo.y + dy;
-
-            boxOfVideo.box.setPosition(newX, newY);
-            lastMaskPosition = { x, y };
-        }
-
-        boxOfMask.addOnDrawVideoCallback(EFFECT_OVERLAY_FOLLOW, async (img) => {
-            await functionFollow()
-            return img
-        }, false)
-
-        videoEditor.register.registerMaskEffect(video.id, -2, 'overlapVideo', {
-            refVideoId: videoEditor.maskHandler.video.id,
-            maskObjId: mask.objId,
-        });
-
-        videoEditor.onCompileVideoMetadata(async (metadata, compileVideo) => {
-            if (compileVideo.id !== video.id) {
-                return
-            }
-
-            const position = await getMaskPosition(boxOfMask, objId)
-            if (!position || !boxOfVideo?.box) {
-                return
-            }
-
-            const [x, y] = position;
-            const rect = boxOfVideo.box.getRect();
-            metadata.x = rect.x - x
-            metadata.y = rect.y - y
-
-            return metadata
-        })
-
-        await functionFollow()
     }
 
     async function addVideo(videoData) {
@@ -258,7 +168,10 @@
             videoEditor.selectedElement = video; // Define o vídeo como o elemento selecionado
             videoEditor.onAddMapBoxVideo(async (newVideo, box) => {
                 if (newVideo.id !== video.id) return
-                await handleVideoFollowMask(video)
+                
+                videoEditor.effectHandler.addRelatedVideo(newVideo);
+
+                await videoEditor.effectHandler.handleVideoFollowMask(video, videoEditor.maskHandler.maskToEdit)
                 await updateOverlayType()
 
                 const refVideo = videoEditor.maskHandler.video

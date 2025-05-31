@@ -12,6 +12,7 @@
         <BlendEffect v-else-if="videoEditor.selectedTool === 'blendEffect'" />
         <RemoveColor v-else-if="videoEditor.selectedTool === 'removeColor'" />
         <MediaElements v-else-if="videoEditor.selectedTool === 'mediaElements'" />
+        <SamSelector v-else-if="videoEditor.selectedTool === 'sam'" />
     </div>
 </template>
 
@@ -21,7 +22,8 @@
     import Settings from './Settings.vue'
     import TextSelector from './Text/Selector.vue'
     import MediaSelector from './Media/Selector.vue'
-    import MediaElements from './MediaElements/ListMediaElements.vue'
+    import MediaElements from './MediaElements/MediaElements.vue'
+    import SamSelector from './SamSelector.vue'
     import ConfigSam from './ConfigSam.vue'
     import SamEffects from './Effects/SamEffects.vue'
     import ColorEffect from './Effects/ColorEffect.vue'

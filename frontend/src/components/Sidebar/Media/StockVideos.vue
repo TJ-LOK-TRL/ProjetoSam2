@@ -1,12 +1,12 @@
 <template>
     <div class="sidebar-div stock-videos-container" @mouseenter="handleVideoContainerHover($event)"
-        @mouseleave="handleVideoContainerLeave($event)">
+        @mouseleave="handleVideoContainerLeave($event)" ref="stockVideosContent">
         <p class="sidebar-subtitle">
-            <span>Stock Videos</span>
+            <span>{{ props.title }}</span>
         </p>
         <div class="stock-videos-slideshow">
             <div class="stock-videos-content">
-                <div class="videos-container">
+                <div class="videos-container" ref="videosContainer">
                     <div class="video-item" v-for="(video, index) in props.videos" :key="index"
                         @click="handleStockVideoClick(video)">
                         <video :src="video.src" class="video" muted playsinline
@@ -16,12 +16,12 @@
                     </div>
                 </div>
             </div>
-            <button class="arrow-left"
-                :style="{ opacity: isHoveringContainer && showLeftArrow ? 1 : 0, pointerEvents: isHoveringContainer && showLeftArrow ? 'all' : 'none' }">
+            <button class="arrow-left" ref="arrowLeft" :style="{ opacity: isHoveringContainer && showLeftArrow ? 1 : 0, 
+                pointerEvents: isHoveringContainer && showLeftArrow ? 'all' : 'none' }">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <button class="arrow-right"
-                :style="{ opacity: isHoveringContainer && showRightArrow ? 1 : 0, pointerEvents: isHoveringContainer && showRightArrow ? 'all' : 'none' }">
+            <button class="arrow-right" ref="arrowRight" :style="{ opacity: isHoveringContainer && showRightArrow ? 1 : 0, 
+                pointerEvents: isHoveringContainer && showRightArrow ? 'all' : 'none' }">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
@@ -39,6 +39,11 @@
     const showRightArrow = ref(true);
     const isHoveringContainer = ref(false);
     const preventNextSelect = ref(false);
+    const stockVideosContent = ref(null)
+    const videosContainer = ref(null);
+    const arrowLeft = ref(null)
+    const arrowRight = ref(null)
+    const dragStartTarget = ref(null);
 
     const props = defineProps({
         videos: {
@@ -48,6 +53,10 @@
         images: {
             type: Array,
             default: () => []
+        },
+        title: {
+            type: String,
+            default: 'Stock Videos'
         }
     })
 
@@ -99,12 +108,35 @@
 
     onMounted(async () => {
         await nextTick()
-        let slideShow = new SlideShow('stock-videos-content', 'videos-container', 'video-item', 8);
-        slideShow.setArrowLeft('.arrow-left');
-        slideShow.setArrowRight('.arrow-right');
-        slideshowGrab(slideShow, 5, () => {
-             preventNextSelect.value = true; 
-        })
+        let slideShow = new SlideShow(stockVideosContent.value, videosContainer.value, 'video-item', 8);
+        slideShow.setArrowLeft(arrowLeft.value);
+        slideShow.setArrowRight(arrowRight.value);
+        slideshowGrab(slideShow, 5,
+            /* On Drag Enter */
+            (e) => {
+                dragStartTarget.value = e.target
+            },
+
+            /* On Drag Move */
+            () => {
+                preventNextSelect.value = true; // HAVE TO BE HERE CUZ DRAG ENTER IS ALWAYS CALLED EVEN IF NO REAL DRAG 
+            },
+
+            /* On Drag Leave */
+            (e) => {
+                const videoItems = Array.from(videosContainer.value.querySelectorAll('.video-item'));
+                const startInside = videoItems.some(item => item.contains(dragStartTarget.value));
+                const endInside = videoItems.some(item => item.contains(e.target));
+
+                const wasClickInItem = startInside && endInside;
+
+                if (!wasClickInItem) {
+                    preventNextSelect.value = false;
+                }
+
+                dragStartTarget.value = null;
+            }
+        )
 
         slideShow.onNumChange = ({ canGoLeft, canGoRight }) => {
             showLeftArrow.value = canGoLeft;

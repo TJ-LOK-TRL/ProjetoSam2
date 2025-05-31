@@ -24,7 +24,6 @@ export default class VideoMedia extends Media {
         this.isPlaying = false
         this.visible = true
         this.skipNextUpdateCallbacks = false
-        this.volume = 1.0 // volume do vídeo
 
         // coisas de masks
         this.use_cache = null
@@ -33,11 +32,13 @@ export default class VideoMedia extends Media {
         this.masks = []
         this.trackMasks = {}
         this.previewTrackMasks = {}
+        this.cacheTrackVideos = null; // If trackMasks already exists, we will use it to restore the state if no changes are made
         this.points = []
         this.isSelectingMask = false
         this.maskColor = null
         this.maskObjects = []
         this.currentId = 0
+        this.samState = null
 
         // coisas de chroma key
         this.chromaKeyDetectionData = null
@@ -108,6 +109,15 @@ export default class VideoMedia extends Media {
             this.onVideoSeekedCallbacks.forEach(callback => callback(this.element.currentTime))
         })
 
+        Object.defineProperty(this, 'volume', {
+            get() {
+                return this.element.volume;
+            },
+            set(value) {
+                this.element.volume = Math.max(0, Math.min(1, value)); // garantir entre 0 e 1
+            }
+        });
+
         this.element.style.width = '100%'
         this.element.style.height = '100%'
         this.element.style.objectFit = 'cover'
@@ -119,7 +129,7 @@ export default class VideoMedia extends Media {
 
     _startFrameCallbackLoop() {
         if (this._animationId !== null) return;
-        
+
         this._animationId = this.element.requestVideoFrameCallback(this.onNewFrameCallback);
     }
 
@@ -133,9 +143,9 @@ export default class VideoMedia extends Media {
     _onNewFrameCallback(now, metadata) {
         this.now = now / 1000;
         const frameDuration = 1 / this.fps;
-        const exactFrameTime = Math.round(metadata.mediaTime / frameDuration) * frameDuration;  
-        this.mediaTime = exactFrameTime 
-        this.frameIdx = Math.round(exactFrameTime  * this.fps);
+        const exactFrameTime = Math.round(metadata.mediaTime / frameDuration) * frameDuration;
+        this.mediaTime = exactFrameTime
+        this.frameIdx = Math.round(exactFrameTime * this.fps);
         this.metadata = metadata;
         //console.log('Frame:', this.frameIdx, this.mediaTime, exactFrameTime, this.fps, this.now)
         //console.log('CALLING!')
@@ -162,9 +172,9 @@ export default class VideoMedia extends Media {
         }
 
         this._lastFrameTime = now;
-        
+
         this.onFrameUpdatedCallbacks.forEach(callback => callback(now, metadata));
-        
+
         this._animationId = this.element.requestVideoFrameCallback(this.onNewFrameCallback);
     }
 
@@ -286,7 +296,7 @@ export default class VideoMedia extends Media {
 
     async setTime(t) {
         t = Math.max(Math.min(t, this.element.duration), 0);
-        
+
         //console.log('Set time: ', t)
         this.element.currentTime = t;
         await new Promise(resolve => {
@@ -296,7 +306,7 @@ export default class VideoMedia extends Media {
             };
             this.element.addEventListener('seeked', handler);
         });
-        
+
         this.ended = false;
         this.onVideoManualTimeUpdatedCallbacks.forEach(callback => callback(this.element.currentTime));
     }
@@ -369,7 +379,7 @@ export default class VideoMedia extends Media {
     async seekTo(time) {
         this.preventNextUpdateCallbacks();
         this.element.currentTime = time;
-    
+
         await new Promise(resolve => {
             const onSeeked = () => {
                 this.element.removeEventListener('seeked', onSeeked);
@@ -384,16 +394,16 @@ export default class VideoMedia extends Media {
         if (!this.isMetadataLoaded) {
             await new Promise(resolve => this.onMetadataLoaded(resolve));
         }
-    
+
         const targetTime = frameIdx / this.fps;
         const currentTime = this.element.currentTime;
-    
+
         await this.seekTo(targetTime);
-    
+
         const canvas = this.captureCurrentCanvasFrame();
-    
+
         await this.seekTo(currentTime);
-    
+
         console.warn('EXECUTADO O GET_CANVAS_OF_FRAME!')
         return canvas;
     }

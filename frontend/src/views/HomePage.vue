@@ -1,16 +1,14 @@
 <template>
     <main class="main-container" ref="mainContainerRef">
         <LoadingSpinner :isLoading="videoEditor.isLoading" />
+        <PromptElementSelector />
         <ToolBar class="toolbar" />
         <div ref="mainContainerLeftRef" class="main-container-left">
-
-
             <div class="sidebar-editor-container" :ref="sidebarEditorContainer"
                 :style="{ maxHeight: videoHeight + '%' }">
 
                 <Sidebar class="sidebar" />
-
-
+                
                 <div ref="mainContentRef" class="main-content">
 
                     <div class="video-header-container">
@@ -34,6 +32,7 @@
     import Timeline from '@/components/Timeline/Timeline.vue'
     import ToolBar from '@/components/ToolBar.vue'
     import LoadingSpinner from '@/components/LoadingSpinner.vue'
+    import PromptElementSelector from '@/components/Sidebar/MediaElements/PromptElementSelector.vue'
     import { useVideoEditor } from '@/stores/videoEditor'
     import { useBackendStore } from '@/stores/backend'
     import { onMounted } from 'vue'

@@ -1,7 +1,7 @@
 export default class SlideShow { 
-    constructor(id_container, id_container_overflow, id_obj, obj_gap=0) {
-        this.obj_container = document.getElementsByClassName(id_container)[0];
-        this.obj_container_overflow = this.obj_container.getElementsByClassName(id_container_overflow)[0];
+    constructor(obj_container, obj_container_overflow, id_obj, obj_gap=0) {
+        this.obj_container = obj_container
+        this.obj_container_overflow = obj_container_overflow
         this.objs = this.obj_container_overflow.getElementsByClassName(id_obj);
 
         this.num = 0;
@@ -59,8 +59,6 @@ export default class SlideShow {
     }
 
     moveRight(times = 1) {
-        console.log('Called')
-
         for (let x = 0; x < times; x++)
             if (this.num > -(this.objs.length - this.getObjVisible()))
                 this.obj_container_overflow.style.transform = `translateX(${--this.num * this.getObjWidth() + this.obj_gap * this.num}px)`;
@@ -74,11 +72,11 @@ export default class SlideShow {
         //addEventListener('resize', () => { /*this.setContainerWidth();*/ this.setObjWidth() });      
     }
     
-    setArrowLeft(query_element) {
-        document.querySelector(query_element).addEventListener('mouseup', () => this.moveLeft());
+    setArrowLeft(element) {
+        element.addEventListener('mouseup', () => this.moveLeft());
     }
 
-    setArrowRight(query_element) {
-        document.querySelector(query_element).addEventListener('mouseup', () => this.moveRight());
+    setArrowRight(element) {
+        element.addEventListener('mouseup', () => this.moveRight());
     }
 }

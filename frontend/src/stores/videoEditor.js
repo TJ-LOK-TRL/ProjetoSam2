@@ -56,11 +56,15 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     const mapperBoxVideo = ref({})
     const onAddMapBoxVideoCallbacks = ref([])
     const fps = ref(null)
-
+    const maskScaleFactor = ref(0.5)
     const onCompileVideoMetadataCallbacks = ref([])
     const zoomLevel = ref(1)
 
     const preventUnselectElementOnOutside = ref(false)
+
+    const isPromptElementOpen = ref(false)
+    const onElementPromptedSelectCallback = ref(null)
+    const onElementPromptSelectionDoneCallback = ref(null)
 
     function createVideo(file, fps, frames) {
         const video = new VideoMedia(file, fps, frames)
@@ -192,9 +196,14 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         }
     }
 
-    async function generateMasksForVideo(video, options = {}, usePoints = null) {
+    async function generateMasksForVideo(video, inputOptions = {}, usePoints = null) {
         const ann_frame_idx = Math.floor(video.currentTime * video.fps);
         const rawPoints = usePoints || video.points;
+
+        const options = {
+            scale_factor: inputOptions.scale_factor || maskScaleFactor.value,
+            ...inputOptions,
+        };
 
         // Agrupar pontos por objId
         const grouped = {};
@@ -326,29 +335,6 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         }
     }
 
-    function reorderElements_OLD(currentId, targetId) {
-        const allElements = elementManager.value.listElements();
-
-        const currentElement = elementManager.value.getById(currentId);
-        const targetElement = elementManager.value.getById(targetId);
-
-        if (!currentElement || !targetElement) return;
-
-        const elementType = currentElement.type;
-
-        // tem que ser generico, mudar depois
-        const elementsOfType = elementManager.value.getByType(elementType);
-        const currentIndex = elementsOfType.findIndex(el => el.id === currentId);
-        const targetIndex = elementsOfType.findIndex(el => el.id === targetId);
-
-        if (currentIndex === -1 || targetIndex === -1) return;
-
-        const [movedElement] = elementsOfType.splice(currentIndex, 1);
-        elementsOfType.splice(targetIndex, 0, movedElement);
-
-        elementManager.value.elementsByType.set(elementType, new Set(elementsOfType));
-    }
-
     function reorderElements(currentId, targetId) {
         const allElements = elementManager.value.listElements();
 
@@ -382,8 +368,8 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         }
 
         selectedTool.value = newTool
-        console.log(selectedTool.value)
         selectedToolIcon.value = newIcon
+        //console.warn('change Location:', newTool, newIcon)
     }
 
     function changeToPreviousTool() {
@@ -392,6 +378,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         const last = selectedToolHistory.value.pop();
         selectedTool.value = last.selectedTool;
         selectedToolIcon.value = last.selectedToolIcon;
+        //console.warn('changeToPreviousTool:', selectedTool.value, selectedToolIcon.value)
     }
 
     function getBoxOfElement(element) {
@@ -473,7 +460,14 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         onCompileVideoMetadataCallbacks.value.push(callback)
     }
 
-    async function compileVideos(elements, compute_transparency = false) {
+    function removeOnCompileVideoMetadataCallback(callback) {
+        const index = onCompileVideoMetadataCallbacks.value.indexOf(callback)
+        if (index !== -1) {
+            onCompileVideoMetadataCallbacks.value.splice(index, 1)
+        }
+    }
+
+    async function compileVideos(elements, compute_transparency = false, width = null, height = null) {
         try {
             if (!elements || elements.length === 0) {
                 console.error("Nenhum vídeo encontrado para compilar.");
@@ -482,8 +476,8 @@ export const useVideoEditor = defineStore('videoEditor', () => {
 
             isLoading.value = true;
 
-            const output_width = videoPlayerWidthResized.value
-            const output_height = videoPlayerHeightResized.value
+            const output_width = width || videoPlayerWidthResized.value
+            const output_height = height || videoPlayerHeightResized.value
             const metadata = {
                 width: output_width,
                 height: output_height,
@@ -513,12 +507,12 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                     rotation: getRotationOfElement(element),
                     opacity: getOpacityOfElement(element),
                     borderRadius: getElementBorderRadius(element),
+                    effects: register.value.getLastEffectOfVideo(element.id),
                 }
 
                 if (element.type === 'video') {
                     Object.assign(element_data, {
                         stageMasks: element.track_id,
-                        effects: register.value.getLastEffectOfVideo(element.id),
                         chromaKeyDetectionData: element.chromaKeyDetectionData,
                     });
 
@@ -677,17 +671,22 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         })
     }
 
-
+    function promptElementSelection(onElementSelected, onElementPromptSelectionDone) {
+        isPromptElementOpen.value = true
+        onElementPromptedSelectCallback.value = onElementSelected
+        onElementPromptSelectionDoneCallback.value = onElementPromptSelectionDone
+    }
 
     return {
         elementManager, isLoading, videoPlayerWidth, videoPlayerHeight, videoPlayerContainer, fps,
         selectedElement, maskHandler, selectedTool, selectedToolIcon, mapperBoxVideo, register, effectHandler, zoomLevel,
-        preventUnselectElementOnOutside, videoPlayerSpaceContainer,
+        preventUnselectElementOnOutside, videoPlayerSpaceContainer, maskScaleFactor, isPromptElementOpen, onElementPromptedSelectCallback,
+        onElementPromptSelectionDoneCallback,
         addVideo, addText, cloneVideo, getVideos, getTexts, getElements, generateMasksForFrame, selectEditorElement, setVideoPlayerContainer,
         onFirstVideoMetadataLoaded, onEditorElementSelected, onVideoMetadataLoaded, reorderElements, generateMasksForVideo,
         removeOnEditorElementSelected, changeTool, changeToPreviousTool, removeElement, getBoxOfElement, download, getVideoMetadata,
         compileVideos, onElementAdded, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfElement,
         setVideoPlayerSize, onCompileVideoMetadata, getFlipStateOfVideo, exportProject, importProject, setVideoPlayerSpaceContainer,
-        removeOnElementRemoved, getVideoPlayerSize
+        removeOnElementRemoved, getVideoPlayerSize, removeOnCompileVideoMetadataCallback, promptElementSelection
     }
 })

@@ -76,7 +76,7 @@
     import { onMounted, ref, computed } from 'vue'
 
     const videoEditor = useVideoEditor()
-    const textElement = ref(videoEditor.selectedElement)
+    const textElement = computed(() => videoEditor.selectedElement)
 
     const fontList = ref([
         { label: 'Raleway', font: 'Raleway' },

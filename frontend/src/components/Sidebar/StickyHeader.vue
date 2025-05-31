@@ -2,7 +2,7 @@
     <div class="sticky-header-container" :class="{ 'has-shadow': isScrolled }" ref="header">
         <div class="sticky-header-title">
             <div class="title-icon" v-if="showIcon" @click="handleIconClick"><i class="fas fa-chevron-left"></i></div>
-            <span>
+            <span class="sticky-slot-span">
                 <slot></slot>
             </span>
         </div>
@@ -23,7 +23,11 @@
         prevDestination: {
             type: String,
             default: null
-        }
+        },
+        prevDestinationIcon: {
+            type: String,
+            default: null
+        },
     });
 
     const emit = defineEmits(['icon-click'])
@@ -44,7 +48,7 @@
     function handleIconClick() {
         emit('icon-click')
         if (props.prevDestination) {
-            videoEditor.changeTool(props.prevDestination);
+            videoEditor.changeTool(props.prevDestination, props.prevDestinationIcon);
         } else {
             videoEditor.changeToPreviousTool();
         }
@@ -112,5 +116,10 @@
 
     .title-icon:hover {
         background: rgb(229, 229, 229);
+    }
+
+    .sticky-slot-span {
+        width: 100%;
+        height: 100%;
     }
 </style>

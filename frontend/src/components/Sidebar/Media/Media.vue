@@ -3,6 +3,7 @@
         <StickyHeader>Add Media</StickyHeader>
         <UploadBox :accept="'video/*'" @on-file-upload="onFileUpload" />
         <StockVideos :videos="videos" @add-video="addVideo" />
+        <StockVideos :videos="videosResult" @add-video="addVideo" :title="'Results'" />
     </div>
 </template>
 
@@ -19,15 +20,23 @@
         { use_cache: true, src: "/videos/214703_tiny.mp4" },
         { use_cache: true, src: "/videos/pessoa_a_correr.mp4" },
         { use_cache: false, src: "/videos/cavalos_vertical.mp4" },
-        { use_cache: false, src: "/videos/numbered_frames.mp4" },
-        { use_cache: false, src: "/videos/bouncing_ball.mp4" },
-        { use_cache: false, src: "/videos/corrida.mp4" },
-        { use_cache: false, src: "/videos/corrida_4xspeed.mp4" },
+        //{ use_cache: false, src: "/videos/numbered_frames.mp4" },
+        //{ use_cache: false, src: "/videos/bouncing_ball.mp4" },
+        //{ use_cache: false, src: "/videos/corrida.mp4" },
+        //{ use_cache: false, src: "/videos/corrida_4xspeed.mp4" },
         { use_cache: false, src: "/videos/anatomical_model.mp4" },
         { use_cache: false, src: "/videos/pessoa_correr_cutted.mp4" },
         { use_cache: false, src: "/videos/football_min.mp4" },
         { use_cache: false, src: "/videos/back_doll.mp4" },
         { use_cache: false, src: "/videos/front_doll.mp4" },
+        { use_cache: false, src: "/videos/fanta.mp4" },
+        { use_cache: false, src: "/videos/publicity2.mp4" },
+        { use_cache: false, src: "/videos/homem_correndo.mp4" },
+    ])
+
+    const videosResult = ref([
+        { use_cache: false, src: "/videos/result1.mp4" },
+        { use_cache: false, src: "/videos/result2.mp4" },
     ])
 
     async function onFileUpload(file) {
@@ -45,7 +54,7 @@
                 type: blob.type,
                 lastModified: Date.now()
             });
-
+            
             const videoObject = await videoEditor.addVideo(file);
             videoObject.use_cache = video.use_cache
 

@@ -1,15 +1,18 @@
 <template>
     <div class="container">
-        <StickyHeader :show-icon="true" @icon-click="videoEditor.selectedElement = null">
+        <StickyHeader :show-icon="true" 
+        @icon-click="videoEditor.selectedElement = null">
             Edit Media <span class="file-name">{{ mediaElement?.file.name }}</span>
         </StickyHeader>
 
         <div class="content">
             <div class="content-group local-sidebar-div sidebar-div">
                 <div class="content-row-3">
-                    <SimpleButtonCard :label="'Animations'" :icon="'fa-brands fa-fly'" @on-click="" />
+                    <SimpleButtonCard :label="'Animations'" :icon="'fa-brands fa-fly'"
+                     @on-click="" />
 
-                    <SimpleButtonCard :label="'Adjust'" :icon="'fas fa-sliders'" @on-click="adjustVideo" />
+                    <SimpleButtonCard :label="'Adjust'" :icon="'fas fa-sliders'"
+                     @on-click="adjustVideo" />
                 </div>
 
                 <TimeRangeCard v-model:start="startTime" v-model:end="endTime" />
@@ -17,10 +20,13 @@
                 <SpeedControls v-model="currentSpeed" />
 
                 <div class="content-row-3">
-                    <SingleToggleCard class="volume-toggle-container" v-model="volume" :iconOn="'fas fa-volume-high'"
-                        :iconOff="'fas fa-volume-xmark'" :stateValue="'0%'" :state="false" />
+                    <SingleToggleCard class="volume-toggle-container"
+                     v-model="volume" :iconOn="'fas fa-volume-high'"
+                        :iconOff="'fas fa-volume-xmark'" :stateValue="'0%'" 
+                        :state="false" />
 
-                    <SimpleInputCard class="volume-range-container" v-model="volume" :showRange="true" />
+                    <SimpleInputCard class="volume-range-container" 
+                    v-model="volume" :showRange="true" />
                 </div>
             </div>
 
@@ -33,17 +39,21 @@
             <hr class="content-group-divider visible" />
 
             <div class="content-group local-sidebar-div sidebar-div">
-                <SimpleInputCard class="opacity-container" v-model="opacity" :showRange="true" :label="'Opacity'"
+                <SimpleInputCard class="opacity-container" v-model="opacity" 
+                :showRange="true" :label="'Opacity'"
                     :icon="'fas fa-droplet'" />
 
                 <div class="content-row-3">
-                    <SimpleInputCard class="round-container" v-model="roundedCorner" :label="'Round Corners'"
+                    <SimpleInputCard class="round-container" v-model="roundedCorner" 
+                    :label="'Round Corners'"
                         :icon="'fa-solid fa-border-top-left'" />
 
                     <button class="fit-button" @click="fitElement">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16"
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" 
+                        fill="none" viewBox="0 0 16 16"
                             style="stroke-width: 1.5px;">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            <path stroke="currentColor" stroke-linecap="round" 
+                            stroke-linejoin="round"
                                 stroke-width="1.5"
                                 d="M5.333 2h-2A1.333 1.333 0 0 0 2 3.333v2m12 0v-2A1.334 1.334 0 0 0 12.667 2h-2m0 12h2A1.334 1.334 0 0 0 14 12.667v-2m-12 0v2A1.333 1.333 0 0 0 3.333 14h2">
                             </path>
@@ -52,12 +62,14 @@
                 </div>
 
                 <div class="content-row-3">
-                    <SimpleInputCard class="rotation-container" v-model="rotation" :label="'Rotation'"
+                    <SimpleInputCard class="rotation-container" v-model="rotation" 
+                    :label="'Rotation'"
                         :icon="'fas fa-rotate'" />
 
                     <ToggleCard class="flip-container" v-model="flip">
                         <template #default>
-                            <div data-value="true"><i class="fa-solid fa-arrows-up-down" /></div>
+                            <div data-value="true"><i 
+                                class="fa-solid fa-arrows-up-down" /></div>
                         </template>
                     </ToggleCard>
                 </div>
@@ -102,7 +114,8 @@
 
     const endTime = computed({
         get: () => mediaElement.value.end / mediaElement.value.speed,
-        set: (val) => timelineStore.setElementEnd(mediaElement.value, val * mediaElement.value.speed)
+        set: (val) => timelineStore.setElementEnd(mediaElement.value, 
+        val * mediaElement.value.speed)
     })
 
     const currentSpeed = computed({
@@ -175,7 +188,9 @@
 
     async function adjustVideo() {
         videoEditor.effectHandler.setVideoToApplyEffect(mediaElement.value)
-        videoEditor.maskHandler.setMaskToEdit(await videoEditor.maskHandler.getBackgroundMask([], ...videoEditor.maskHandler.getCanvasSize(), -3));
+        videoEditor.maskHandler.setMaskToEdit(await 
+        videoEditor.maskHandler.getBackgroundMask([], 
+        ...videoEditor.maskHandler.getCanvasSize(), -3));
         videoEditor.changeTool('colorEffect')
     }
 

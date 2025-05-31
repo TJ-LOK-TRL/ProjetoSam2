@@ -1,4 +1,4 @@
-export default function slideshowGrab(slideshow, minMoveFactor=5, onDragEnter=null, onDragLeave=null) {
+export default function slideshowGrab(slideshow, minMoveFactor=5, onDragEnter=null, onDragMove=null, onDragLeave=null) {
 
     let start = false
 
@@ -16,9 +16,7 @@ export default function slideshowGrab(slideshow, minMoveFactor=5, onDragEnter=nu
             element.style.transform = `translateX(${element_translateX - dx}px)`
 
             if (Math.abs(dx) > minMoveFactor) {
-                if (onDragEnter !== null) {
-                    onDragEnter(dx)
-                }
+                onDragMove?.(dx)
             }
 
             removeElementsSelect();
@@ -32,6 +30,7 @@ export default function slideshowGrab(slideshow, minMoveFactor=5, onDragEnter=nu
         element.style.transition = "0s"
         document.body.style.cursor = "grab"
         start = true
+        onDragEnter?.(event)
         document.addEventListener("mousemove", handler_mousemove)
     }
 
@@ -51,9 +50,7 @@ export default function slideshowGrab(slideshow, minMoveFactor=5, onDragEnter=nu
                 else
                     slideshow.moveRight(times)
 
-                if (onDragLeave !== null) {
-                    onDragLeave(dx)
-                }
+                onDragLeave?.(event, dx)
             }
 
             addElementsSelect()

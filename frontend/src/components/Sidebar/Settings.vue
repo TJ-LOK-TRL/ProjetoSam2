@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="settings-container">
         <StickyHeader>Settings</StickyHeader>
 
         <div v-if="false" class="resize-container">
@@ -21,21 +21,16 @@
             </div>
         </div>
 
-        <div class="local-sidebar-div sidebar-div">
-            <div class="aside-box speed-container">
-                <div class="speed-title">Speed</div>
-                <div class="speed-buttons-container">
-                    <button v-for="option in speedOptions" :key="option"
-                        :class="['speed-button', { active: currentSpeed === option }]" @click="setSpeed(option)">
-                        {{ option }}x
-                    </button>
-                </div>
-                <input class="speed-input" type="number" step="0.1" min="0.1" v-model.number="inputSpeed"
-                    @change="setSpeed(inputSpeed)" />
+        <div class="sidebar-div settings-group">
+            <p class="sidebar-subtitle settings-title">
+                <span>SAM Settings</span>
+            </p>
+
+            <div class="settings-content">
+                <SimpleInputCard v-model="scaleFactor" :label="'Scale Factor'" :showRange="true"
+                    :icon="'fa-solid fa-up-right-and-down-left-from-center'" :min="0.1" :max="1" :step="0.01" />
             </div>
         </div>
-
-
     </div>
 </template>
 
@@ -44,6 +39,7 @@
     import StickyHeader from '@/components/Sidebar/StickyHeader.vue'
     import { useVideoEditor } from '@/stores/videoEditor';
     import { useTimelineStore } from '@/stores/timeline'
+    import SimpleInputCard from '@/components/Sidebar/SimpleInputCard.vue'
 
     const videoEditor = useVideoEditor();
     const timelineStore = useTimelineStore();
@@ -56,33 +52,17 @@
         { label: 'Facebook Cover (820x312)', width: 820, height: 312 },
     ])
 
-    const speedOptions = [0.5, 1.0, 2.0]
-    const currentSpeed = ref(1.0)
-    const inputSpeed = ref(currentSpeed.value)
+    const scaleFactor = computed({
+        get: () => {
+            return videoEditor.maskScaleFactor
+        },
 
-    function setSpeed(newSpeed) {
-        const parsed = parseFloat(newSpeed)
-        if (!isNaN(parsed) && parsed > 0) {
-            currentSpeed.value = parsed
-            inputSpeed.value = parsed
-        }
-    }
-
-    // 🔔 Se quiser fazer algo quando o speed mudar (como alterar vídeo):
-    watch(currentSpeed, (newVal) => {
-        console.log('Speed changed to:', newVal)
-        if (videoEditor.selectedElement?.type === 'video') {
-            const video = videoEditor.selectedElement
-            timelineStore.setVideoSpeed(video, newVal)
+        set: (val) => {
+            videoEditor.maskScaleFactor = val
         }
     })
 
-    watch(() => videoEditor.selectedElement, (e) => {
-        if (e?.type === 'video') {
-            const video = e
-            setSpeed(video.speed)
-        }
-    })
+
 </script>
 
 <style scoped>
@@ -110,62 +90,15 @@
         height: 48px;
     }
 
-    .speed-container {
-        gap: 10px;
-    }
-
-    .speed-title {
-        font-family: Inter, sans-serif;
-        font-size: 0.8125rem;
-        line-height: 1rem;
-        letter-spacing: 0px;
-        font-weight: 500;
-        white-space: nowrap;
-        color: rgb(48, 48, 48);
-    }
-
-    .speed-buttons-container {
+    .settings-group {
         display: flex;
-        gap: 5px;
+        flex-direction: column;
+        gap: 15px;
     }
 
-    .speed-button {
-        font-family: Inter, sans-serif;
-        font-size: 0.8125rem;
-        line-height: 1rem;
-        letter-spacing: 0px;
-        font-weight: 500;
-        color: var(--main-color);
-        background-color: rgb(255, 255, 255);
-        border-radius: 0.5rem;
-        height: auto;
-        padding: 0.25rem 0.5rem;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        max-width: 4.375rem;
-        overflow: hidden;
-        border: 0.5px solid rgb(225, 225, 227);
-        box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 2px;
-        font-size: 0.8125rem;
+    .settings-content {
         display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        text-decoration: none;
-        user-select: none;
-    }
-
-    .speed-button.active {
-        border-color: var(--main-color);
-    }
-
-    .speed-input {
-        width: 25%;
-        text-align: right;
-        border: none;
-        flex: 0 0 auto;
-        padding: 0.375rem 0.5rem;
-        border-radius: 0.25rem;
-        background-color: #ededed;
+        flex-direction: column;
+        gap: 7.5px;
     }
 </style>

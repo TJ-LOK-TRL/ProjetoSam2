@@ -3,7 +3,8 @@
         <div class="upload-file-box" @dragover.prevent @drop="handleDrop" @click="selectFile">
             <i class="upload-file-box-icon fas fa-cloud-arrow-up"></i>
             <p class="upload-file-box-title">Upload a File</p>
-            <p class="upload-file-box-text">Drag & drop a file<br> or <a class="upload-file-box-link" href="#">import
+            <p class="upload-file-box-text">Drag & drop a file<br> or 
+                <a class="upload-file-box-link" href="#">import
                     from your computer</a></p>
             <input type="file" ref="fileInput" hidden @change="handleFileUpload" :accept="props.accept">
         </div>

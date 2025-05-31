@@ -103,7 +103,6 @@
                                 const elementMoveRect = elementMove.getBoundingClientRect()
                                 textBox.box.setPosition(mouseX - rect.x, mouseY - rect.y)
                                 textBox.box.setSize(elementMoveRect.width, elementMoveRect.height)
-                                console.log('Box:', textBox, textBox.box.getRect())
                             })
                         }
                     }

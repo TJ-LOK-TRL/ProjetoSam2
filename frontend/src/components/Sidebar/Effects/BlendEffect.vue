@@ -86,7 +86,7 @@
         
         const mainVideo = videoEditor.maskHandler.video;
         const mask = videoEditor.maskHandler.maskToEdit;
-        (mask.objId === -1 ? videoEditor.effectHandler.bkgEffectVideos : videoEditor.effectHandler.objEffectVideos).add(video);
+        videoEditor.effectHandler.addEffectVideo(video.id, mask.objId === -1 ? 'background' : 'object', video);
 
         videoEditor.register.registerMaskEffect(mainVideo.id, mask.objId, EffectHandler.BLEND_EFFECT_NAME, {
             blendVideoId: video.id,

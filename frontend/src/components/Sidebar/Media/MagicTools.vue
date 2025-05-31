@@ -56,17 +56,7 @@
                 }
             }
 
-            
-            videoEditor.effectHandler.setVideoToApplyEffect(video)
-            const callbackId = 'MagicTools'
-            videoEditor.removeOnEditorElementSelected(callbackId)
-            videoEditor.onEditorElementSelected(callbackId, (selectedElement) => {
-                if (selectedElement?.id === video?.id) {
-                    videoEditor.effectHandler.setVideoToApplyEffect(video)
-                }
-            })
-
-            videoEditor.changeTool('configSam', 'media')
+            videoEditor.changeTool('sam', 'sam')
         }
     }
 

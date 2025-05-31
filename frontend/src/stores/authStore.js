@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { useVideoEditor } from '@/stores/videoEditor'
 import { useBackendStore } from '@/stores/backend'
+import axios from 'axios';
 
 const LS_KEY = 'myapp_users'
 const LS_PROJECTS = 'myapp_projects'
@@ -24,7 +25,6 @@ export const useAuthStore = defineStore('auth', {
     getProjects: (state) => state.currentUser?.projects || []
   },
   actions: {
-    
     _save() {
       localStorage.setItem(LS_KEY, JSON.stringify(this.users))
       this._saveCurrentUser()
