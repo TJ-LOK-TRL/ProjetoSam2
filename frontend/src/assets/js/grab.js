@@ -22,11 +22,11 @@ export default class Grab {
 
         this.xspeed = null
 
-        this.onIniGrabEvent = (eg, em, x, y) => false;
+        this.onIniGrabEvent = (eg, em, x, y, e) => false;
 
-        this.onEndGrabEvent = (eg, em, x, y) => false;
+        this.onEndGrabEvent = (eg, em, x, y, e) => false;
 
-        this.onMoveGrabEvent = (eg, em, dx, dy) => [dx, dy];
+        this.onMoveGrabEvent = (eg, em, dx, dy, e) => [dx, dy];
 
         this.boundGrab = (e) => this.Grab(e);
         this.boundMove = (e) => this.Move(e);
@@ -54,7 +54,7 @@ export default class Grab {
             this.offset = [offsetX, offsetY];
             this.isGrabing = true;
 
-            this.onIniGrabEvent(this.elementGrab, this.elementMove, offsetX, offsetY);
+            this.onIniGrabEvent(this.elementGrab, this.elementMove, offsetX, offsetY, event);
 
             console.log(`grab -> Cords: X = ${offsetX}, Y = ${offsetY}`);
         }
@@ -69,7 +69,7 @@ export default class Grab {
                 if (this.useRelativeOffsets) {
                     let _dx = event.clientX - this.offset[0]
                     let _dy = event.clientY - this.offset[1]
-                    let [dx, dy] = this.onMoveGrabEvent(this.elementGrab, this.elementMove, _dx, _dy)
+                    let [dx, dy] = this.onMoveGrabEvent(this.elementGrab, this.elementMove, _dx, _dy, event)
                     let x = (parseFloat(this.elementMove.style.left.replace('px', '')) || 0) + dx;
                     let y = (parseFloat(this.elementMove.style.top.replace('px', '')) || 0) + dy;
                     this.elementMove.style.left = x + "px";
@@ -132,7 +132,7 @@ export default class Grab {
 
                 this.isGrabing = false;
 
-                this.onEndGrabEvent(this.elementGrab, this.elementMove, coords.x, coords.y);
+                this.onEndGrabEvent(this.elementGrab, this.elementMove, coords.x, coords.y, event);
 
                 console.log(`drop -> Cords: X = ${coords.x} , Y = ${coords.y}`);
 

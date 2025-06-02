@@ -13,6 +13,7 @@
         <RemoveColor v-else-if="videoEditor.selectedTool === 'removeColor'" />
         <MediaElements v-else-if="videoEditor.selectedTool === 'mediaElements'" />
         <SamSelector v-else-if="videoEditor.selectedTool === 'sam'" />
+        <ConfigAnimation v-else-if='videoEditor.selectedTool === "configAnimation"' />
     </div>
 </template>
 
@@ -31,6 +32,7 @@
     import BlendEffect from './Effects/BlendEffect.vue'
     import RemoveColor from './Effects/RemoveColor.vue'
     import Projects from './Projects.vue'
+    import ConfigAnimation from '@/components/Sidebar/Animations/ConfigAnimation.vue'
 
     import { useVideoEditor } from '@/stores/videoEditor'
 

@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, watch } from 'vue'
     import ListMediaElements from './ListMediaElements.vue'
     import { useVideoEditor } from '@/stores/videoEditor'
 
@@ -30,6 +30,13 @@
             videoEditor.isPromptElementOpen = false
         }
     }
+
+    watch(() => videoEditor.isPromptElementOpen, (newVal) => {
+        if (newVal) {
+            promptElements.value = []
+        }
+    })
+
 </script>
 
 <style scoped>

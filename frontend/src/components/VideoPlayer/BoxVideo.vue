@@ -81,10 +81,10 @@
         }
     )
 
-    watch(isBoundingMaskActive, () => {
+    watch(isBoundingMaskActive, async () => {
         videoEditor.maskHandler.clearCanvas(activeMaskCanvasRef.value, ...getBoxVideoSize())
         if (isBoundingMaskActive.value) {
-            updateDetectionAndVisibleMasks(video.value.masks)
+            await videoEditor.maskHandler.drawVisibleMasks(activeMaskCanvasRef.value, video.value.masks, ...getBoxVideoSize());
         }
 
         if (shouldUpdateVideoMasks.value) {
@@ -238,6 +238,7 @@
             const clickRadius = 10;
 
             const pointIndex = video.value.points.findIndex(point => {
+                if (point.objId !== objId) return false;
                 const dx = point.x - x;
                 const dy = point.y - y;
                 return Math.sqrt(dx * dx + dy * dy) <= clickRadius;
@@ -283,6 +284,8 @@
         const detected = videoEditor.maskHandler.maskEvent(event, maskCanvasRef.value, video.value.masks,
             boxVideoRef.value.getRotation(),
             boxVideoRef.value.getFlip(),
+            videoEditor.zoomLevel,
+            colorEffectCanvasRef.value,
             mask => {
                 if (videoEditor.maskHandler.activeMask?.id == mask.id || videoEditor.maskHandler.selectedMask?.id == mask.id)
                     return
@@ -313,6 +316,8 @@
         const detected = videoEditor.maskHandler.maskEvent(event, maskCanvasRef.value, video.value.masks,
             boxVideoRef.value.getRotation(),
             boxVideoRef.value.getFlip(),
+            videoEditor.zoomLevel,
+            colorEffectCanvasRef.value,
             mask => {
                 if (videoEditor.maskHandler.selectedMask?.id == mask.id) {
                     videoEditor.maskHandler.selectedMask = null;
@@ -433,20 +438,41 @@
     }
 
     async function updateDetectionAndVisibleMasks(newMasks) {
-        nextTick(async () => {
-            videoEditor.maskHandler.drawDetectionMasks(maskCanvasRef.value, newMasks, ...getBoxVideoSize());
-            videoEditor.maskHandler.drawVisibleMasks(activeMaskCanvasRef.value, newMasks, ...getBoxVideoSize());
-            video.value.backgroundMask = await videoEditor.maskHandler.getBackgroundMask(video.value.masks, ...getBoxVideoSize());
-        });
+        await nextTick();
+        console.warn('updateDetectionAndVisibleMasks called')
+        //console.log('RectB:', ...getBoxVideoSize())
+        //await new Promise(resolve => setTimeout(resolve, 1000));
+        //console.log('RectA:', ...getBoxVideoSize())
+        await videoEditor.maskHandler.drawDetectionMasks(maskCanvasRef.value, newMasks, ...getBoxVideoSize());
+        await videoEditor.maskHandler.drawVisibleMasks(activeMaskCanvasRef.value, newMasks, ...getBoxVideoSize());
+        video.value.backgroundMask = await videoEditor.maskHandler.getBackgroundMask(newMasks, ...getBoxVideoSize());
     }
 
+    async function updateAllCanvasSizes() {
+        console.log('updateAllCanvasSizes called')
+        const [width, height] = getBoxVideoSize();
+
+        for (const canvas of [videoCanvasRef, maskCanvasRef, activeMaskCanvasRef, colorEffectCanvasRef]) {
+            if (canvas.value) {
+                canvas.value.width = width;
+                canvas.value.height = height;
+            }
+        }
+
+        videoEditor.maskHandler.clearCanvas(activeMaskCanvasRef.value, width, height);
+        await drawVideo();
+        await updateVideoMasks();
+        await updateDetectionAndVisibleMasks(video.value.masks)
+    }
+
+    let resizeObserver = null;
     onMounted(() => {
         video.value = props.video
         video.value.onMetadataLoaded(() => {
             enableResize.value = true
 
-            watch(() => video.value.masks, (newMasks) => {
-                updateDetectionAndVisibleMasks(newMasks)
+            watch(() => video.value.masks, async (newMasks) => {
+                await updateDetectionAndVisibleMasks(newMasks)
             }, { deep: true });
 
             video.value.onVideoHided(() => {
@@ -515,10 +541,15 @@
                 drawVideoCallbacksCache.value = {};
             }
         });
+
+        //resizeObserver = new ResizeObserver(async () => await updateAllCanvasSizes());
+        //nextTick(() => resizeObserver.observe(boxVideoRef.value.boxRef))
     });
 
     onUnmounted(() => {
         console.log('BoxVideo destruído para', props.video?.id);
+
+        resizeObserver?.disconnect();
 
         // Cancelar animações
         cancelAnimationFrame(maskAnimationFrameId);
@@ -531,6 +562,9 @@
 
         timelineStore.removeOnPlayed(onPlayed)
         timelineStore.removeOnPaused(onPaused)
+
+        drawVideoCallbacksCache.value = {};
+        onDrawVideoCallbacks.value.clear()
 
         // Limpar referências
         delete videoEditor.mapperBoxVideo[video.value.id];
@@ -592,7 +626,7 @@
         width: 100%;
         height: 100%;
         pointer-events: none;
-        opacity: 1;
+        opacity: 0.5;
     }
 
     .video-canvas {
@@ -603,6 +637,7 @@
         height: 100%;
         pointer-events: none;
         border-radius: inherit;
+        opacity: 1;
     }
 
     .point {

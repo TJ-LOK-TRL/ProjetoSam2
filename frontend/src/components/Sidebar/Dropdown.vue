@@ -2,11 +2,12 @@
     <div class="custom-select">
         <div class="input-wrapper">
             <input class="input" type="text" v-model="search" @focus="handleFocus" @blur="handleBlur"
-                :placeholder='placeholder' ref="inputRef" />
+                @keydown.enter="handleBlur" :placeholder='placeholder' ref="inputRef" />
             <i class="fa fa-chevron-down input-icon" aria-hidden="true"></i>
         </div>
         <ul v-if="open" class="dropdown">
-            <li v-for="item in filteredItems" :key="item.label" @mousedown.prevent="select(item)" :style="item.font ? { fontFamily: item.font } : {}">
+            <li v-for="item in filteredItems" :key="item.label" @mousedown.prevent="select(item)"
+                :style="item.font ? { fontFamily: item.font } : {}">
                 {{ item.label }}
             </li>
             <li v-if="filteredItems.length === 0" class="no-results">No results</li>
@@ -21,6 +22,10 @@
         placeholder: String,
         items: Array,
         modelValue: Object,
+        allowFreeValue: {
+            type: Boolean,
+            default: false
+        }
     })
 
     const emit = defineEmits(['update:modelValue'])
@@ -33,7 +38,7 @@
     const inputRef = ref(null)
 
     const filteredItems = computed(() => {
-        return items.value?.filter(i =>
+        return (items.value || []).filter(i =>
             i.label.toLowerCase().includes(search.value.toLowerCase())
         )
     })
@@ -53,6 +58,14 @@
 
     function handleBlur() {
         open.value = false
+
+        if (props.allowFreeValue && search.value.trim()) {
+            const newItem = { free: search.value.trim()  }
+            selected.value = newItem
+            emit('update:modelValue', newItem)
+            placeholder.value = newItem.free
+            search.value = ''
+        }
     }
 </script>
 

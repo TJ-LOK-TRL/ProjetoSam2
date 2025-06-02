@@ -2,6 +2,7 @@ export class VideoEditorRegister {
     constructor() {
         this.maskEffects = {};
         this.preventResets = new Set();
+        this.animations = {};
     }
 
     registerMaskEffect(video_id, obj_id, effect_id, effectData, can_be_reset = true) {
@@ -108,5 +109,81 @@ export class VideoEditorRegister {
             console.warn('Effect can be reset', video_id, obj_id, effect_id);
             this.maskEffects[video_id][obj_id][effect_id].push('reset');
         }
+    }
+
+    registerResetForEffect(video_id, obj_id, effect_id) {
+        const videoEffects = this.maskEffects?.[video_id];
+        if (!videoEffects) return;
+
+        const objectEffects = videoEffects[obj_id];
+        if (!objectEffects) return;
+
+        if (!objectEffects[effect_id]) return;
+
+        if (this.preventResets.has(`${video_id}_${obj_id}_${effect_id}`)) {
+            console.warn('Effect cannot be reset', video_id, obj_id, effect_id);
+            return;
+        }
+
+        console.warn('Effect can be reset', video_id, obj_id, effect_id);
+        this.maskEffects[video_id][obj_id][effect_id].push('reset');
+    }
+
+    removeEffect(video_id, obj_id, effect_id) {
+        const videoEffects = this.maskEffects?.[video_id];
+        if (!videoEffects) return;
+
+        const objectEffects = videoEffects[obj_id];
+        if (!objectEffects) return;
+
+        if (!objectEffects[effect_id]) return;
+
+        // Remove o efeito
+        delete this.maskEffects[video_id][obj_id][effect_id];
+
+        // Se quiser, pode limpar objetos vazios para evitar lixo:
+        if (Object.keys(this.maskEffects[video_id][obj_id]).length === 0) {
+            delete this.maskEffects[video_id][obj_id];
+        }
+        if (Object.keys(this.maskEffects[video_id]).length === 0) {
+            delete this.maskEffects[video_id];
+        }
+    }
+
+    registerAnimation(elementId, animationName, animationType, settings = {}) {
+        this.animations[elementId] ||= {}
+        this.animations[elementId][animationType] ||= new Map()
+        this.animations[elementId][animationType].set(animationName, { settings })
+    }
+
+    resetAnimationByType(elementId, animationType) {
+        if (this.animations[elementId]?.[animationType]) {
+            this.animations[elementId][animationType] = new Map()
+        }
+    }
+
+    getLastAnimationByType(elementId, animationType) {
+        const map = this.animations[elementId]?.[animationType]
+        if (!map || map.size === 0) return null
+
+        const lastKey = Array.from(map.keys()).at(-1)
+        const { settings } = map.get(lastKey)
+        return { name: lastKey, settings }
+    }
+
+    getAnimations(elementId) {
+        const animationsByType = this.animations[elementId]
+        if (!animationsByType) return []
+
+        const allAnimations = []
+
+        for (const type in animationsByType) {
+            const map = animationsByType[type]
+            for (const [name, { settings }] of map) {
+                allAnimations.push({ name, settings })
+            }
+        }
+
+        return allAnimations
     }
 }

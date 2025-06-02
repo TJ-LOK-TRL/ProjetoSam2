@@ -6,18 +6,18 @@ import VideoMedia from "/src/assets/js/videoEditor/media/VideoMedia.js"
 import AudioMedia from "/src/assets/js/videoEditor/media/AudioMedia.js"
 import TextElement from "/src/assets/js/videoEditor/TextElement.js"
 import MaskHandler from "/src/assets/js/maskHandler.js"
+import AnimationHandler from "/src/assets/js/animationHandler"
 import EffectHandler from "/src/assets/js/effectHandler.js"
 import EditorElementManager from "/src/assets/js/videoEditor/EditorElementManager.js"
+import { VideoEditorRegister } from "/src/assets/js/videoEditorRegister"
 import { base64ToBlob } from "/src/assets/js/utils.js"
-import { VideoEditorRegister } from "../assets/js/videoEditorRegister"
-
-
 
 export const useVideoEditor = defineStore('videoEditor', () => {
     const backend = useBackendStore()
     const elementManager = ref(new EditorElementManager())
     const register = ref(new VideoEditorRegister())
     const maskHandler = ref(new MaskHandler())
+    const animationHandler = ref(new AnimationHandler(register.value))
     const effectHandler = ref(new EffectHandler(register.value, maskHandler.value))
 
     const isLoadingInternal = ref(false); // Estado interno
@@ -47,7 +47,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     const onVideoMetadataLoadedCallbacks = ref([])
 
     const onElementAddedCallbacks = ref([])
-    const onElementRemovedCallbacks = ref([])
+    const onElementRemovedCallbacks = ref(new Map());
 
     const selectedTool = ref('')
     const selectedToolIcon = ref('')
@@ -57,7 +57,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     const onAddMapBoxVideoCallbacks = ref([])
     const fps = ref(null)
     const maskScaleFactor = ref(0.5)
-    const onCompileVideoMetadataCallbacks = ref([])
+    const onCompileVideoMetadataCallbacks = ref(new Map())
     const zoomLevel = ref(1)
 
     const preventUnselectElementOnOutside = ref(false)
@@ -90,8 +90,8 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         return createVideo(file, metadata.fps, metadata.frames)
     }
 
-    function addText(text, preset, font) {
-        const textElement = new TextElement(text, preset, font)
+    function addText(text, preset, font, fontSize = '16px') {
+        const textElement = new TextElement(text, preset, font, fontSize)
         elementManager.value.addElement(textElement)
 
         onElementAddedCallbacks.value.forEach(callback => callback(textElement))
@@ -129,7 +129,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
             video.delete()
         }
 
-        onElementRemovedCallbacks.value.forEach(callback => callback(editorElement))
+        onElementRemovedCallbacks.value.forEach((callback, id) => callback(editorElement))
     }
 
     function cloneVideo(video, onAddBoxCallback) {
@@ -324,15 +324,12 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         onElementAddedCallbacks.value.push(callback)
     }
 
-    function onElementRemoved(callback) {
-        onElementRemovedCallbacks.value.push(callback)
+    function onElementRemoved(id, callback) {
+        onElementRemovedCallbacks.value.set(id, callback);
     }
 
-    function removeOnElementRemoved(callback) {
-        const index = onElementRemovedCallbacks.value.indexOf(callback);
-        if (index !== -1) {
-            onElementRemovedCallbacks.value.splice(index, 1);
-        }
+    function removeOnElementRemoved(id) {
+        onElementRemovedCallbacks.value.delete(id);
     }
 
     function reorderElements(currentId, targetId) {
@@ -447,24 +444,21 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     }
 
     async function getCompileVideoMetadata(metadata, video) {
-        for (let i = 0; i < onCompileVideoMetadataCallbacks.value.length; i++) {
-            let newMetadata = await onCompileVideoMetadataCallbacks.value[i](metadata, video)
+        for (const callback of onCompileVideoMetadataCallbacks.value.values()) {
+            const newMetadata = await callback(metadata, video);
             if (newMetadata !== null && newMetadata !== undefined) {
-                metadata = newMetadata
+                metadata = newMetadata;
             }
         }
-        return metadata
+        return metadata;
     }
 
-    function onCompileVideoMetadata(callback) {
-        onCompileVideoMetadataCallbacks.value.push(callback)
+    function onCompileVideoMetadata(id, callback) {
+        onCompileVideoMetadataCallbacks.value.set(id, callback);
     }
 
-    function removeOnCompileVideoMetadataCallback(callback) {
-        const index = onCompileVideoMetadataCallbacks.value.indexOf(callback)
-        if (index !== -1) {
-            onCompileVideoMetadataCallbacks.value.splice(index, 1)
-        }
+    function removeOnCompileVideoMetadataCallback(id) {
+        onCompileVideoMetadataCallbacks.value.delete(id);
     }
 
     async function compileVideos(elements, compute_transparency = false, width = null, height = null) {
@@ -681,7 +675,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         elementManager, isLoading, videoPlayerWidth, videoPlayerHeight, videoPlayerContainer, fps,
         selectedElement, maskHandler, selectedTool, selectedToolIcon, mapperBoxVideo, register, effectHandler, zoomLevel,
         preventUnselectElementOnOutside, videoPlayerSpaceContainer, maskScaleFactor, isPromptElementOpen, onElementPromptedSelectCallback,
-        onElementPromptSelectionDoneCallback,
+        onElementPromptSelectionDoneCallback, animationHandler,
         addVideo, addText, cloneVideo, getVideos, getTexts, getElements, generateMasksForFrame, selectEditorElement, setVideoPlayerContainer,
         onFirstVideoMetadataLoaded, onEditorElementSelected, onVideoMetadataLoaded, reorderElements, generateMasksForVideo,
         removeOnEditorElementSelected, changeTool, changeToPreviousTool, removeElement, getBoxOfElement, download, getVideoMetadata,

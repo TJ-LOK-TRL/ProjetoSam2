@@ -1133,6 +1133,7 @@ class VideoEffectsProcessor:
         extra_info: Dict,
         flipped: bool,
         render_infos: List[RenderInfo],
+        video_time: float,
     ) -> np.ndarray:
         """Aplica efeitos a um frame individual."""
         if (not masks and not effects_config) and (not chroma_key_data):
@@ -1338,10 +1339,13 @@ class VideoEffectsProcessor:
                 ref_video_masks = ref_video['masks']
                 ref_video_rect: Rect = ref_video['rect']
                 ref_video_flipped: bool = ref_video['flipped']
+                ref_video_idx: int = ref_video['idx']
+                ref_render_info: RenderInfo = render_infos[ref_video_idx]
+                ref_frame_idx: int = int(video_time * ref_render_info.fps)
                 if not ref_video_masks:
                     return None
                 
-                ref_frame_masks = ref_video_masks.get(frame_idx, {})
+                ref_frame_masks = ref_video_masks.get(ref_frame_idx, {})
                 if not ref_frame_masks:
                     return None
                 
@@ -1378,7 +1382,7 @@ class VideoEffectsProcessor:
                 # move o rect apenas pelo delta atual
                 rect.x += dx
                 rect.y += dy
-            
+                
                 # guarda o centro deste frame como referência para o próximo
                 extra_info['previous_position'] = (center_x, center_y)
 
@@ -1402,9 +1406,10 @@ class VideoEffectsProcessor:
         rotation: float,
         flipped: bool,
         render_infos: List[RenderInfo],
+        video_time: float,
     ):
         """Aplica efeitos a um frame individual."""
-        if (not masks or not effects_config) and (not chroma_key_data):
+        if (not masks and not effects_config) and (not chroma_key_data):
             return frame
 
         current_frame_masks = masks.get(frame_idx, {}) if masks else {}
@@ -1427,10 +1432,13 @@ class VideoEffectsProcessor:
                 ref_video_rect: Rect = ref_video['rect']
                 ref_video_rotation: float = ref_video.get('rotation', 0)
                 ref_video_flipped: bool = ref_video['flipped']
+                ref_video_idx: int = ref_video['idx']
+                ref_render_info: RenderInfo = render_infos[ref_video_idx]
+                ref_frame_idx: int = int(video_time * ref_render_info.fps)
                 if not ref_video_masks:
                     return None
                 
-                ref_frame_masks = ref_video_masks.get(frame_idx, {})
+                ref_frame_masks = ref_video_masks.get(ref_frame_idx, {})
                 if not ref_frame_masks:
                     return None
                 

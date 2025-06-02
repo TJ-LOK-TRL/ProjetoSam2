@@ -68,7 +68,7 @@
         { id: 4, name: 'Overlay', icon: 'fa-layer-group' },
         { id: 5, name: 'Cut', icon: 'fa-hand-scissors' },
         { id: 6, name: 'Split', icon: 'fa-table-columns' },
-        { id: 7, name: 'Text Follow', icon: 'fa-arrows-alt-h' }
+        { id: 7, name: 'Label', icon: 'fa-text-width' }
     ];
 
     const backgroundEffects = [
@@ -171,8 +171,9 @@
               effectId(EffectHandler.SPLIT_BKG_EFFECT_ID, mask))
         }
 
-        else if (effect.name == 'Text Follow') {
+        else if (effect.name == 'Label') {
             videoEditor.promptElementSelection(null, async (elements) => {
+                console.log(elements, elements.length)
                 for (const element of elements) {
                     await videoEditor.effectHandler.handleVideoFollowMask(element, videoEditor.maskHandler.maskToEdit)
                 }
@@ -335,16 +336,14 @@
         const boxOfVideo = videoEditor.getBoxOfElement(video)
         const { width, height } = videoEditor.getRectBoxOfElement(video);
         if (shouldCompile(video)) {
-
-            function referenceVideo(metadata, compileVideo) {
+            
+            videoEditor.onCompileVideoMetadata(0, (metadata, compileVideo) => {
                 if (compileVideo.id === video.id) {
                     metadata.x = 0
                     metadata.y = 0
                     return metadata
                 }
-            }
-
-            videoEditor.onCompileVideoMetadata(referenceVideo)
+            })
 
             const data = await videoEditor.compileVideos(
                 [
@@ -357,7 +356,7 @@
                 height
             );
 
-            videoEditor.removeOnCompileVideoMetadataCallback(referenceVideo)
+            videoEditor.removeOnCompileVideoMetadataCallback(0)
 
             if (!data) {
                 console.error('Failed to download video data');

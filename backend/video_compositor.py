@@ -223,6 +223,9 @@ class Rect:
         self.y = y
         self.width = width
         self.height = height
+        
+    def __str__(self) -> str:
+        return f"Rect(x={self.x}, y={self.y}, width={self.width}, height={self.height})"
 
 class VideoCompositor:
     def __init__(self, output_path: str, output_width: int, output_height: int, fps: Optional[float] = None):
@@ -335,7 +338,6 @@ class VideoCompositor:
         global_time = frame_idx / fps
         
         if not self._should_render_layer(render_info, global_time):
-            #print('Not rendering at:', global_time)
             return False
         
         video_time = layer.start_t + (global_time  * layer.speed) - layer.st_offset
@@ -359,13 +361,14 @@ class VideoCompositor:
         
         frame = on_frame(
             render_info, 
-            render_info.cached_frame, 
+            render_info.cached_frame.copy(), 
             target_frame_pos, 
             fps, 
             width,
             height,
-            None,#RoiInfo(roi, y1, y2, x1, x2, fy1, fy2, fx1, fx2)
+            None,
             render_infos,
+            video_time,
             PROCESS_STAGE_PRE_TRANSFORM,
         ) if on_frame else frame
         
@@ -430,6 +433,7 @@ class VideoCompositor:
             height,
             RoiInfo(roi, y1, y2, x1, x2, fy1, fy2, fx1, fx2),
             render_infos,
+            video_time,
             PROCESS_STAGE_POST_TRANSFORM,
         ) if on_frame else frame
         

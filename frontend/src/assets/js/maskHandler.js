@@ -181,58 +181,6 @@ export default class MaskHandler {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     }
 
-    drawDetectionMasks2(canvas, masks, width, height) {
-        if (!canvas) return;
-
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        canvas.width = width
-        canvas.height = height
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa antes de redesenhar
-
-        masks.forEach(async mask => {
-            const img = await loadImageFromCache(mask.url);
-            // Criar um canvas temporário para manipular pixels
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            tempCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-            // Obter os pixels da imagem
-            const imageData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-
-            // Cor única para esta máscara
-            const [rNew, gNew, bNew] = mask.indexColor
-
-            // Percorrer os pixels e ajustar as cores
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];     // Red
-                const g = data[i + 1]; // Green
-                const b = data[i + 2]; // Blue
-
-                if (r < 50 && g < 50 && b < 50) {
-                    // Se for preto, fica transparente
-                    data[i + 3] = 0; // Alpha = 0 (transparente)
-                } else {
-                    // Se for branco, colocar cor única para a máscara
-                    data[i] = rNew;
-                    data[i + 1] = gNew;
-                    data[i + 2] = bNew;
-                }
-            }
-
-            // Atualizar os pixels do canvas temporário
-            tempCtx.putImageData(imageData, 0, 0);
-
-            // Agora desenhamos no canvas principal
-            ctx.globalCompositeOperation = "source-over";
-            ctx.drawImage(tempCanvas, 0, 0);
-        });
-    }
-
     async drawDetectionMasks(canvas, masks, width, height) {
         if (!canvas || !masks?.length) return;
 
@@ -262,7 +210,7 @@ export default class MaskHandler {
                 }
             }
 
-            console.log(`Máscara ${mask.id} - Pixels brancos: ${whitePixels}`);
+            //console.log(`Máscara ${mask.id} - Pixels brancos: ${whitePixels}`);
             return { mask, img, area: whitePixels };
         }));
 
@@ -448,11 +396,9 @@ export default class MaskHandler {
         ctx.restore();
     }
 
-    maskEvent(event, canvas, masks, rotation, flipped, onMouseHover, onMouseNotHover) {
+    maskEvent(event, canvas, masks, rotation, flipped, zoom, canvasDebug, onMouseHover, onMouseNotHover) {
         const ctx = canvas.getContext('2d');
         const rect = canvas.getBoundingClientRect();
-
-
 
         // 1. Guarda o estado atual como imagem (não como ImageData)
         const originalWidth = canvas.width;
@@ -461,18 +407,14 @@ export default class MaskHandler {
         tempCanvas.width = originalWidth;
         tempCanvas.height = originalHeight;
         const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(canvas, 0, 0);
+        tempCtx.drawImage(canvas, 0, 0, originalWidth, originalHeight);
 
         // 2. Redimensiona o canvas principal temporariamente
         canvas.width = rect.width;
         canvas.height = rect.height;
 
         // 3. Redesenha o conteúdo redimensionado
-        ctx.drawImage(tempCanvas,
-            0, 0, canvas.width, canvas.height
-        );
-
-
+        ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
 
         // Calcula a razão entre dimensões lógicas e físicas, Não é mais necessário pois dá sempre 1
         const scaleX = canvas.width / rect.width;
@@ -481,13 +423,6 @@ export default class MaskHandler {
         // Aplica o zoom e o scaling
         let x = (event.clientX - rect.left) * scaleX
         let y = (event.clientY - rect.top) * scaleY
-
-        // Bola de debug no centro
-        //ctx.clearRect(0, 0, canvas.width, canvas.height);
-        //ctx.beginPath();
-        //ctx.arc(canvas.width / 2, canvas.height / 2, 5, 0, 2 * Math.PI);
-        //ctx.fillStyle = 'blue';
-        //ctx.fill();
 
         // Aplica flip horizontal se houver
         if (flipped) {
@@ -508,12 +443,6 @@ export default class MaskHandler {
             y = centerY + (relX * Math.sin(angleRad) + relY * Math.cos(angleRad));
         }
 
-        // Bola de debug em (x, y)
-        //ctx.beginPath();
-        //ctx.arc(x, y, 5, 0, 2 * Math.PI);
-        //ctx.fillStyle = 'red';
-        //ctx.fill();
-
         const pixel = ctx.getImageData(x, y, 1, 1).data;
         const [r, g, b] = pixel;
 
@@ -521,8 +450,9 @@ export default class MaskHandler {
         //console.log(x, y, event.clientX, event.clientY, rect.left, rect.top, zoom);
         //console.log(`Pixel at (${x}, ${y}): RGB(${r}, ${g}, ${b})`, 'Extra info:', rect.left, rect.top);
         masks.forEach((mask, index) => {
+            //console.log(r, g, b, '-', mask.indexColor)
             //const expectedColor = [(index * 50) % 255, (index * 80) % 255, (index * 120) % 255]; // MAX DE 51 cores ou seja mascaras
-            const expectedColor = this.getIndexedColor(index) // Deve ser mais mas não calculei ainda
+            const expectedColor = mask.indexColor // Deve ser mais mas não calculei ainda
             if (r === expectedColor[0] && g === expectedColor[1] && b === expectedColor[2]) {
                 detected = true
                 onMouseHover(mask, index)
@@ -532,6 +462,41 @@ export default class MaskHandler {
                 //console.log(`Pixel Hover: R:${r} G:${g} B:${b}`, expectedColor, false);
             }
         });
+
+        if (false) {
+            // --- DEBUG ---
+            const ctxDebug = canvasDebug.getContext('2d');
+
+            // Ajuste tamanho do canvasDebug para coincidir com o tempCanvas (opcional, se quiser manter mesmo tamanho)
+            canvasDebug.width = tempCanvas.width;
+            canvasDebug.height = tempCanvas.height;
+
+            // Se o canvasDebug tiver tamanho diferente do canvas original, converta coordenadas (x,y)
+            const scaleDebugX = canvasDebug.width / canvas.width;
+            const scaleDebugY = canvasDebug.height / canvas.height;
+
+            const debugX = x * scaleDebugX;
+            const debugY = y * scaleDebugY;
+
+            // Bola azul no centro do debug
+            ctxDebug.beginPath();
+            ctxDebug.arc(canvasDebug.width / 2, canvasDebug.height / 2, 5, 0, 2 * Math.PI);
+            ctxDebug.fillStyle = 'blue';
+            ctxDebug.fill();
+
+            // Bola vermelha no ponto (debugX, debugY) no debug
+            ctxDebug.beginPath();
+            ctxDebug.arc(debugX, debugY, 5, 0, 2 * Math.PI);
+            ctxDebug.fillStyle = 'red';
+            ctxDebug.fill();
+
+            // Copia o conteúdo original (tempCanvas) para canvasDebug
+            ctxDebug.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+        }
+
+        canvas.width = originalWidth;
+        canvas.height = originalHeight;
+        ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
 
         return detected
     }

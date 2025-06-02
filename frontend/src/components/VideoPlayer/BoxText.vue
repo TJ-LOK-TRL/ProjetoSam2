@@ -3,8 +3,10 @@
         :class="{ 'element-box-selected': text?.id === videoEditor?.selectedElement?.id && text?.visible }"
         :style="{ pointerEvents: isEditing ? 'none' : 'auto' }" @click="videoEditor.selectEditorElement(text)">
         <div v-if="text" class="text-box" :class="text.style" :contenteditable="isEditing" ref="textRef"
-            :style="text.style" @blur="disableEdit" @input="onInput" @keydown.enter.prevent="disableEdit">
-            {{ text.text }}
+            :style="getStyle()" @blur="disableEdit" @input="onInput" @keydown.enter.prevent="disableEdit">
+            <div class="text-container">
+                {{ text.text }}
+            </div>
         </div>
     </ResizableBox>
 </template>
@@ -47,6 +49,18 @@
         text.value.text = e.target.innerText
     }
 
+    function getStyle() {
+        const align = text.value.style.textAlign || 'center';
+
+        text.value.style.justifyContent = {
+            left: 'flex-start',
+            center: 'center',
+            right: 'flex-end'
+        }[align] || 'flex-start';
+
+        return text.value.style
+    }
+
     onMounted(() => {
         text.value = props.textElement
 
@@ -71,17 +85,19 @@
 
 <style scoped>
     .text-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 100%;
         height: 100%;
-        text-align: center;
-        color: white;
         padding: 8px;
-        font-size: 1.5rem;
         word-break: break-word;
         outline: none;
         white-space: pre-wrap;
         user-select: text;
         cursor: text;
         overflow: hidden;
+        font-size: 1.5rem;
+        color: white;
     }
 </style>

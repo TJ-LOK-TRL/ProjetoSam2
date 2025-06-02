@@ -66,12 +66,6 @@ export const useTimelineStore = defineStore('timeline', () => {
             if (newTime >= duration.value && loop.value) {
                 newTime = 0
                 origin = 'reset'
-                // Reinicia todos os vídeos sincronizadamente
-                //await Promise.all(videoEditor.getVideos().map(video => {
-                //    //video.setTime(video.stOffset + video.start);
-                //    //return video.play();
-                //    //video.pause()
-                //}));
             }
 
             await setCurrentTime(newTime, origin);
@@ -94,7 +88,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             updateTimelineMaxDuration()
         })
 
-        videoEditor.onElementRemoved((e) => {
+        videoEditor.onElementRemoved('timeline_callback_id', (e) => {
             updateTimelineMaxDuration()
             if (videoEditor.getVideos().length == 0) {
                 if (isPlaying.value) {

@@ -222,22 +222,20 @@ export default class EffectHandler {
         this.relatedVideos[this.originalVideo.id] ||= new Set()
         this.relatedVideos[this.originalVideo.id].add(video)
 
-        const callbackId = video.id
+        const callbackId = `${video.id}_addRelatedVideo_callback_id`
         this.videoEditor.onEditorElementSelected(callbackId, (selectedElement) => {
             if (selectedElement?.id === video?.id) {
                 this.setVideoToApplyEffect(video)
             }
         })
 
-        const onRemove = (elementRemoved) => {
+        this.videoEditor.onElementRemoved(callbackId, (elementRemoved) => {
             if (elementRemoved?.id === video?.id) {
                 this.relatedVideos[this.originalVideo.id].delete(video)
                 this.videoEditor.removeOnEditorElementSelected(callbackId)
-                this.videoEditor.removeOnElementRemoved(onRemove)
+                this.videoEditor.removeOnElementRemoved(callbackId)
             }
-        }
-
-        this.videoEditor.onElementRemoved(onRemove)
+        })
     }
 
     getAllEffectVideos() {
@@ -277,6 +275,8 @@ export default class EffectHandler {
 
         const boxOfMask = this.videoEditor.getBoxOfElement(videoOfMask);
         const boxOfVideo = this.videoEditor.getBoxOfElement(video);
+
+        const callbackId = `${video.id}_handleVideoFollowMask_callback_id`
 
         let lastMaskPosition = null;
 
@@ -327,17 +327,17 @@ export default class EffectHandler {
             lastMaskPosition = { x, y };
         }
 
-        boxOfMask.addOnDrawVideoCallback(EffectHandler.EFFECT_OVERLAY_FOLLOW, async (img) => {
+        boxOfMask.addOnDrawVideoCallback(callbackId, async (img) => {
             await functionFollow()
             return img
         }, false)
 
-        this.videoEditor.register.registerMaskEffect(video.id, -2, 'overlapVideo', {
+        this.videoEditor.register.registerMaskEffect(video.id, -2, EffectHandler.OVERLAP_EFFECT_NAME, {
             refVideoId: videoOfMask.id,
             maskObjId: mask.objId,
         });
 
-        this.videoEditor.onCompileVideoMetadata(async (metadata, compileVideo) => {
+        this.videoEditor.onCompileVideoMetadata(callbackId, async (metadata, compileVideo) => {
             if (compileVideo.id !== video.id) {
                 return
             }
@@ -353,6 +353,16 @@ export default class EffectHandler {
             metadata.y = rect.y - y
 
             return metadata
+        })
+
+        this.videoEditor.onElementRemoved(callbackId, (e) => {
+            if (e.id === video.id || e.id === videoOfMask.id) {
+                boxOfMask?.removeOnDrawVideoCallback(callbackId)
+                this.videoEditor.removeOnCompileVideoMetadataCallback(callbackId)
+                this.videoEditor.removeOnElementRemoved(callbackId)
+                this.videoEditor.register.removeEffect(video.id, -2, EffectHandler.OVERLAP_EFFECT_NAME)
+                return
+            }
         })
 
         await functionFollow()

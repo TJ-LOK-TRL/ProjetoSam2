@@ -205,18 +205,16 @@
                 console.error("Máscaras não encontradas para o frame atual:", currentFrameNumber, masks, video.value.fps);
                 return;
             }
-
-            video.value.masks.length = 0;
-            Object.keys(masks[currentFrameNumber]).forEach((objId, index) => {
-                video.value.masks.push({
-                    id: masks[currentFrameNumber][objId].id,
-                    url: masks[currentFrameNumber][objId].url,
-                    videoId: video.value.id,
-                    objId: objId,
-                    frameIdx: currentFrameNumber,
-                    indexColor: videoEditor.maskHandler.getIndexedColor(index),
-                })
-            });
+            
+            const newMasks = Object.keys(masks[currentFrameNumber]).map((objId, index) => ({
+                id: masks[currentFrameNumber][objId].id,
+                url: masks[currentFrameNumber][objId].url,
+                videoId: video.value.id,
+                objId: objId,
+                frameIdx: currentFrameNumber,
+                indexColor: videoEditor.maskHandler.getIndexedColor(index),
+            }));
+            video.value.masks = newMasks;
 
             videoEditor.changeTool('samEffects')
 

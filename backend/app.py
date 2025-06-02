@@ -417,16 +417,13 @@ def download():
         elements_metadata = metadata.get('elements_data', {})
         video_data = {}
         count_video = 0
-        #for idx, video_file in enumerate(videos):
         for idx, video_id in enumerate(elements_metadata.keys()):
-            #video_id = list(elements_metadata.keys())[idx] if elements_metadata else str(idx)
             element_metadata = elements_metadata.get(video_id, {})
             if not element_metadata:
                 print(f"\n[AVISO] Nenhum metadado encontrado para o vídeo {video_id}")
                 print('\tVideos data:', elements_metadata)
                 print('\tVideo metadata:', element_metadata)
                 continue
-            
             element_type = element_metadata.get('type', 'video')
             rotation = element_metadata.get('rotation', 0)
             flipped = element_metadata.get('flipped', False)
@@ -437,6 +434,7 @@ def download():
             st_offset = element_metadata.get('st_offset', 0)
             start_t = element_metadata.get('start_t', 0)
             end_t = element_metadata.get('end_t', None)
+            effects = element_metadata.get('effects', {})
             rect = Rect(
                 int(element_metadata.get('x', 0)),
                 int(element_metadata.get('y', 0)),
@@ -445,7 +443,6 @@ def download():
             )
             
             if element_type == 'video':
-                effects = element_metadata.get('effects', {})
                 chromaKeyData = element_metadata.get('chromaKeyDetectionData', {})
                 stageMasks = element_metadata.get('stageMasks', None)
                 masks = decode_masks(DataSaver.get_stage(stageMasks) or {}) if stageMasks else None    
@@ -477,6 +474,17 @@ def download():
                 bold = style.get('fontWeight', 'normal')
                 italic = style.get('fontStyle', '')
                 align = style.get('textAlign', 'left')
+                
+                video_data[idx] = {
+                    'idx': idx,
+                    'video_id': video_id,
+                    'effects': effects,
+                    'rect': rect,
+                    'extra_data': {},
+                    'rotation': rotation,
+                    'flipped': flipped,
+                    'draw': draw,
+                }
                 
                 duration = end_t - start_t if start_t and end_t else 5
                 text_fps = fps or 1
@@ -511,6 +519,7 @@ def download():
             layer_height: int, 
             roi_info: RoiInfo,
             render_infos: List[RenderInfo],
+            video_time: float,
             processing_stage: int,
         ) -> np.ndarray:
             """Função de callback para processar cada frame"""
@@ -531,14 +540,14 @@ def download():
                     render_info, frame, masks, effects_config, 
                     chromaKeyData, enable_transparency, frame_idx,
                     layer_width, layer_height, roi_info,
-                    rect, video_data, extra_data, rotation, flipped, render_infos
+                    rect, video_data, extra_data, rotation, flipped, render_infos, video_time
                 )
             else:
                 return processor.process_pre_transform(
                     render_info, frame, masks, effects_config, 
                     chromaKeyData, enable_transparency, frame_idx,
                     layer_width, layer_height,
-                    rect, video_data, extra_data, flipped, render_infos
+                    rect, video_data, extra_data, flipped, render_infos, video_time
                 )
                 
         compositor.render(on_frame=process_frame)

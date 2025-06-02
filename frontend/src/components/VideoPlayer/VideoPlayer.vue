@@ -70,52 +70,6 @@
         recalculateBoxsSize()
     }
 
-    //function recalculateBoxsSize() {
-    //    const container = spaceContainerRef.value
-    //    const box = boxVideoRef.value?.boxVideoRef?.boxRef
-    //
-    //    if (!container || !box) {
-    //        console.error(`Container(${container}) or Box(${box}) is null`)
-    //        return
-    //    }
-    //    const newContainerRect = container.getBoundingClientRect()
-    //    const boxRect = box.getBoundingClientRect()
-    //
-    //    if (!previousContainerRect) {
-    //        previousContainerRect = newContainerRect
-    //        console.log('Not updated!')
-    //        return
-    //    }
-    //
-    //    const widthRatio = newContainerRect.width / previousContainerRect.width
-    //    const heightRatio = newContainerRect.height / previousContainerRect.height
-    //    console.log('widthRatio:', widthRatio)
-    //    console.log('heightRatio:', heightRatio)
-    //
-    //    // Calcula posição relativa atual (em relação ao container)
-    //    const currentLeft = boxRect.left - newContainerRect.left;
-    //    const currentTop = boxRect.top - newContainerRect.top;
-    //
-    //    // Aplica as proporções
-    //    const newBoxWidth = boxRect.width * widthRatio
-    //    const newBoxHeight = boxRect.height * heightRatio
-    //    const newBoxLeft = currentLeft * widthRatio
-    //    const newBoxTop = currentTop * heightRatio
-    //
-    //    box.style.width = `${newBoxWidth}px`
-    //    box.style.height = `${newBoxHeight}px`
-    //    box.style.left = `${newBoxLeft}px`
-    //    box.style.top = `${newBoxTop}px`
-    //
-    //    console.log(box)
-    //    console.log(newBoxWidth)
-    //    console.log(newBoxHeight)
-    //    console.log(newBoxLeft)
-    //    console.log(newBoxTop)
-    //
-    //    previousContainerRect = newContainerRect
-    //}
-
     function recalculateBoxsSize() {
         const container = spaceContainerRef.value;
 
@@ -124,7 +78,7 @@
             return;
         }
 
-        console.log(container.children)
+        //console.trace("Here")
         Array.from(container.children).forEach((box) => {
             //const newContainerRect = container.getBoundingClientRect();
             const newContainerRect = getRectWithZoom(container, videoEditorStore.zoomLevel)

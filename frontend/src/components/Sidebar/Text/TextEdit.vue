@@ -21,7 +21,7 @@
                         </div>
 
                         <div class="dropdown-font-size-container">
-                            <Dropdown v-model="textFontSize" :items="fontSizeList" :placeholder="textElement?.style.fontSize" />
+                            <Dropdown v-model="textFontSize" :items="fontSizeList" :placeholder="textElement?.style.fontSize" :allowFreeValue="true" />
                         </div>
 
                         <div class="color-picker-container">
@@ -129,12 +129,13 @@
     const textFontSize = computed({
         get: () => {
             const size = textElement.value?.style.fontSize || '16px'
-            return fontSizeList.value.find(i => i.size === size) || fontSizeList.value[0]
+            return { label: size, size }
         },
         set: (item) => {
             if (textElement.value) {
-                console.log('textFontSize', item.size)
-                textElement.value.style.fontSize = item.size
+                const size = item.free || item.size
+                console.log('textFontSize', size)
+                textElement.value.style.fontSize = size
             }
         }
     })

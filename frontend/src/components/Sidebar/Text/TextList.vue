@@ -49,9 +49,13 @@
 
                 grab.useViewportOffsets = true
 
-                grab.onIniGrabEvent = (elementGrab, elementMove) => {
+                let offsetX = 0;
+                let offsetY = 0;
+                grab.onIniGrabEvent = (elementGrab, elementMove, _, __, event) => {
                     const placeholder = document.createElement('div');
                     const rect = elementMove.getBoundingClientRect();
+                    offsetX = event.clientX - rect.left;
+                    offsetY = event.clientY - rect.top;
 
                     placeholder.style.width = rect.width + 'px';
                     placeholder.style.height = rect.height + 'px';
@@ -88,21 +92,26 @@
                             const fontClass = e_text.dataset.fontClass
                             const font = e_text.dataset.font;
                             const label = e_text.innerText || 'Text';
-
+                            
+                            const zoom = videoEditor.zoomLevel;
+                            
                             const text = videoEditor.addText(
                                 label,
                                 fontClass,
-                                font
+                                font,
+                                (16 / zoom) + 'px'
                             );
-
+                            
                             videoEditor.onAddMapBoxVideo((e, textBox) => {
                                 if (e.id !== text.id) return
-
+                                
                                 const rect = videoEditor.videoPlayerSpaceContainer.getBoundingClientRect()
-
+                                
                                 const elementMoveRect = elementMove.getBoundingClientRect()
-                                textBox.box.setPosition(mouseX - rect.x, mouseY - rect.y)
-                                textBox.box.setSize(elementMoveRect.width, elementMoveRect.height)
+                                const posX = (mouseX - rect.x - offsetX) / zoom;
+                                const posY = (mouseY - rect.y - offsetY) / zoom;
+                                textBox.box.setPosition(posX, posY);
+                                textBox.box.setSize(elementMoveRect.width / zoom, elementMoveRect.height / zoom)
                             })
                         }
                     }

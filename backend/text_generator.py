@@ -183,17 +183,24 @@ def create_text_frame(
     # Converte cor HEX para RGB
     color_rgb = tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
     
+    ascent, descent = font.getmetrics()  # ascent, descent em pixels
+    line_height = ascent + descent
+    line_height *= 1
+    
     # Calcula a posição do texto baseado no alinhamento
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
+    padding_x = 10
+    padding_y = 10
     x = {
-        'left': 10,
+        'left': padding_x,
         'center': (width - text_width) // 2,
-        'right': width - text_width
+        'right': width - text_width - padding_x
     }.get(align, 0)
     
-    y = 10#(height - text_height) // 2  # Centralizado verticalmente
+    #y = (height - text_height) // 2 - bbox[1]  # Centralizado verticalmente
+    y = (height - line_height) // 2 + ascent - text_height
     
     # Desenha o texto
     draw.text((x, y), text, font=font, fill=color_rgb)
@@ -201,10 +208,26 @@ def create_text_frame(
     if italic and font_family in fonts_italic_not_support:
         pil_image = skew_image(pil_image, 15)
     
+    # DEBUG VISUAL
+    if False:
+        # Caixa total da imagem
+        draw.rectangle([0, 0, width - 1, height - 1], outline='red', width=1)
+
+        # Bounding box do texto (ajustada à posição final)
+        bbox_translated = [x + bbox[0], y + bbox[1], x + bbox[2], y + bbox[3]]
+        draw.rectangle(bbox_translated, outline='blue', width=1)
+
+        # Ponto no centro da imagem
+        cx = width // 2
+        cy = height // 2
+        draw.ellipse((cx - 2, cy - 2, cx + 2, cy + 2), fill='green')
+    
+    
+    
     # Converte para numpy array no formato BGRA (para OpenCV)
     if bg_transparent:
         cv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGBA2BGRA)
     else:
         cv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-    
+        
     return cv_image

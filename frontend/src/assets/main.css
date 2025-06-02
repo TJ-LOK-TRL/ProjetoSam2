@@ -25,7 +25,19 @@ body {
 
 :root {
     --main-color: #007bff;
+    --main-color-alpha-weaker: rgba(0, 123, 255, 0.05);
     --main-color-alpha: rgba(0, 123, 255, 0.2);
+    --main-color-alpha-stronger: rgba(0, 123, 255, 0.5);
+}
+
+@keyframes fadeInAnim {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOutAnim {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
 /* Font styles */
