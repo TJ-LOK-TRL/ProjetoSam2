@@ -24,6 +24,7 @@ if segment_anything_path not in sys.path:
 # Local imports
 from video_processor import VideoProcessor
 from video_effects_processor import VideoEffectsProcessor
+from video_animation_processor import VideoAnimationProcessor
 from video_compositor import *
 from sam2.build_sam import build_sam2
 from sam2_segmenter import SAM2Segmenter, VideoObjectData
@@ -412,7 +413,8 @@ def download():
             output_height=height,
             fps=fps
         )
-        processor = VideoEffectsProcessor()
+        effectProcessor = VideoEffectsProcessor()
+        animationProcessor = VideoAnimationProcessor()
 
         elements_metadata = metadata.get('elements_data', {})
         video_data = {}
@@ -435,6 +437,7 @@ def download():
             start_t = element_metadata.get('start_t', 0)
             end_t = element_metadata.get('end_t', None)
             effects = element_metadata.get('effects', {})
+            animations = element_metadata.get('animations', [])
             rect = Rect(
                 int(element_metadata.get('x', 0)),
                 int(element_metadata.get('y', 0)),
@@ -453,6 +456,7 @@ def download():
                     'video_id': video_id,
                     'video_file': video_file,
                     'effects': effects,
+                    'animations': animations,
                     'stageMasks': stageMasks,
                     'masks': masks,
                     'chromaKeyData': chromaKeyData,
@@ -479,6 +483,7 @@ def download():
                     'idx': idx,
                     'video_id': video_id,
                     'effects': effects,
+                    'animations': animations,
                     'rect': rect,
                     'extra_data': {},
                     'rotation': rotation,
@@ -520,6 +525,7 @@ def download():
             roi_info: RoiInfo,
             render_infos: List[RenderInfo],
             video_time: float,
+            global_time: float,
             processing_stage: int,
         ) -> np.ndarray:
             """Função de callback para processar cada frame"""
@@ -534,16 +540,19 @@ def download():
             extra_data = video_data[video_idx].get('extra_data', None)
             rotation = video_data[video_idx].get('rotation', 0)
             flipped = video_data[video_idx].get('flipped', False)
+            animations = video_data[video_idx].get('animations', [])
                         
             if processing_stage == PROCESS_STAGE_POST_TRANSFORM:
-                return processor.process_post_transform(
+                return effectProcessor.process_post_transform(
                     render_info, frame, masks, effects_config, 
                     chromaKeyData, enable_transparency, frame_idx,
                     layer_width, layer_height, roi_info,
                     rect, video_data, extra_data, rotation, flipped, render_infos, video_time
                 )
             else:
-                return processor.process_pre_transform(
+                frame = animationProcessor.process_animations(frame, animations, global_time, render_info)
+                
+                return effectProcessor.process_pre_transform(
                     render_info, frame, masks, effects_config, 
                     chromaKeyData, enable_transparency, frame_idx,
                     layer_width, layer_height,

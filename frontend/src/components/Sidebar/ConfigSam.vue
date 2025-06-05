@@ -137,6 +137,7 @@
 
     function onClearClick(objId) {
         video.value.maskObjects = video.value.maskObjects.filter(obj => obj.id !== objId);
+        video.value.points = video.value.points.filter(point => point.objId !== objId);
 
         const frame = video.value.getCurrentFrame();
 
@@ -174,7 +175,9 @@
         try {
             console.log('getting masks...')
 
-            const currentFrameNumber = Math.floor(video.value.fps * (timelineStore.currentTime - video.value.stOffset))
+            //const currentTime = (timelineStore.currentTime - video.value.stOffset)
+            const currentTime = video.value.maskRefTime ?? (timelineStore.currentTime - video.value.stOffset)
+            const currentFrameNumber = Math.floor(video.value.fps * currentTime)
 
             if (!hasChanged() && video.value.cacheTrackVideos !== null) {
                 video.value.trackMasks = joinTrackedMasks({}, video.value.cacheTrackVideos);
@@ -228,16 +231,19 @@
 
     async function onEditorElementSelected(editorElement) {
         if (editorElement.type === 'video' && editorElement == video.value) {
-            if (video.value.points.length === 0) return
             if (!videoEditor.maskHandler.selectMaskType) return
 
             try {
-                console.log('getting 1 mask...')
                 const selectedMaskObjectId = videoEditor.maskHandler.selectedMaskObjectId
+                const pointsToTrack = video.value.points.filter(point => point.objId === selectedMaskObjectId)
+                if (pointsToTrack.length === 0) {
+                    const boxOfElement = videoEditor.getBoxOfElement(video.value)
+                    boxOfElement.clearActiveCanvas()
+                    video.value.maskRefTime = null
+                    return
+                }
+                console.log('getting 1 mask...')
                 const currentFrame = video.value.getCurrentFrame()
-                const pointsToTrack = video.value.points.filter(point =>
-                    point.objId === selectedMaskObjectId)
-                if (pointsToTrack.length === 0) return;
                 videoEditor.isLoading = true
                 const [track_id, masks] =
                     await videoEditor.generateMasksForVideo(video.value, {
@@ -248,33 +254,31 @@
                     }, pointsToTrack);
 
                 if (masks === null) {
-                    console.error("Máscaras não encontradas para o frame atual:",
-                        currentFrame, masks);
+                    console.error("Máscaras não encontradas para o frame atual:", currentFrame, masks);
                     return;
                 }
 
                 video.value.track_id = track_id
                 video.value.trackMasks = joinTrackedMasks(video.value.trackMasks, masks);
-                video.value.previewTrackMasks = joinTrackedMasks(video.value.previewTrackMasks,
-                    masks);
+                video.value.previewTrackMasks = joinTrackedMasks(video.value.previewTrackMasks, masks);
 
                 const frameIdx = Math.min(...Object.keys(masks).map(Number));
                 const targetTime = calculateTimeByFrameIdx(frameIdx, video.value.fps);
 
                 await timelineStore.setCurrentTime(targetTime);
 
+                video.value.maskRefTime ??= timelineStore.currentTime
+
                 const maskFrame = masks[frameIdx];
                 const maskData = maskFrame?.[selectedMaskObjectId] || null;
 
                 if (!maskData || !maskData.url) {
-                    console.error("Máscara não encontrada ou URL inválida", masks, maskData,
-                        maskData?.url, selectedMaskObjectId);
+                    console.error("Máscara não encontrada ou URL inválida", masks, maskData, maskData?.url, selectedMaskObjectId);
                     return;
                 }
 
                 const objImgUrl = await extractObjectFromImage(video.value, maskData);
-                const centeredUrl = await centerObjectInImage(objImgUrl, video.value.width,
-                    video.value.height);
+                const centeredUrl = await centerObjectInImage(objImgUrl, video.value.width, video.value.height);
                 const currentObj = video.value.maskObjects.find(obj => obj.id === videoEditor.maskHandler.selectedMaskObjectId);
                 if (currentObj) {
                     currentObj.src = centeredUrl;
@@ -400,6 +404,10 @@
     }
 
     onMounted(() => {
+        if (video.value.points.length !== 0 && video.value.maskRefTime) {
+            timelineStore.setCurrentTime(video.value.maskRefTime)
+        }
+
         video.value.masks.length = 0;
         video.value.samState = 'ConfigSam'
         originalPoints.value = JSON.parse(JSON.stringify(video.value.points))

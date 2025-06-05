@@ -52,7 +52,7 @@
         background-color: white;
         min-width: 350px;
         max-width: 375px;
-        overflow-y: scroll;
+        overflow-y: auto;
     }
 
     h2 {

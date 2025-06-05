@@ -180,7 +180,7 @@ export class VideoEditorRegister {
         for (const type in animationsByType) {
             const map = animationsByType[type]
             for (const [name, { settings }] of map) {
-                allAnimations.push({ name, settings })
+                allAnimations.push({ name: `${name}${type}` , settings })
             }
         }
 

@@ -19,7 +19,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     const fps = ref(30)
     const onPlayedCallbacks = ref([])
     const onPausedCallbacks = ref([])
-    const onUpdateCallbacks = ref([])
+    const onUpdateCallbacks = ref(new Map())
 
     const currentTime = ref(0)
 
@@ -69,7 +69,6 @@ export const useTimelineStore = defineStore('timeline', () => {
             }
 
             await setCurrentTime(newTime, origin);
-            onUpdateCallbacks.value.forEach(callback => callback(newTime))
 
             accumulatedTime -= frameDuration;
         }
@@ -184,6 +183,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         currentTime.value = newTime
         currentPercentage.value = percentage
         lastUpdateOrigin.value = origin
+        onUpdateCallbacks.value.forEach((callback) => callback(newTime))
     }
 
     async function setCurrentTime(time, origin = 'user') {
@@ -197,10 +197,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
 
         currentPercentage.value = ((time - minDuration.value) / range) * 100
-
         lastUpdateOrigin.value = origin
-
-        //console.log(time, range, minDuration.value, maxDuration.value, currentPercentage.value, lastUpdateOrigin.value)
+        onUpdateCallbacks.value.forEach((callback) => callback(time))
     }
 
     async function syncAll(time, origin = 'user') {
@@ -320,8 +318,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         onPausedCallbacks.value.push(callback)
     }
 
-    function onUpdate(callback) {
-        onUpdateCallbacks.value.push(callback)
+    function onUpdate(callbackId, callback) {
+        onUpdateCallbacks.value.set(callbackId, callback)
     }
 
     function removeOnPlayed(callback) {
@@ -338,11 +336,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
     }
 
-    function removeOnUpdate(callback) {
-        const index = onUpdateCallbacks.value.indexOf(callback)
-        if (index > -1) {
-            onUpdateCallbacks.value.splice(index, 1)
-        }
+    function removeOnUpdate(callbackId) {
+        onUpdateCallbacks.value.delete(callbackId)
     }
 
     function setStOffset(element, stOffset) {

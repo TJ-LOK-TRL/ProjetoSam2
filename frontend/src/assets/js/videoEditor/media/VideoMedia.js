@@ -39,6 +39,7 @@ export default class VideoMedia extends Media {
         this.maskObjects = []
         this.currentId = 0
         this.samState = null
+        this.maskRefTime = null
 
         // coisas de chroma key
         this.chromaKeyDetectionData = null

@@ -95,6 +95,10 @@ class VideoCaptureObject:
         """Retorna o número total de frames do vídeo."""
         raise NotImplementedError
 
+    @property
+    def duration(self) -> float:
+        return self.frame_count / max(self.fps, 1)
+
     def set_frame(self, frame_idx: int) -> None:
         raise NotImplementedError
 
@@ -205,6 +209,10 @@ class RenderInfo:
         """Retorna o FPS do vídeo."""
         return self.capture.fps
 
+    @property
+    def duration(self) -> float:
+        return self.capture.duration
+
 class RoiInfo:
     def __init__(self, roi: np.ndarray, y1: int, y2: int, x1: int, x2: int, fy1: int, fy2: int, fx1: int, fx2: int,):
         self.roi = roi
@@ -298,9 +306,7 @@ class VideoCompositor:
 
     def _get_duration(self, video_capture: VideoCaptureObject) -> float:
         """Retorna a duração total do vídeo."""
-        fps = video_capture.fps
-        frame_count = video_capture.frame_count
-        return frame_count / max(fps, 1)
+        return video_capture.duration
 
     def _get_effective_duration(self, layer: LayerInfo, cap: cv2.VideoCapture) -> float:
         """Calcula a duração máxima entre todos os vídeos (considerando os offsets)."""
@@ -369,6 +375,7 @@ class VideoCompositor:
             None,
             render_infos,
             video_time,
+            global_time,
             PROCESS_STAGE_PRE_TRANSFORM,
         ) if on_frame else frame
         
@@ -434,6 +441,7 @@ class VideoCompositor:
             RoiInfo(roi, y1, y2, x1, x2, fy1, fy2, fx1, fx2),
             render_infos,
             video_time,
+            global_time,
             PROCESS_STAGE_POST_TRANSFORM,
         ) if on_frame else frame
         

@@ -378,11 +378,9 @@
             video.element.addEventListener('loadeddata', () => {
                 video.element.currentTime = timelineStore.currentTime;
             });
-            video.points.length = 0
             video.file = file
         }
 
-        video.masks.length = 0
         boxOfVideo.clearCache()
         boxOfVideo.clearActiveCanvas()
     }
@@ -451,10 +449,13 @@
                 videoEditor.changeTool('sam', 'sam');
             }
         });
+
+        if (video.maskRefTime) {
+            timelineStore.setCurrentTime(video.maskRefTime)
+        }
     })
 
     onUnmounted(() => {
-        //videoEditor.maskHandler.video.masks.length = 0
         videoEditor.removeOnEditorElementSelected('SameEffects')
     })
 

@@ -155,7 +155,7 @@
         padding: 10px;
         background-color: white;
         gap: 25px;
-        overflow-x: hidden;
+        /* overflow-x: hidden; */
     }
 
     .timeline-interactive {
@@ -164,6 +164,8 @@
         flex-direction: column;
         justify-content: space-between;
         height: 100%;
+        max-height: calc(100% - 55px); /* 5px of div.resizer + 40px for timeline-controllers + 10px of gaps, for overflow of frames container */
+        gap: 5px;
     }
 
     .timeline-selector {
@@ -312,6 +314,9 @@
         gap: 5px;
         width: 100%;
         height: 100%;
+        max-height: calc(100% - 5px); /* 5px for timeline-numeration-controller */
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .timeline-video-frames {

@@ -499,9 +499,10 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                     type: element.type,
                     flipped: getFlipStateOfVideo(element),
                     rotation: getRotationOfElement(element),
-                    opacity: getOpacityOfElement(element),
                     borderRadius: getElementBorderRadius(element),
                     effects: register.value.getLastEffectOfVideo(element.id),
+                    opacity: compute_transparency ? getOpacityOfElement(element) : 1,
+                    animations: compute_transparency ? register.value.getAnimations(element.id) : []
                 }
 
                 if (element.type === 'video') {
