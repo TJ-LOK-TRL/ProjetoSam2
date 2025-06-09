@@ -317,28 +317,8 @@
     .box {
         position: absolute;
         background-color: transparent;
-        /* transform-origin: right top !important; */
-        /* transform-origin: left top !important; */
-        /* transform-origin: right bottom !important; */
-        /* transform-origin: left bottom !important; */
         transform-origin: center center;
-        /* opacity: 0.6; */
     }
-
-
-    /*.box::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(255, 0, 0, 0.6);
-        transform: rotate(-45deg);
-        transform-origin: center;
-        pointer-events: none;
-    }*/
-
 
     .resize-controls {
         position: absolute;
@@ -352,7 +332,7 @@
         transition: border 0.3s;
         border: 2px solid var(--main-color);
         background-color: transparent;
-        /*pointer-events: none;*/
+        pointer-events: none;
     }
 
     .resize-controls-line {
