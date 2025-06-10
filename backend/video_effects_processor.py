@@ -91,440 +91,6 @@ class VideoEffectsProcessor:
         return (center_x, center_y)
     
     @staticmethod
-    def apply_overlap2(
-        frame: np.ndarray, 
-        mask: np.ndarray, 
-        video_rect: Rect, 
-        overlap_video_rect: Rect, 
-        video_rotation: float, 
-        overlap_video_rotation: float
-    ):
-        """
-        Versão final e testada do efeito de sobreposição
-        
-        Args:
-            frame: Frame BGRA (4 canais) do vídeo de sobreposição
-            mask: Máscara binária (1 canal) ou colorida (será convertida)
-            video_rect: Dicionário com x, y, width, height do vídeo de referência
-            overlap_video_rect: Dicionário com x, y, width, height do vídeo de sobreposição
-            
-        Returns:
-            Frame com sobreposição aplicada (BGRA)
-        """
-        # 1. Pré-processamento do frame (garante BGRA)
-        if frame.shape[2] == 3:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-        
-        height, width = frame.shape[:2]
-        
-        # 2. Pré-processamento da máscara (garante 1 canal)
-        if len(mask.shape) == 3:
-            mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-        mask = mask.astype(np.uint8)
-        
-        # 3. Calcula posicionamento
-        offset_x = video_rect.x - overlap_video_rect.x
-        offset_y = video_rect.y - overlap_video_rect.y
-        
-        # 4. Cria máscara de destino
-        full_mask = np.zeros((height, width), dtype=np.uint8)
-        
-        # 5. Calcula regiões de cópia (com tratamento de bordas)
-        src_y_start = max(0, -offset_y)
-        src_y_end = min(mask.shape[0], height - offset_y)
-        src_x_start = max(0, -offset_x)
-        src_x_end = min(mask.shape[1], width - offset_x)
-        
-        dst_y_start = max(0, offset_y)
-        dst_y_end = min(height, offset_y + mask.shape[0])
-        dst_x_start = max(0, offset_x)
-        dst_x_end = min(width, offset_x + mask.shape[1])
-        
-        # 6. Copia apenas a região válida
-        if (src_y_end > src_y_start) and (src_x_end > src_x_start):
-            mask_region = mask[src_y_start:src_y_end, src_x_start:src_x_end]
-            full_mask[dst_y_start:dst_y_end, dst_x_start:dst_x_end] = mask_region
-        
-        # 7. Aplica transparência (forma mais eficiente)
-        frame[full_mask == 255, 3] = 0
-        
-        return frame
-    
-    @staticmethod
-    def apply_overlap3(
-        frame: np.ndarray, 
-        mask: np.ndarray, 
-        video_rect: Rect, 
-        overlap_video_rect: Rect, 
-        video_rotation: float, 
-        overlap_video_rotation: float
-    ) -> np.ndarray:
-        """
-        Versão definitiva com:
-        - Corte correto mantendo movimento contínuo nos limites
-        - Rotações sincronizadas entre máscara e vídeo
-        - Debug consistente
-        
-        Args:
-            frame: Frame BGRA do vídeo de sobreposição (já rotacionado)
-            mask: Máscara binária do vídeo de referência
-            video_rect: Retângulo do vídeo de referência
-            overlap_video_rect: Retângulo do vídeo de sobreposição
-            video_rotation: Rotação do vídeo de referência
-            overlap_video_rotation: Rotação do vídeo de sobreposição
-            
-        Returns:
-            Frame com sobreposição aplicada (BGRA)
-        """
-        # 1. Garante BGRA
-        if frame.shape[2] == 3:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-        
-        height, width = frame.shape[:2]
-        
-        # 2. Pré-processamento da máscara
-        if len(mask.shape) == 3:
-            mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-        mask = mask.astype(np.uint8)
-        
-        # 3. Rotaciona a máscara para corresponder ao vídeo de referência
-        if video_rotation != 0:
-            h, w = mask.shape[:2]
-            center = (w // 2, h // 2)
-            M = cv2.getRotationMatrix2D(center, -video_rotation, 1.0)
-            mask = cv2.warpAffine(mask, M, (w, h), flags=cv2.INTER_NEAREST,
-                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-        
-        # 4. Redimensiona a máscara para o tamanho do vídeo de referência
-        mask = cv2.resize(mask, (int(video_rect.width), int(video_rect.height)))
-        
-        # 5. Calcula o deslocamento CORRETO (considerando movimento contínuo)
-        offset_x = video_rect.x - overlap_video_rect.x
-        offset_y = video_rect.y - overlap_video_rect.y
-        
-        # 6. Cria máscara de destino
-        final_mask = np.zeros((height, width), dtype=np.uint8)
-        
-        # 7. Calcula as regiões de forma que o movimento continue fluido
-        # Região da máscara que será visível
-        mask_left = max(0, offset_x)
-        mask_top = max(0, offset_y)
-        mask_right = min(mask.shape[1], offset_x + width)
-        mask_bottom = min(mask.shape[0], offset_y + height)
-        
-        # Região no frame de destino onde a máscara será aplicada
-        frame_left = max(0, -offset_x)
-        frame_top = max(0, -offset_y)
-        frame_right = min(width, mask.shape[1] - offset_x)
-        frame_bottom = min(height, mask.shape[0] - offset_y)
-        
-        # Aplica apenas se houver área visível
-        if (mask_right > mask_left) and (mask_bottom > mask_top):
-            # Corta a parte visível da máscara
-            visible_mask = mask[mask_top:mask_bottom, mask_left:mask_right]
-            
-            # Posiciona no frame de destino
-            final_mask[frame_top:frame_bottom, frame_left:frame_right] = visible_mask
-        
-        # 7. Modo debug: mostra máscara semi-transparente
-        if True:
-            # Cria uma imagem de debug (vermelha semi-transparente)
-            debug_overlay = np.zeros((height, width, 4), dtype=np.uint8)
-            debug_overlay[final_mask == 255] = [255, 255, 255, 128]  # Vermelho com 50% de opacidade
-            debug_overlay[final_mask == 0] = [0, 0, 0, 128]
-            
-            # Combina com o frame original
-            alpha = 0.5  # Transparência da máscara de debug
-            frame = cv2.addWeighted(frame, 1, debug_overlay, alpha, 0)
-        else:
-            # Modo normal: aplica transparência onde a máscara é branca
-            frame[final_mask == 255, 3] = 0
-        
-        return frame
-    
-    @staticmethod
-    def apply_overlap4(
-        frame: np.ndarray, 
-        mask: np.ndarray, 
-        video_rect: Rect, 
-        overlap_video_rect: Rect, 
-        video_rotation: float, 
-        overlap_video_rotation: float
-    ) -> np.ndarray:
-        """
-        Versão final que corrige ambos os problemas:
-        - Usa sistema de coordenadas absolutas para a máscara
-        - Considera corretamente os limites do frame
-        - Mantém alinhamento perfeito em todas as posições
-        
-        Args:
-            frame: Frame BGRA do vídeo de sobreposição
-            mask: Máscara binária do vídeo de referência
-            video_rect: Retângulo do vídeo de referência
-            overlap_video_rect: Retângulo do vídeo de sobreposição
-            video_rotation: Rotação do vídeo de referência
-            overlap_video_rotation: Rotação do vídeo de sobreposição
-            
-        Returns:
-            Frame com sobreposição aplicada (BGRA)
-        """
-        # 1. Garante BGRA
-        if frame.shape[2] == 3:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-        
-        height, width = frame.shape[:2]
-        
-        # 2. Pré-processamento da máscara
-        if len(mask.shape) == 3:
-            mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-        mask = mask.astype(np.uint8)
-        
-        # 3. Rotaciona a máscara para corresponder ao vídeo de referência
-        if video_rotation != 0:
-            h, w = mask.shape[:2]
-            center = (w // 2, h // 2)
-            M = cv2.getRotationMatrix2D(center, -video_rotation, 1.0)
-            mask = cv2.warpAffine(mask, M, (w, h), flags=cv2.INTER_NEAREST,
-                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-        
-        # 4. Redimensiona a máscara para o tamanho do vídeo de referência
-        mask = cv2.resize(mask, (int(video_rect.width), int(video_rect.height)))
-        
-        # 5. Calcula a posição ABSOLUTA da máscara no canvas geral
-        # (Não relativa ao vídeo de sobreposição)
-        mask_global_x = video_rect.x
-        mask_global_y = video_rect.y
-        
-        # 6. Calcula a posição RELATIVA ao vídeo de sobreposição
-        # (Para verificar se está dentro dos limites)
-        offset_in_overlap_x = mask_global_x - overlap_video_rect.x
-        offset_in_overlap_y = mask_global_y - overlap_video_rect.y
-        
-        # 7. Cria máscara de destino
-        final_mask = np.zeros((height, width), dtype=np.uint8)
-        
-        # 8. Calcula a área visível
-        # Se a máscara estiver totalmente fora do vídeo de sobreposição, ignora
-        if (offset_in_overlap_x + mask.shape[1] > 0 and 
-            offset_in_overlap_x < overlap_video_rect.width and
-            offset_in_overlap_y + mask.shape[0] > 0 and 
-            offset_in_overlap_y < overlap_video_rect.height):
-            
-            # Coordenadas da máscara no espaço global
-            mask_x1 = mask_global_x
-            mask_y1 = mask_global_y
-            mask_x2 = mask_global_x + mask.shape[1]
-            mask_y2 = mask_global_y + mask.shape[0]
-            
-            # Área de interseção com o frame
-            intersect_x1 = max(0, mask_x1 - overlap_video_rect.x)
-            intersect_y1 = max(0, mask_y1 - overlap_video_rect.y)
-            intersect_x2 = min(width, mask_x2 - overlap_video_rect.x)
-            intersect_y2 = min(height, mask_y2 - overlap_video_rect.y)
-            
-            # Apenas se houver área visível
-            if intersect_x2 > intersect_x1 and intersect_y2 > intersect_y1:
-                # Calcula regiões correspondentes
-                src_x1 = intersect_x1 - (mask_x1 - overlap_video_rect.x)
-                src_y1 = intersect_y1 - (mask_y1 - overlap_video_rect.y)
-                src_x2 = src_x1 + (intersect_x2 - intersect_x1)
-                src_y2 = src_y1 + (intersect_y2 - intersect_y1)
-                
-                dst_x1 = intersect_x1
-                dst_y1 = intersect_y1
-                dst_x2 = intersect_x2
-                dst_y2 = intersect_y2
-                
-                # Copia apenas a área visível
-                final_mask[dst_y1:dst_y2, dst_x1:dst_x2] = mask[src_y1:src_y2, src_x1:src_x2]
-            
-        # 8. Modo debug: mostra máscara semi-transparente
-        if True:
-            # Cria uma imagem de debug (vermelha semi-transparente)
-            debug_overlay = np.zeros((height, width, 4), dtype=np.uint8)
-            debug_overlay[final_mask == 255] = [255, 255, 255, 128]  # Vermelho com 50% de opacidade
-            debug_overlay[final_mask == 0] = [0, 0, 0, 128]
-            
-            # Combina com o frame original
-            alpha = 0.5  # Transparência da máscara de debug
-            frame = cv2.addWeighted(frame, 1, debug_overlay, alpha, 0)
-        
-        # Aplica transparência
-        frame[final_mask == 255, 3] = 0
-        
-        return frame
-    
-    @staticmethod
-    def apply_overlap5(
-        frame: np.ndarray, 
-        mask: np.ndarray, 
-        video_rect: Rect, 
-        overlap_video_rect: Rect, 
-        video_rotation: float, 
-        overlap_video_rotation: float
-    ) -> np.ndarray:
-        """
-        Versão corrigida que trata corretamente os casos de borda.
-        
-        Principais correções:
-        1. Considera corretamente quando a máscara está parcialmente fora do frame
-        2. Ajusta as coordenadas de origem e destino para alinhamento perfeito
-        3. Mantém o sistema de coordenadas consistente em todas as transformações
-        """
-        # 1. Garante BGRA
-        if frame.shape[2] == 3:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-        
-        height, width = frame.shape[:2]
-        
-        # 2. Pré-processamento da máscara
-        if len(mask.shape) == 3:
-            mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-        mask = mask.astype(np.uint8)
-        
-        # 3. Rotaciona a máscara para corresponder ao vídeo de referência
-        if video_rotation != 0:
-            h, w = mask.shape[:2]
-            center = (w // 2, h // 2)
-            M = cv2.getRotationMatrix2D(center, -video_rotation, 1.0)
-            mask = cv2.warpAffine(mask, M, (w, h), flags=cv2.INTER_NEAREST,
-                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-        
-        # 4. Redimensiona a máscara para o tamanho do vídeo de referência
-        mask = cv2.resize(mask, (int(video_rect.width), int(video_rect.height)))
-        
-        # 5. Calcula as coordenadas absolutas da máscara no canvas
-        mask_global_x = video_rect.x
-        mask_global_y = video_rect.y
-        
-        # 6. Calcula a posição relativa ao vídeo de sobreposição
-        offset_in_overlap_x = mask_global_x - overlap_video_rect.x
-        offset_in_overlap_y = mask_global_y - overlap_video_rect.y
-        
-        # 7. Cria máscara de destino
-        final_mask = np.zeros((height, width), dtype=np.uint8)
-        
-        # 8. Calcula a área de interseção CORRETAMENTE
-        # Limites da máscara no sistema de coordenadas do vídeo de sobreposição
-        mask_in_overlap_x1 = offset_in_overlap_x
-        mask_in_overlap_y1 = offset_in_overlap_y
-        mask_in_overlap_x2 = offset_in_overlap_x + mask.shape[1]
-        mask_in_overlap_y2 = offset_in_overlap_y + mask.shape[0]
-        
-        # Área visível do vídeo de sobreposição
-        overlap_visible_x1 = 0
-        overlap_visible_y1 = 0
-        overlap_visible_x2 = width
-        overlap_visible_y2 = height
-        
-        # Calcula interseção
-        intersect_x1 = max(mask_in_overlap_x1, overlap_visible_x1)
-        intersect_y1 = max(mask_in_overlap_y1, overlap_visible_y1)
-        intersect_x2 = min(mask_in_overlap_x2, overlap_visible_x2)
-        intersect_y2 = min(mask_in_overlap_y2, overlap_visible_y2)
-        
-        # Apenas se houver área visível
-        if intersect_x2 > intersect_x1 and intersect_y2 > intersect_y1:
-            # Calcula regiões correspondentes na máscara original
-            src_x1 = intersect_x1 - mask_in_overlap_x1
-            src_y1 = intersect_y1 - mask_in_overlap_y1
-            src_x2 = src_x1 + (intersect_x2 - intersect_x1)
-            src_y2 = src_y1 + (intersect_y2 - intersect_y1)
-            
-            # Região de destino no frame final
-            dst_x1 = intersect_x1
-            dst_y1 = intersect_y1
-            dst_x2 = intersect_x2
-            dst_y2 = intersect_y2
-            
-            # Copia apenas a área visível
-            final_mask[dst_y1:dst_y2, dst_x1:dst_x2] = mask[src_y1:src_y2, src_x1:src_x2]
-        
-        # Debug: mostra máscara semi-transparente
-        if True:
-            debug_overlay = np.zeros((height, width, 4), dtype=np.uint8)
-            debug_overlay[final_mask == 255] = [0, 0, 255, 128]  # Vermelho com 50% de opacidade
-            frame = cv2.addWeighted(frame, 1, debug_overlay, 0.5, 0)
-        
-        # Aplica transparência onde a máscara é branca
-        frame[final_mask == 255, 3] = 0
-        
-        return frame
-    
-    @staticmethod
-    def apply_overlap6(
-        frame: np.ndarray, 
-        mask: np.ndarray, 
-        video_rect: Rect, 
-        overlap_video_rect: Rect, 
-        video_rotation: float, 
-        overlap_video_rotation: float
-    ) -> np.ndarray:
-        """
-        Versão definitiva que corrige o problema de alinhamento nos limites.
-        - Mantém a máscara sempre alinhada com o objeto de referência
-        - Considera corretamente o recorte do overlay
-        - Preserva o movimento relativo mesmo nos limites
-        """
-        # 1. Garante BGRA
-        if frame.shape[2] == 3:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-        
-        height, width = frame.shape[:2]
-        
-        # 2. Pré-processamento da máscara
-        if len(mask.shape) == 3:
-            mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-        mask = mask.astype(np.uint8)
-        
-        # 3. Rotaciona a máscara para corresponder ao vídeo de referência
-        if video_rotation != 0:
-            h, w = mask.shape[:2]
-            center = (w // 2, h // 2)
-            M = cv2.getRotationMatrix2D(center, -video_rotation, 1.0)
-            mask = cv2.warpAffine(mask, M, (w, h), flags=cv2.INTER_NEAREST,
-                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-        
-        # 4. Redimensiona a máscara para o tamanho do vídeo de referência
-        mask = cv2.resize(mask, (int(video_rect.width), int(video_rect.height)))
-        
-        # 5. Cria máscara de destino do tamanho do frame de overlay
-        final_mask = np.zeros((height, width), dtype=np.uint8)
-        
-        # 6. Calcula o deslocamento relativo entre os dois vídeos
-        # Isso mantém a posição relativa mesmo quando o overlay é cortado
-        rel_x = video_rect.x - overlap_video_rect.x
-        rel_y = video_rect.y - overlap_video_rect.y
-        
-        # 7. Calcula a área visível da máscara no overlay
-        # Limites da máscara no sistema de coordenadas do overlay
-        mask_x1 = max(0, rel_x)
-        mask_y1 = max(0, rel_y)
-        mask_x2 = min(width, rel_x + mask.shape[1])
-        mask_y2 = min(height, rel_y + mask.shape[0])
-        
-        # 8. Se houver área visível
-        if mask_x2 > mask_x1 and mask_y2 > mask_y1:
-            # Calcula a região correspondente na máscara original
-            src_x1 = mask_x1 - rel_x
-            src_y1 = mask_y1 - rel_y
-            src_x2 = src_x1 + (mask_x2 - mask_x1)
-            src_y2 = src_y1 + (mask_y2 - mask_y1)
-            
-            # Aplica a região visível da máscara
-            final_mask[mask_y1:mask_y2, mask_x1:mask_x2] = mask[src_y1:src_y2, src_x1:src_x2]
-        
-        # Debug: mostra máscara semi-transparente (vermelha)
-        debug_overlay = np.zeros((height, width, 4), dtype=np.uint8)
-        debug_overlay[final_mask > 0] = [0, 0, 255, 128]  # Vermelho semi-transparente
-        frame = cv2.addWeighted(frame, 1, debug_overlay, 0.5, 0)
-        
-        # Aplica transparência onde a máscara é branca
-        frame[final_mask > 0, 3] = 0
-        
-        return frame
-    
-    @staticmethod
     def apply_overlap(
         frame: np.ndarray,  # Frame JÁ transformado (rotação/escala aplicada)
         mask: np.ndarray,   # Máscara original
@@ -815,11 +381,6 @@ class VideoEffectsProcessor:
             output[mask_binary] = blurred[mask_binary]
 
         # 5. Aplica cor base se especificada
-        #if color:
-        #    intensity = np.mean(frame[mask_binary], axis=1) / 255.0
-        #    output[mask_binary, 0] = (color['b'] * intensity).astype(np.uint8)
-        #    output[mask_binary, 1] = (color['g'] * intensity).astype(np.uint8)
-        #    output[mask_binary, 2] = (color['r'] * intensity).astype(np.uint8)
         if color:
             # Calcula a intensidade média por pixel (R+G+B)/3, normalizada para [0, 1]
             intensity = np.mean(frame[mask_binary], axis=1) / 255.0
@@ -854,7 +415,7 @@ class VideoEffectsProcessor:
         return output
 
     @staticmethod
-    def apply_color_effects(frame, mask, settings):
+    def apply_color_effects(frame: np.ndarray, mask: np.ndarray, settings: Dict):
         """Aplica efeitos de cor de forma organizada e modular"""
         output = frame.copy()
         roi = output[mask]
@@ -863,7 +424,7 @@ class VideoEffectsProcessor:
             return frame
 
         # Converter para float e processar
-        rgb = roi.astype(np.float32) / 255.0
+        rgb = roi.astype(np.float32) / 255.0        
         height, width = frame.shape[:2]
         
         y_indices, x_indices = np.where(mask)
@@ -903,10 +464,9 @@ class VideoEffectsProcessor:
             rgb[:, 1] *= vignette_factor
             rgb[:, 2] *= vignette_factor
 
-
         # Aplicar resultado final
         # Versão simplificada que mantém alpha se existir
-        rgb_result = np.clip(rgb * 255, 0, 255).astype(np.uint8)
+        rgb_result = np.clip(rgb * 255, 0, 255).astype(np.uint8)            
         if roi.ndim == 3 and roi.shape[2] == 4:  # Se for RGBA
             roi[..., :3] = rgb_result.reshape(roi.shape[0], roi.shape[1], 3)  # Mantém alpha
         else:  # Para RGB ou grayscale
@@ -920,13 +480,15 @@ class VideoEffectsProcessor:
         """Aplica exposição"""
         if 'exposure' in settings and settings['exposure'] != 0:
             rgb *= 2 ** settings['exposure']
+            rgb = np.clip(rgb, 0, 1)
         return rgb
     
     @staticmethod
     def _apply_brightness(rgb, settings):
         """Aplica brilho"""
         if 'brightness' in settings and settings['brightness'] != 0:
-            hls = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_RGB2HLS).reshape(-1, 3)
+            #rgb = (rgb * 255).astype(np.uint8)
+            hls = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_BGR2HLS).reshape(-1, 3).astype(np.float32)
             h, l, s = hls[:, 0], hls[:, 1], hls[:, 2]
             
             brightness = settings['brightness']
@@ -937,7 +499,7 @@ class VideoEffectsProcessor:
             l = np.clip(l, 0, 1)
             
             hls = np.stack([h, l, s], axis=1)
-            rgb = cv2.cvtColor(hls.reshape(1, -1, 3), cv2.COLOR_HLS2RGB).reshape(-1, 3)
+            return cv2.cvtColor(hls.reshape(1, -1, 3), cv2.COLOR_HLS2BGR).reshape(-1, 3)#.astype(np.float32) / 255.0
         return rgb
     
     @staticmethod
@@ -953,30 +515,29 @@ class VideoEffectsProcessor:
     def _apply_hue(rgb, settings):
         """Aplica ajuste de matiz (hue)"""
         if 'hue' in settings and settings['hue'] != 0:
-            hsv = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_RGB2HSV).reshape(-1, 3)
+            hsv = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_BGR2HSV).reshape(-1, 3)
             hsv[:, 0] = (hsv[:, 0] - settings['hue']) % 360
-            rgb = cv2.cvtColor(hsv.reshape(1, -1, 3), cv2.COLOR_HSV2RGB).reshape(-1, 3)
+            rgb = cv2.cvtColor(hsv.reshape(1, -1, 3), cv2.COLOR_HSV2BGR).reshape(-1, 3)
         return rgb
-
+    
     @staticmethod
     def _apply_saturation(rgb, settings):
-        """Ajuste de saturação idêntico ao frontend"""
+        """Ajuste de saturação baseado em HLS (como no hslToRgb JS)"""
         if 'saturation' in settings and settings['saturation'] != 1:
-            # Converter para HSV (H:0-180, S:0-255, V:0-255)
-            hsv = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_RGB2HSV).reshape(-1, 3)
-            
-            # Normalizar saturação para 0-1 como no frontend
-            s_normalized = hsv[:, 1] / 255.0
-            
-            # Aplicar fórmula idêntica ao JS
-            saturation_factor = 2 ** (settings['saturation'] - 1)
-            s_normalized = np.clip(s_normalized * saturation_factor, 0, 1)
-            
-            # Converter de volta para escala OpenCV (0-255)
-            hsv[:, 1] = s_normalized * 255
-            
-            # Converter de volta para RGB
-            rgb = cv2.cvtColor(hsv.reshape(1, -1, 3), cv2.COLOR_HSV2RGB).reshape(-1, 3)
+            rgb = (rgb * 255).astype(np.uint8)
+            hls = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_BGR2HLS).reshape(-1, 3).astype(np.float32)
+
+            # Normalizar saturação
+            s_norm = hls[:, 2] / 255.0
+
+            # Aplicar curva não linear
+            factor = 2 ** (settings['saturation'] - 1)
+            s_norm = np.clip(s_norm * factor, 0, 1)
+
+            # Atualizar saturação
+            hls[:, 2] = s_norm * 255
+
+            return cv2.cvtColor(hls.reshape(1, -1, 3).astype(np.uint8), cv2.COLOR_HLS2BGR).reshape(-1, 3).astype(np.float32) / 255.0
         return rgb
     
     @staticmethod

@@ -165,6 +165,7 @@
         display: flex;
         overflow: hidden;
         transition: transform 0.5s ease;
+        width: 100%;
     }
 
     .videos-container {
