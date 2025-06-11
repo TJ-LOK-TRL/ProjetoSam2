@@ -535,11 +535,11 @@
         video.value.element.style.opacity = 0;
 
         window.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'r') {
-                console.warn('[DEBUG] Limpando todos os onDrawVideoCallbacks');
-                onDrawVideoCallbacks.value.clear();
-                drawVideoCallbacksCache.value = {};
-            }
+            //if (e.key.toLowerCase() === 'r') {
+            //    console.warn('[DEBUG] Limpando todos os onDrawVideoCallbacks');
+            //    onDrawVideoCallbacks.value.clear();
+            //    drawVideoCallbacksCache.value = {};
+            //}
         });
 
         //resizeObserver = new ResizeObserver(async () => await updateAllCanvasSizes());

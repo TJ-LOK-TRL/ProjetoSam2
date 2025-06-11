@@ -332,7 +332,7 @@
         transition: border 0.3s;
         border: 2px solid var(--main-color);
         background-color: transparent;
-        pointer-events: none;
+        /* pointer-events: none; */
     }
 
     .resize-controls-line {

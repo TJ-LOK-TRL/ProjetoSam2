@@ -37,6 +37,8 @@
     function recalculateSpaceContainerBoxSize() {
         const videoWidth = videoEditorStore.videoPlayerWidth
         const videoHeight = videoEditorStore.videoPlayerHeight
+        //console.log('VideoWidth:', videoWidth)
+        //console.log('VideoHeight:', videoHeight)
 
         const containerEl = spaceContainerRef.value
         const parentEl = spaceContainerParentRef.value
@@ -46,6 +48,7 @@
         // Calcular aspect-ratio
         const videoRatio = videoWidth / videoHeight
         const containerRatio = containerWidth / containerHeight
+        //console.log('Ratios:', videoRatio, containerRatio)
 
         let displayWidth
         let displayHeight
@@ -65,7 +68,7 @@
         //console.log('OldVideoSize:', videoWidth, videoHeight)
         //console.log('NewVideoSize:', videoWidth, videoHeight)
         //console.log('ContainerSize:', containerWidth, containerHeight)
-        //console.log('DisplaySize:', displayWidth, displayHeight)
+        //console.log('SpaceContainerSize:', displayWidth, displayHeight)
 
         recalculateBoxsSize()
     }
@@ -85,9 +88,7 @@
 
             const originalTransform = box.style.transform;
             box.style.transform = 'none';
-            //const boxRect = box.getBoundingClientRect();
             const boxRect = getRectWithZoom(box, videoEditorStore.zoomLevel)
-            //console.log('Dimensões sem rotação:', boxRect);
 
             if (!previousContainerRect) {
                 previousContainerRect = newContainerRect;
@@ -97,7 +98,8 @@
 
             const widthRatio = (newContainerRect.width) / previousContainerRect.width;
             const heightRatio = (newContainerRect.height) / previousContainerRect.height;
-            //console.log(newContainerRect)
+            //console.log('NEW:', newContainerRect)
+            //console.log('OLD:', previousContainerRect)
             //console.log('widthRatio:', widthRatio);
             //console.log('heightRatio:', heightRatio);
             //console.log('zoom:', videoEditorStore.zoomLevel)
@@ -125,8 +127,8 @@
             //console.log(box)
             //console.log(boxRect)
             //console.log(box.style.width)
-            //console.log(newBoxWidth);
-            //console.log(newBoxHeight);
+            //console.log('BoxWidth:', newBoxWidth);
+            //console.log('BoxHeight:', newBoxHeight);
             //console.log(newBoxLeft);
             //console.log(newBoxTop);
 
@@ -136,7 +138,7 @@
         previousContainerRect = getRectWithZoom(container, videoEditorStore.zoomLevel);
     }
 
-    function onVideoLoaded() {
+    function onVideoLoaded(video) {
         previousContainerRect = null
         recalculateSpaceContainerBoxSize()
 
@@ -145,6 +147,12 @@
             recalculateSpaceContainerBoxSize()
         })
         parentResizeObserver.observe(spaceContainerParentRef.value)
+
+        videoEditorStore.onAddMapBoxVideo((newVideo, boxElement) => {
+            if (video.id !== newVideo.id) return
+            const { width, height } = videoEditorStore.getVideoPlayerSize();
+            boxElement.box.value.setSize(width, height)
+        })
     }
 
     function handleWheelZoom(event) {
@@ -158,8 +166,8 @@
         await nextTick()
         videoEditorStore.setVideoPlayerContainer(videoPlayerContainer.value)
         videoEditorStore.setVideoPlayerSpaceContainer(spaceContainerRef.value)
-        videoEditorStore.onFirstVideoMetadataLoaded(() => {
-            onVideoLoaded()
+        videoEditorStore.onFirstVideoMetadataLoaded((video) => {
+            onVideoLoaded(video)
         })
         videoEditorStore.onVideoMetadataLoaded((video) => {
             if (videoEditorStore.getVideos().length > 1)

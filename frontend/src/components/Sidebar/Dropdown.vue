@@ -30,11 +30,11 @@
 
     const emit = defineEmits(['update:modelValue'])
 
-    const placeholder = ref(props.placeholder)
-    const items = ref(props.items)
+    const placeholder = computed(() => props.placeholder)
+    const items = computed(() => props.items)
+    const selected = computed(() => props.modelValue)
     const open = ref(false)
     const search = ref('')
-    const selected = ref(props.modelValue)
     const inputRef = ref(null)
 
     const filteredItems = computed(() => {
@@ -44,10 +44,12 @@
     })
 
     function select(item) {
-        selected.value = item
+        // selected and placeholder are readonly but reactive with computed, these values would be auto updated outside when modelValue changes.
+        //selected.value = item
+        //placeholder.value = item.label
+
         emit('update:modelValue', item)
         search.value = ''
-        placeholder.value = item.label
         open.value = false
         inputRef.value?.blur()
     }
@@ -61,9 +63,10 @@
 
         if (props.allowFreeValue && search.value.trim()) {
             const newItem = { free: search.value.trim()  }
-            selected.value = newItem
+            // selected and placeholder are readonly but reactive with computed, these values would be auto updated outside when modelValue changes.
+            //selected.value = newItem
+            //placeholder.value = newItem.free
             emit('update:modelValue', newItem)
-            placeholder.value = newItem.free
             search.value = ''
         }
     }

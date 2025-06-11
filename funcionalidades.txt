@@ -1,0 +1,38 @@
+Add videos e texto no video editor
+
+Fazer redimensionamento e grab nos elementos
+
+É possivel apagar os elementos
+
+É possivel aplicar chroma key nos videos seja por cor manual ou por cor obida automaticamente através de uma posição no video
+
+O videos suportam transparencia
+
+Funcionalidade de gerar mascaras para um video, o video editor permite selecionar no video um objeto, existe dois tipos de seleção, 
+seleção para adicionar ou para remover partes do video para criar o tal objeto objeto, o video editor permite vários destes obejtos e permite
+os mesmos gerir os objetos, depois de selecionar os objetos gerar seguir esse obejto ao decorrer do video e sendo assim permitir efeitos
+
+Exsite 8 efeitos de objeto e 6 efeitos de background, efeitos de background signfiica que o efeito sera aplicado em toda a parte do video 
+que nao seja obejtos de mascaras.
+
+O primeiro efeito é o Original que simplesmente volta ao original ou seja resetar
+O segundo efeito é o Erase que remove o objeto, se conseguir executar o algoritmo de backgroudn replacement o objeto vira o background, senao fica apenas preto
+O terceiro efeito é o Blend que permite mudar a cor de um objeto para a cor de um outro video ou imagem, util para criar texturas variadas, ex. tendo uma imagem com um textura, usar blend com essa imagem para aplciar num objeto camisa
+O quarto efeito é o Color que permite aplicar cores nos obejtos, permite sempre voltar a cor original tmb, permite aplicar correções de cor, como brightness,contrast,exposure,hue,saturation, e ainda efeitos mais avançados como sharpen,noise,blur,vignette, ainda existe o factor que permite que a cor aplicada no objeto nao seja solida mas sim misturada com as cores originais do obejto para presevar texturas, sombras, luzes, etc... ao mudar a cor.
+O quinto efeito é o Overlay que permite add um video que ira seguir o objeto, util para adicionar efeitos personalizados em objetos, permite ainda colcoar o efeito atras do objeto do video
+O sexto efeito é o Cut, que é parecedo com o erase mas ele deixa a parte do obejto transparente, ou seja é possivel ver outros videos ou mesmo o canvas do video editor atravas do "buraco" criado pelo Cut
+O setimo efeito é o split, que extrai o objeto para outro video, deixando apenas o objeto, na realidade é o video igual, mas é aplicado sempre transparencia no background do objeto para que aparece apenas o obejto
+O oito efeito é o Label, que é igual ao overlay mas para texto, nao permite deixar o texto atras do objeto
+
+Background suporta os efeitos Original, Erase, Blend, Color, Cut, Split, o processo é igual mas o objeto torna-se a parte do background, que é tudo menos as partes dos objetos
+
+é possivel editar video, video edit suporta , animations, que inclui apenas fadein fadeout, adjust das cores, processo igual ao efeito das cores para as mascaras mas é gerado uma mascara total para o video todo permitindo que o efeito seja gloval para o video
+ainda suporta mudar start e end,  mudar o speed, alterar o volume do som(apenas suportado no frontend), tem as funcinalidade para ir para o processo de gerar mascaras e aplicar croma key, permite add round corners que adiciona um border-radois ao video, permite fazer fit do video, que anula a posicao, tamanho, flip state, rotation, e ainda permite mudar a rotation, e fazer flip apenas horizontalmetne ou melhor no eixo do y apenas, (muda apenas o x para -x)
+
+é possivel editar texto, editar font, fontSize, cor, alinhamento apenas no eixo do x, bold e italic, o bold e italic têm algums inconsistencias entre frontend e backend ,ja que algumas fontes embora sejam iguais nao tenham suporte no html para bold ou italic
+
+Outro ferramenta é listar os elementos todos separados por filtro video e texto
+
+possivel fazer login
+
+

@@ -229,6 +229,7 @@
         }
     }
 
+    // Callback to allow the generation of mask in the current mask
     async function onEditorElementSelected(editorElement) {
         if (editorElement.type === 'video' && editorElement == video.value) {
             if (!videoEditor.maskHandler.selectMaskType) return
@@ -245,6 +246,8 @@
                 console.log('getting 1 mask...')
                 const currentFrame = video.value.getCurrentFrame()
                 videoEditor.isLoading = true
+
+                // Generate masks for the selected object for the current frame only
                 const [track_id, masks] =
                     await videoEditor.generateMasksForVideo(video.value, {
                         start_frame: currentFrame,
@@ -414,6 +417,7 @@
         video.value.trackMasks = {}
         video.value.trackMasks = JSON.parse(JSON.stringify(video.value.previewTrackMasks))
 
+        // Register callback for preview mode
         videoEditor.onEditorElementSelected('ConfigSam', onEditorElementSelected)
     })
 

@@ -128,12 +128,16 @@
 
     const textFontSize = computed({
         get: () => {
-            const size = textElement.value?.style.fontSize || '16px'
-            return { label: size, size }
+            let size = textElement.value?.style.fontSize || '16px';
+            size = parseFloat(size)
+            size = isNaN(size) ? 0 : Math.round(size * 1e3) / 1e3 + 'px'
+            return { label: size, size };
         },
         set: (item) => {
             if (textElement.value) {
-                const size = item.free || item.size
+                let size = item.free || item.size
+                size = parseFloat(size)
+                size = isNaN(size) ? 0 : Math.round(size * 1e3) / 1e3 + 'px'
                 console.log('textFontSize', size)
                 textElement.value.style.fontSize = size
             }

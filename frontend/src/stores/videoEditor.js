@@ -196,6 +196,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         }
     }
 
+    // Generates masks for the video
     async function generateMasksForVideo(video, inputOptions = {}, usePoints = null) {
         const ann_frame_idx = Math.floor(video.currentTime * video.fps);
         const rawPoints = usePoints || video.points;
