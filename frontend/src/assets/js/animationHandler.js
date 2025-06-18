@@ -2,6 +2,18 @@ import { useVideoEditor } from '@/stores/videoEditor';
 import { useTimelineStore } from '@/stores/timeline';
 
 
+export const AnimationTypes = Object.freeze({
+    IN: 'in',
+    OUT: 'out',
+    MOVEMENT: 'mov',
+})
+
+export const AnimationNames = Object.freeze({
+    NONE: 'None',
+    FADE: 'Fade',
+    MOVEMENT: 'Movement',
+})
+
 export default class AnimationHandler {
     constructor(register) {
         this.videoEditor = useVideoEditor()
@@ -26,7 +38,14 @@ export default class AnimationHandler {
                 () => htmlElement.style.opacity = 1,
             )
             this.register.registerAnimation(editorElement.id, animationName, animationType, settings)
+        } 
+        else if (animationName === 'Movement') {
+            this.register.registerAnimation(editorElement.id, animationName, animationType, settings)
         }
+    }
+
+    updateAnimationSettings(editorElement, animationName, animationType, newSettings = {}) {
+        this.register.updateAnimationSettings(editorElement.id, animationName, animationType, newSettings)
     }
 
     resetByType(editorElement, htmlElement, animationType) {

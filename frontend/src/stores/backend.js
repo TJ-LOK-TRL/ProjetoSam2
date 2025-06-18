@@ -19,6 +19,20 @@ export const useBackendStore = defineStore('backend', () => {
         }
     }
 
+    async function convertImageToVideo(file) {
+        const formData = new FormData()
+        formData.append('image', file)
+
+        const response = await axios.post(`http://${ip.value}:${port.value}/convert/image-to-video`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            },
+            responseType: 'blob'
+        })
+        
+        return response.data;
+    }
+
     async function getMediaBasicData(file) {
         const formData = new FormData()
         formData.append('video', file)
@@ -109,6 +123,6 @@ export const useBackendStore = defineStore('backend', () => {
 
 
     return { test, images, error, getMediaBasicData, getMasksForFrame, 
-        getMasksForVideo, download }
+        getMasksForVideo, download, convertImageToVideo }
 })
 

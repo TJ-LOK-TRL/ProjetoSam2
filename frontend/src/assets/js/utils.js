@@ -43,6 +43,14 @@ export function loadImageFromCache(url) {
     });
 }
 
+export function updateImageFromCache(url, newImg) {
+    imageCache.set(url, newImg);
+}
+
+export function resetImageCache(url) {
+    imageCache.delete(url);
+}
+
 export function hexToRgb(hex) {
     if (typeof hex !== 'string') {
         throw new TypeError('O valor deve ser uma string e não o tipo ' + typeof hex + ' (' + hex + ')');

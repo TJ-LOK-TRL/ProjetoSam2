@@ -7,12 +7,15 @@
         <div class="stock-videos-slideshow">
             <div class="stock-videos-content">
                 <div class="videos-container" ref="videosContainer">
-                    <div class="video-item" v-for="(video, index) in props.videos" :key="index"
-                        @click="handleStockVideoClick(video)">
-                        <video :src="video.src" class="video" muted playsinline
+                    <div class="video-item" v-for="(item, index) in mediaItems" :key="index"
+                        @click="handleStockVideoClick(item)">
+                        <video v-if="item.type === 'video'" :src="item.src" class="media" muted playsinline
                             @loadedmetadata="setDuration(index, $event)" @mouseenter="handleVideoHover($event)"
                             @mouseleave="handleVideoLeave($event)"></video>
-                        <div class="video-time">{{ formattedDurations[index] }}</div>
+
+                        <img v-else-if="item.type === 'image'" :src="item.src" class="media" />
+
+                        <div v-if="item.type === 'video'" class="video-time">{{ formattedDurations[index] }}</div>
                     </div>
                 </div>
             </div>
@@ -29,7 +32,7 @@
 </template>
 
 <script setup>
-    import { onMounted, ref, nextTick } from 'vue'
+    import { onMounted, ref, nextTick, computed } from 'vue'
     import StickyHeader from '@/components/Sidebar/StickyHeader.vue'
     import SlideShow from '@/assets/js/slideshow'
     import slideshowGrab from '@/assets/js/slideshow_grap'
@@ -44,6 +47,12 @@
     const arrowLeft = ref(null)
     const arrowRight = ref(null)
     const dragStartTarget = ref(null);
+
+    const mediaItems = computed(() => {
+        const videoItems = props.videos.map(v => ({ ...v, type: 'video' }))
+        const imageItems = props.images.map(i => ({ ...i, type: 'image' }))
+        return [...videoItems, ...imageItems]
+    })
 
     const props = defineProps({
         videos: {
@@ -182,12 +191,16 @@
         border-radius: .625rem;
     }
 
-    .video-item video {
+    .video-item video, 
+    .video-item img {
         width: 100%;
         height: 80px;
         object-fit: cover;
         border-radius: .625rem;
         cursor: pointer;
+        user-select: none;
+        -webkit-user-drag: none;
+        user-drag: none;
     }
 
     .arrow-left,

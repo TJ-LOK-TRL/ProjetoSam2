@@ -179,23 +179,26 @@
             const currentTime = video.value.maskRefTime ?? (timelineStore.currentTime - video.value.stOffset)
             const currentFrameNumber = Math.floor(video.value.fps * currentTime)
 
+            // cache is very important because the generation of masks for all frames is slow
             if (!hasChanged() && video.value.cacheTrackVideos !== null) {
                 video.value.trackMasks = joinTrackedMasks({}, video.value.cacheTrackVideos);
             } else {
-                videoEditor.isLoading = true
+                videoEditor.isLoading = true // Start loading
+                // Generate masks, can take some time
                 const [track_id, masks] = await videoEditor.generateMasksForVideo(video.value, {
                     start_frame: Math.floor(video.value.start * video.value.fps),
                     end_frame: Math.floor(video.value.end * video.value.fps),
-                    stage_name: getStageNameOfVideo(video.value, '_track_masks'),
+                    stage_name: getStageNameOfVideo(video.value, '_track_masks'), // For permanent cache
                 });
 
-                videoEditor.isLoading = false
+                videoEditor.isLoading = false // Stop loading
 
                 if (masks === null) {
                     console.error("Máscaras não encontradas para o vídeo:", video.value.id, masks);
                     return;
                 }
 
+                // Save masks result
                 video.value.track_id = track_id
                 video.value.trackMasks = joinTrackedMasks(video.value.trackMasks, masks);
                 video.value.cacheTrackVideos = JSON.parse(JSON.stringify(video.value.trackMasks))
@@ -212,6 +215,7 @@
             const newMasks = Object.keys(masks[currentFrameNumber]).map((objId, index) => ({
                 id: masks[currentFrameNumber][objId].id,
                 url: masks[currentFrameNumber][objId].url,
+                originalUrl: masks[currentFrameNumber][objId].url, // usefull when url changes but we want acess the original url
                 videoId: video.value.id,
                 objId: objId,
                 frameIdx: currentFrameNumber,

@@ -1,4 +1,4 @@
-import { loadImageFromCache, hexToRgb, rgbToHsl, hslToRgb, getGaussianKernel } from '@/assets/js/utils.js';
+import { loadImageFromCache, updateImageFromCache, hexToRgb, rgbToHsl, hslToRgb, getGaussianKernel } from '@/assets/js/utils.js';
 
 export default class MaskHandler {
     constructor() {
@@ -1298,5 +1298,164 @@ export default class MaskHandler {
 
         ctx.drawImage(img, x, y, width, height);
         ctx.restore();
+    }
+
+    async zoomObjectByMask(img, mask, zoomLevel, width, height, backgroundColor = [0, 0, 0, 0], detection = 255) {
+        if (zoomLevel === 1) return img;
+
+        // 1. Criar canvas temporários
+        const resultCanvas = document.createElement('canvas');
+        resultCanvas.width = width;
+        resultCanvas.height = height;
+        const resultCtx = resultCanvas.getContext('2d');
+
+        // 2. Carregar máscara e imagem original
+        const maskImage = await loadImageFromCache(mask.originalUrl);
+
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = width;
+        maskCanvas.height = height;
+        const maskCtx = maskCanvas.getContext('2d');
+        maskCtx.drawImage(maskImage, 0, 0, width, height);
+        const maskData = maskCtx.getImageData(0, 0, width, height).data;
+
+        // 3. Extrair dados da imagem original
+        resultCtx.drawImage(img, 0, 0, width, height);
+        const originalImageData = resultCtx.getImageData(0, 0, width, height);
+        const originalData = originalImageData.data;
+
+        // 4. Criar objeto isolado (com transparência onde não é máscara)
+        const bbox = this.calculateBoundingBox(maskData, width, height, detection);
+        console.log(bbox, width, height)
+        if (!bbox) return img;
+
+        const objCanvas = document.createElement('canvas');
+        objCanvas.width = bbox.w;
+        objCanvas.height = bbox.h;
+        const objCtx = objCanvas.getContext('2d');
+        const objImageData = objCtx.createImageData(bbox.w, bbox.h);
+        const objData = objImageData.data;
+
+        // Preencher objeto isolado
+        for (let y = 0; y < bbox.h; y++) {
+            for (let x = 0; x < bbox.w; x++) {
+                const origX = bbox.x + x;
+                const origY = bbox.y + y;
+                const origIdx = (origY * width + origX) * 4;
+                const objIdx = (y * bbox.w + x) * 4;
+
+                if (maskData[origIdx] === detection) {
+                    objData[objIdx] = originalData[origIdx];     // R
+                    objData[objIdx + 1] = originalData[origIdx + 1]; // G
+                    objData[objIdx + 2] = originalData[origIdx + 2]; // B
+                    objData[objIdx + 3] = 255;                     // A
+                } else {
+                    objData[objIdx] = 10;     // R
+                    objData[objIdx + 1] = 0;   // G
+                    objData[objIdx + 2] = 0;   // B
+                    objData[objIdx + 3] = 0;   // A (transparente)
+                }
+            }
+        }
+        objCtx.putImageData(objImageData, 0, 0);
+
+        // 5. Aplicar zoom no objeto isolado
+        const scaledW = bbox.w * zoomLevel;
+        const scaledH = bbox.h * zoomLevel;
+        const centerX = bbox.x + bbox.w / 2;
+        const centerY = bbox.y + bbox.h / 2;
+        const newX = centerX - scaledW / 2
+        const newY = centerY - scaledH / 2
+
+        const scaledCanvas = document.createElement('canvas');
+        scaledCanvas.width = width;
+        scaledCanvas.height = height;
+        const scaledCtx = scaledCanvas.getContext('2d');
+        scaledCtx.drawImage(objCanvas, 0, 0, bbox.w, bbox.h, newX, newY, scaledW, scaledH);
+        const scaledData = scaledCtx.getImageData(0, 0, width, height).data;
+
+        // 6. Composição final (pixel a pixel)
+        const resultImageData = resultCtx.createImageData(width, height);
+        const resultData = resultImageData.data;
+
+        for (let i = 0; i < resultData.length; i += 4) {
+            // Se pixel escalado é transparente, usa o original
+            if (scaledData[i + 3] === 0) {
+                if (scaledData[i] === 10) {
+                    resultData[i] = backgroundColor[0];     // R
+                    resultData[i + 1] = backgroundColor[1]; // G
+                    resultData[i + 2] = backgroundColor[2]; // B
+                    resultData[i + 3] = backgroundColor[3]; // A
+                } else {
+                    resultData[i] = originalData[i];
+                    resultData[i + 1] = originalData[i + 1];
+                    resultData[i + 2] = originalData[i + 2];
+                    resultData[i + 3] = originalData[i + 3];
+                }
+            } else {
+                resultData[i] = scaledData[i];     // R
+                resultData[i + 1] = scaledData[i + 1]; // G
+                resultData[i + 2] = scaledData[i + 2]; // B
+                resultData[i + 3] = scaledData[i + 3]; // A
+            }
+        }
+
+        if (true) {
+            // 7. Atualizar a máscara (criar nova máscara com área zoomada)
+            const newMaskCanvas = document.createElement('canvas');
+            newMaskCanvas.width = width;
+            newMaskCanvas.height = height;
+            const newMaskCtx = newMaskCanvas.getContext('2d');
+
+            // Criar ImageData para a nova máscara
+            const newMaskImageData = newMaskCtx.createImageData(width, height);
+            const newMaskData = newMaskImageData.data;
+
+            for (let i = 0; i < scaledData.length; i += 4) {
+                // Se pixel foi afetado pelo zoom (não transparente no scaledData)
+                if (scaledData[i + 3] !== 0) {
+                    newMaskData[i] = 255;     // R (branco)
+                    newMaskData[i + 1] = 255; // G (branco)
+                    newMaskData[i + 2] = 255; // B (branco)
+                    newMaskData[i + 3] = 255; // A (opaco)
+                } else {
+                    newMaskData[i] = 0;     // R (preto)
+                    newMaskData[i + 1] = 0; // G (preto)
+                    newMaskData[i + 2] = 0; // B (preto)
+                    newMaskData[i + 3] = 255; // A (opaco)
+                }
+            }
+            newMaskCtx.putImageData(newMaskImageData, 0, 0);
+            updateImageFromCache(mask.url, newMaskCanvas)
+        }
+
+        // 8 Finalizar
+        resultCtx.putImageData(resultImageData, 0, 0);
+        return resultCanvas;
+    }
+
+    calculateBoundingBox(maskData, width, height, detection) {
+        let minX = width, minY = height, maxX = 0, maxY = 0;
+        let found = false;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const i = (y * width + x) * 4;
+                if (maskData[i] === detection) {
+                    found = true;
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        return found ? {
+            x: Math.max(0, minX),
+            y: Math.max(0, minY),
+            w: Math.min(width, maxX - minX + 1),
+            h: Math.min(height, maxY - minY + 1)
+        } : null;
     }
 }   

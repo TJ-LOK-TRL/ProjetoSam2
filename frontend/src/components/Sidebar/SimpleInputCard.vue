@@ -4,7 +4,7 @@
         <label v-if="label" class="simple-input-label">{{ label }}</label>
         <input v-if="showRange" class="simple-input-range" type="range" :min="min" :max="max" :step="step"
             :value="parseFloat(modelValue.toString().match(/[\d.]+/))"
-            @input="$emit('update:modelValue', $event.target.value)" 
+            @input="$emit('update:modelValue', Number($event.target.value))" 
             :style="{ marginLeft: label ? '8px' : '0' }" />
 
         <label v-if="typeof modelValue === 'boolean'" class="toggle-switch">
@@ -13,13 +13,12 @@
         </label>
 
         <input v-else class="simple-input-input" type="text" :value="modelValue"
-            @input="$emit('update:modelValue', $event.target.value)" />
+            @input="onTextInput" />
     </div>
 </template>
 
 <script setup>
-
-    defineProps({
+    const props = defineProps({
         modelValue: {
             type: [String, Number, Boolean],
             required: true
@@ -33,6 +32,10 @@
             default: ''
         },
         showRange: {
+            type: Boolean,
+            default: false
+        },
+        respectLimitsAsNumber: {
             type: Boolean,
             default: false
         },
@@ -50,6 +53,28 @@
         }
     })
 
+    const emit = defineEmits(['update:modelValue'])
+
+    function onTextInput(event) {
+        event.target.value = event.target.value.replace(/^(\d*\.\d*).*$/, '$1') // Resolves multiple points to one point, ex: "12...." to "12."
+        if ((props.showRange || props.respectLimitsAsNumber) && !event.target.value.endsWith('.')) {
+            let val = Number(event.target.value)
+            
+            if (!isNaN(val)) {
+                val = Math.min(Math.max(val, props.min), props.max)
+                event.target.value = val
+                emit('update:modelValue', val) // Emitir como número
+                return
+            } else {
+                event.target.value = props.modelValue
+                return
+            }
+        }
+
+        emit('update:modelValue', event.target.value)
+    }
+
+
 </script>
 
 <style scoped>
@@ -59,6 +84,7 @@
         display: flex;
         flex-direction: row;
         align-items: center;
+        justify-content: center;
         padding: 9px 1rem;
         border: 0.5px solid rgb(225, 225, 227);
         box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);

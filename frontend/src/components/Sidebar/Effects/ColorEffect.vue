@@ -123,13 +123,16 @@
         console.log(settings)
 
         let effectType;
+        //Background mask is -1
         if (mask.objId === -1) {
             await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background');
             effectType = EffectHandler.COLOR_BKG_EFFECT_ID;
+        // Global mask is -3
         } else if (mask.objId === -3) {
             await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'background');
             await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object');
             effectType = EffectHandler.COLOR_ALL_EFFECT_ID;
+        // Normal masks
         } else {
             await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object');
             effectType = EffectHandler.COLOR_OBJ_EFFECT_ID;

@@ -10,7 +10,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted, watch, nextTick, getCurrentWatcher } from 'vue'
+    import { ref, onMounted, watch, nextTick, getCurrentWatcher, onUnmounted } from 'vue'
     import { useVideoEditor } from '@/stores/videoEditor'
     import { useTimelineStore } from '@/stores/timeline'
     import Grab from '@/assets/js/grab.js';
@@ -35,6 +35,7 @@
     const resizeInstance = ref(null)
     const ctrl_ml = ref(null)
     const ctrl_mr = ref(null)
+    let frameContainerResizeObserver = null
 
     function getWidth() {
         const totalWidth = framesContainerRef.value.parentElement.getBoundingClientRect().width
@@ -51,6 +52,7 @@
     }
 
     function update() {
+        if (!element.value || !framesContainerRef.value) return
         const width = getWidth()
         framesContainerRef.value.style.width = width + 'px'
         elementRef.value.update(width)
@@ -231,7 +233,16 @@
         } else {
             await init()
         }
+
+        await nextTick()
+        frameContainerResizeObserver?.disconnect()
+        frameContainerResizeObserver = new ResizeObserver(() => {
+            update()
+        })
+        frameContainerResizeObserver.observe(framesContainerRef.value.parentElement)
     })
+
+    //onUnmounted(())
 </script>
 
 <style scoped>

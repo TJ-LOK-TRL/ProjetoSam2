@@ -86,6 +86,47 @@ def segmentar_image(image_name):
     except Exception as e:
         return jsonify({'error': f'Erro ao segmentar imagem: {str(e)}'}), 500
     
+@app.route('/convert/image-to-video', methods=['POST'])
+def convert_image_to_video():
+    image_file = request.files.get('image')
+    if not image_file:
+        return jsonify({'error': 'No image file provided'}), 400
+
+    # Ler a imagem como frame
+    file_bytes = np.frombuffer(image_file.read(), np.uint8)
+    frame = cv2.imdecode(file_bytes, cv2.IMREAD_UNCHANGED)
+
+    if frame is None:
+        return jsonify({'error': 'Invalid image file'}), 400
+
+    # Criar ficheiros temporários
+    with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as tmp_in, \
+         tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as tmp_out:
+        temp_input = tmp_in.name
+        temp_output = tmp_out.name
+
+    try:
+        # Criar vídeo simples com a imagem
+        convert_frame_to_video(frame, duration=5.0, output_path=temp_input, fps=30)
+
+        # Comprimir e preparar com comp_browser
+        comp_browser(
+            input_path=temp_input,
+            output_path=temp_output,
+            crf=23,
+            preset='fast',
+            audio_codec='aac',
+            video_codec='libx264'
+        )
+
+        # Enviar vídeo final como resposta
+        return send_file(temp_output, mimetype='video/mp4', as_attachment=True, download_name='converted.mp4')
+
+    finally:
+        for path in [temp_input, temp_output]:
+            if os.path.exists(path):
+                os.remove(path)
+    
 @app.route('/video/basic_data', methods=['POST'])
 def get_basic_video_data():
     file = request.files['video']

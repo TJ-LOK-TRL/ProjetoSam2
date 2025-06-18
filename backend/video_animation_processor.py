@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Union
+from typing import List, Tuple, Dict, Union, Optional
 from video_compositor import RenderInfo
 import numpy as np
 
@@ -76,6 +76,47 @@ class VideoAnimationProcessor:
         
         return frame
     
+    @staticmethod
+    def get_position(time: float, points: List[Dict[str, float]]) -> Optional[Tuple[float, float]]:
+        if not points:
+            return None, None
+
+        if len(points) == 1:
+            return points[0]['x'], points[0]['y']
+
+        # Antes do primeiro ponto
+        if time < points[0]['time']:
+            return points[0]['x'], points[0]['y']
+
+        # Depois do último ponto
+        if time > points[-1]['time']:
+            return points[-1]['x'], points[-1]['y']
+
+        # Interpolação entre dois pontos
+        for i in range(len(points) - 1):
+            p0 = points[i]
+            p1 = points[i + 1]
+
+            if p0['time'] <= time <= p1['time']:
+                alpha = (time - p0['time']) / (p1['time'] - p0['time'])
+                x = p0['x'] + alpha * (p1['x'] - p0['x'])
+                y = p0['y'] + alpha * (p1['y'] - p0['y'])
+                return x, y
+
+        # (Não deveria chegar aqui, mas por segurança)
+        return points[-1]['x'], points[-1]['y']
+    
+    def apply_movement_animation(self, render_info: RenderInfo, settings: Dict, current_time: float) -> None:
+        points = settings.get('points', [])
+
+        if not points:
+            return
+
+        x, y = VideoAnimationProcessor.get_position(current_time, points)
+
+        render_info.layer.rect.x = x if x != None else render_info.layer.rect.x
+        render_info.layer.rect.y = y if y != None else render_info.layer.rect.y
+    
     def process_animation(
         self, 
         frame: np.ndarray, 
@@ -84,11 +125,14 @@ class VideoAnimationProcessor:
         current_time: float, 
         render_info: RenderInfo
     ) -> np.ndarray:
-        if (animation_name == 'Fadein'):
+        if (animation_name == 'Fade_in'):
             return self.apply_fade_effect(frame, 'in', settings, current_time, render_info)
         
-        if (animation_name == 'Fadeout'):
+        if (animation_name == 'Fade_out'):
             return self.apply_fade_effect(frame, 'out', settings, current_time, render_info)
+        
+        if (animation_name == 'Movement_mov'):
+            self.apply_movement_animation(render_info, settings, current_time)
         
         return frame
             

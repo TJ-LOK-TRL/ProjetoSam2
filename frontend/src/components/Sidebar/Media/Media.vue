@@ -1,8 +1,9 @@
 <template>
     <div class="media-container">
         <StickyHeader>Add Media</StickyHeader>
-        <UploadBox :accept="'video/*'" @on-file-upload="onFileUpload" />
+        <UploadBox :accept="'image/*,video/*'" @on-file-upload="onFileUpload" />
         <StockVideos :videos="videos" @add-video="addVideo" />
+        <StockVideos :images="images" @add-video="addVideo" :title="'Stock Images'" />
         <StockVideos :videos="videosResult" @add-video="addVideo" :title="'Results'" />
     </div>
 </template>
@@ -34,6 +35,14 @@
         { use_cache: false, src: "/videos/homem_correndo.mp4" },
     ])
 
+    const images = ref([
+        { use_cache: false, src: "/images/carro.png" },
+        { use_cache: false, src: "/images/deus.png" },
+        { use_cache: false, src: "/images/dog.jpeg" },
+        { use_cache: false, src: "/images/monstro.png" },
+        { use_cache: false, src: "/images/einstnein.png" },
+    ])
+
     const videosResult = ref([
         { use_cache: false, src: "/videos/result1.mp4" },
         { use_cache: false, src: "/videos/result2.mp4" },
@@ -60,6 +69,7 @@
 
         } catch (error) {
             console.error('Erro ao adicionar vídeo stock:', error);
+            videoEditor.dialogError('Error adding video, try again...');
         } finally {
             videoEditor.isLoading = false
         }

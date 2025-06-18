@@ -17,16 +17,24 @@
 
             <div class="list-animation-container">
                 <ul class="list-animation-grid">
-                    <li v-for="(animation, index) in filteredAnimations" :key="index" class="animation-item">
-                        <div class="animation-toggle-button" @click="selectAnimation(animation)"
-                            :class="{ selected: animation.name === currentAnimationByType[currentAnimationType]?.name && animation.type === currentAnimationByType[currentAnimationType]?.type }">
-                            <div class="animation-icon-container">
-                                <i :class="[animation.icon, animation.class]"></i>
+                    <template v-for="(group, gIndex) in groupedAnimations" :key="gIndex">
+                        <li v-for="(animation, index) in group" :key="index" class="animation-item">
+                            <div class="animation-toggle-button" @click="selectAnimation(animation)"
+                                :class="{ selected: isAnimationSelected(animation) }">
+                                <div class="animation-icon-container">
+                                    <i :class="[animation.icon, animation.class]"></i>
+                                </div>
                             </div>
-                        </div>
 
-                        <span class="animation-span">{{ animation.name }}</span>
-                    </li>
+                            <span class="animation-span">{{ animation.name }}</span>
+                        </li>
+
+                        <!-- Painel dinâmico para o grupo (aparece após a linha de 3) -->
+                        <li v-if="currentPanelComponent && group.some(isAnimationSelected)"
+                            class="animation-panel-container">
+                            <component :is="currentPanelComponent" class="animation-panel" />
+                        </li>
+                    </template>
                 </ul>
             </div>
         </div>
@@ -37,23 +45,43 @@
     import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
     import StickyHeader from '@/components/Sidebar/StickyHeader.vue'
     import { useVideoEditor } from '@/stores/videoEditor';
+    import MovementConfig from './AnimationSubPanels/MovementConfig.vue'
+    import { AnimationTypes, AnimationNames } from '@/assets/js/animationHandler.js'
 
     const videoEditor = useVideoEditor()
 
     const animationTypes = ref([
-        'in', 'out'
+        'in', 'out', 'mov'
     ])
 
     const animations = ref([
-        { name: 'None', type: 'in', icon: 'fas fa-ban' },
-        { name: 'None', type: 'out', icon: 'fas fa-ban' },
-        { name: 'Fade', type: 'in', icon: 'fas fa-square', class: 'fade-in-effect' },
-        { name: 'Fade', type: 'out', icon: 'fas fa-square', class: 'fade-out-effect' },
+        { name: AnimationNames.NONE, type: AnimationTypes.IN, icon: 'fas fa-ban' },
+        { name: AnimationNames.NONE, type: AnimationTypes.OUT, icon: 'fas fa-ban' },
+        { name: AnimationNames.NONE, type: AnimationTypes.MOVEMENT, icon: 'fas fa-ban' },
+        { name: AnimationNames.FADE, type: AnimationTypes.IN, icon: 'fas fa-square', class: 'fade-in-effect', options: { duration: 1 } },
+        { name: AnimationNames.FADE, type: AnimationTypes.OUT, icon: 'fas fa-square', class: 'fade-out-effect', options: { duration: 1 } },
+        { name: AnimationNames.MOVEMENT, type: AnimationTypes.MOVEMENT, icon: 'fas fa-worm', class: 'fade-mov-effect', options: { points: [] } },
     ])
+
+    const animationPanels = {
+        'Movement': MovementConfig,
+    }
 
     const currentAnimationType = ref('in')
     const currentAnimationByType = ref({})
     const filteredAnimations = computed(() => animations.value.filter(animation => !animation.type || animation.type === currentAnimationType.value))
+    const groupedAnimations = computed(() => {
+        // Group 3 by 3
+        const perRow = 3
+        const groups = []
+        for (let i = 0; i < filteredAnimations.value.length; i += perRow) {
+            groups.push(filteredAnimations.value.slice(i, i + perRow))
+        }
+        return groups
+    })
+    const currentPanelComponent = computed(() => {
+        return animationPanels?.[currentAnimationByType.value?.[currentAnimationType.value]?.name]
+    })
 
     const filterContainer = ref(null)
     const underlineStyle = ref({})
@@ -67,15 +95,15 @@
 
     function selectAnimation(animation) {
         currentAnimationByType.value[animation.type] = animation
-
-        videoEditor.animationHandler.applyAnimation(mediaElement.value, animation.name, animation.type, {
-            duration: 1,
-        })
+        videoEditor.animationHandler.applyAnimation(mediaElement.value, animation.name, animation.type, animation.options || {})
     }
-    
+
     function updateUI() {
         const editorElement = videoEditor.selectedElement
-        if (!editorElement) videoEditor.changeToPreviousTool()
+        if (!editorElement) {
+            videoEditor.changeTool('media', 'media')
+            return
+        }
 
         currentAnimationByType.value = {}
         for (const animationType of animationTypes.value) {
@@ -88,7 +116,7 @@
                 currentAnimationByType.value[animationType] = anim
             }
         }
-        
+
         mediaElement.value = editorElement
     }
 
@@ -107,6 +135,11 @@
             width: item.offsetWidth + 'px',
             transform: `translateX(${item.offsetLeft}px)`
         }
+    }
+
+    function isAnimationSelected(animation) {
+        const selected = currentAnimationByType.value[currentAnimationType.value]
+        return selected?.name === animation.name && selected?.type === animation.type
     }
 
     onMounted(() => {
@@ -230,6 +263,14 @@
         letter-spacing: 0px;
         font-weight: 400;
         color: rgb(81, 76, 77);
+    }
+
+    .animation-panel-container {
+        grid-column: span 3;
+        list-style: none;
+        border: 1px solid rgb(246, 245, 245);
+        border-radius: 10px;
+        padding: 12px 16px;
     }
 
     .underline {

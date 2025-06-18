@@ -15,12 +15,14 @@ export default class EffectHandler {
     static ERASE_OBJ_EFFECT_ID = 10;
     static ERASE_BKG_EFFECT_ID = 11;
     static OVERLAY_TYPE_EFFECT_ID = 12;
+    static ZOOM_TYPE_EFFECT_ID = 13;
 
     static CUT_EFFECT_NAME = 'cutObjectEffect'
     static COLOR_EFFECT_NAME = 'colorEffect'
     static BLEND_EFFECT_NAME = 'blendEffect'
     static ERASE_EFFECT_NAME = 'backgroundRemoveEffect'
     static OVERLAP_EFFECT_NAME = 'overlapVideo'
+    static ZOOM_EFFECT_NAME = 'zoomEffect'
 
     static OBJ_CALLBACKS_ID = [
         this.CUT_OBJ_EFFECT_ID,
@@ -144,6 +146,66 @@ export default class EffectHandler {
         }
 
         await this.maskHandler.overlapVideo(mask, videoRect, overlayVideoRect, outputCanvas, getCanvasSize)
+    }
+
+    async zoomObjectByMask(video, mask, settings, backgroundColor = [0, 0, 0, 0], detection = 255, register = true) {
+        const blocks = this.register.getAllBlocksBetweenResets(video.id, mask.objId, EffectHandler.ZOOM_EFFECT_NAME);
+        const oldZoomData = blocks?.[blocks.length - 1] || [];
+
+        if (register) {
+            this.register.registerMaskEffect(video.id, mask.objId, EffectHandler.ZOOM_EFFECT_NAME, settings);
+        }
+
+        const zoomDataList = [settings, ...oldZoomData];
+        const boxOfVideo = this.videoEditor.getBoxOfElement(video)
+        const callbackId = video.id + mask.objId + EffectHandler.ZOOM_TYPE_EFFECT_ID
+
+        let lastZoomLevel = 1
+        boxOfVideo.addOnDrawVideoCallback(callbackId, async (img) => {
+            const currentTime = this.timelineStore.currentTime;
+            let zoomLevel = lastZoomLevel; // mantém o último nível de zoom
+
+            for (const zoomData of zoomDataList) {
+                const { start = 0, end = 1, destZoom = 1 } = zoomData;
+
+                if (currentTime >= start && currentTime <= end) {
+                    // interpolação linear entre lastZoomLevel e destZoom
+                    const t = (currentTime - start) / (end - start);
+                    zoomLevel = lastZoomLevel + (destZoom - lastZoomLevel) * t;
+                    break;
+                }
+
+                // Atualiza lastZoomLevel se passou o final deste bloco
+                if (currentTime > end) {
+                    lastZoomLevel = destZoom;
+                }
+            }
+
+            const currentMask = video.trackMasks?.[video.frameIdx]?.[mask.objId]
+            if (!currentMask) return img
+
+            return await this.maskHandler.zoomObjectByMask(img, currentMask, zoomLevel, ...boxOfVideo.getBoxVideoSize(), backgroundColor, detection);
+        });
+
+        this.timelineStore.onUpdate(callbackId, (time, origin) => {
+            if (time === 0 && origin === 'reset') {
+                lastZoomLevel = 1
+            }
+        })
+
+        await boxOfVideo.drawVideo()
+        await video.waitUntilVideoIsReady()
+    }
+
+    async resetZoomObject(video, mask) {
+        const boxOfVideo = this.videoEditor.getBoxOfElement(video)
+        const callbackId = video.id + mask.objId + EffectHandler.ZOOM_TYPE_EFFECT_ID
+
+        boxOfVideo.removeOnDrawVideoCallback(callbackId)
+        this.timelineStore.removeOnUpdate(callbackId)
+        
+        await boxOfVideo.drawVideo()
+        await video.waitUntilVideoIsReady()
     }
 
     async resetEffects(boxOfVideo, video, mask, type = 'object', exclude_transparency = false) {

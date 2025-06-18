@@ -14,6 +14,7 @@
         <MediaElements v-else-if="videoEditor.selectedTool === 'mediaElements'" />
         <SamSelector v-else-if="videoEditor.selectedTool === 'sam'" />
         <ConfigAnimation v-else-if='videoEditor.selectedTool === "configAnimation"' />
+        <ZoomEffect v-else-if='videoEditor.selectedTool === "zoomEffect"' />
     </div>
 </template>
 
@@ -31,6 +32,7 @@
     import OverlayEffect from './Effects/OverlayEffect.vue'
     import BlendEffect from './Effects/BlendEffect.vue'
     import RemoveColor from './Effects/RemoveColor.vue'
+    import ZoomEffect from './Effects/ZoomEffect.vue'
     import Projects from './Projects.vue'
     import ConfigAnimation from '@/components/Sidebar/Animations/ConfigAnimation.vue'
 

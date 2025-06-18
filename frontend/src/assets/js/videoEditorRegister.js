@@ -76,6 +76,26 @@ export class VideoEditorRegister {
         return lastValue === 'reset' ? undefined : lastValue;
     }
 
+    getAllBlocksBetweenResets(video_id, obj_id, effect_id) {
+        const effectHistory = this.maskEffects?.[video_id]?.[obj_id]?.[effect_id];
+        if (!effectHistory || effectHistory.length === 0) return [];
+
+        const blocks = [];
+        let currentBlock = [];
+
+        for (const value of effectHistory) {
+            if (value === 'reset') {
+                blocks.push(currentBlock);
+                currentBlock = [];
+            } else {
+                currentBlock.push(value);
+            }
+        }
+
+        blocks.push(currentBlock);
+        return blocks;
+    }
+
     registerReset(video_id) {
         const videoEffects = this.maskEffects?.[video_id];
         if (!videoEffects) return;
@@ -180,10 +200,25 @@ export class VideoEditorRegister {
         for (const type in animationsByType) {
             const map = animationsByType[type]
             for (const [name, { settings }] of map) {
-                allAnimations.push({ name: `${name}${type}` , settings })
+                allAnimations.push({ name: `${name}_${type}`, settings })
             }
         }
 
         return allAnimations
+    }
+
+    updateAnimationSettings(elementId, animationName, animationType, newSettings = {}) {
+        const map = this.animations[elementId]?.[animationType]
+        if (!map || !map.has(animationName)) return false
+
+        const existing = map.get(animationName)
+        map.set(animationName, {
+            settings: {
+                ...existing.settings,
+                ...newSettings
+            }
+        })
+
+        return true
     }
 }

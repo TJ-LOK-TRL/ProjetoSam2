@@ -66,6 +66,8 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     const onElementPromptedSelectCallback = ref(null)
     const onElementPromptSelectionDoneCallback = ref(null)
 
+    const lines = ref(new Map())
+
     function createVideo(file, fps, frames) {
         const video = new VideoMedia(file, fps, frames)
         elementManager.value.addElement(video)
@@ -86,6 +88,10 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     }
 
     async function addVideo(file) {
+        if (file.type.startsWith('image/')) {
+            file = await convertImageToVideo(file)
+        }
+
         const metadata = await getVideoMetadata(file)
         return createVideo(file, metadata.fps, metadata.frames)
     }
@@ -150,6 +156,12 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         })
 
         return newVideo
+    }
+
+    async function convertImageToVideo(file) {
+        const blob = await backend.convertImageToVideo(file)
+        const fileFromBlob = new File([blob], 'converted.mp4', { type: 'video/mp4' });
+        return fileFromBlob
     }
 
     async function getVideoMetadata(file) {
@@ -242,6 +254,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                     const maskData = frameData[objId];
                     const maskBlob = base64ToBlob(maskData.data, 'image/png');
                     const maskURL = URL.createObjectURL(maskBlob);
+                    const originalMaskURL = URL.createObjectURL(maskBlob);
 
                     const newMask = {
                         id: `${newFrameIdx}-${objId}`,
@@ -249,6 +262,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                         frameIdx: newFrameIdx,
                         shape: maskData.shape,
                         url: maskURL,
+                        originalUrl: originalMaskURL, // Util when url changes and we want the original maskURL
                         videoId: video.id,
                     };
 
@@ -293,7 +307,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
 
     function getVideoPlayerSize() {
         return {
-            width: videoPlayerWidthResized.value,
+            width: videoPlayerWidthResized.value, //Math.min(videoPlayerWidthResized.value, 1000),
             height: videoPlayerHeightResized.value
         }
     }
@@ -380,7 +394,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
     }
 
     function getBoxOfElement(element) {
-        if (!mapperBoxVideo.value[element.id]) {
+        if (!mapperBoxVideo.value[element?.id]) {
             return null
         }
 
@@ -673,16 +687,24 @@ export const useVideoEditor = defineStore('videoEditor', () => {
         onElementPromptSelectionDoneCallback.value = onElementPromptSelectionDone
     }
 
+    function dialogError(msg) {
+
+    }
+
+    function addAnimationLine(id, points, allowModification = false, visible = true) {
+        lines.value.set(id, { id, points, allowModification, visible })
+    }
+
     return {
         elementManager, isLoading, videoPlayerWidth, videoPlayerHeight, videoPlayerContainer, fps,
         selectedElement, maskHandler, selectedTool, selectedToolIcon, mapperBoxVideo, register, effectHandler, zoomLevel,
         preventUnselectElementOnOutside, videoPlayerSpaceContainer, maskScaleFactor, isPromptElementOpen, onElementPromptedSelectCallback,
-        onElementPromptSelectionDoneCallback, animationHandler,
+        onElementPromptSelectionDoneCallback, animationHandler, lines,
         addVideo, addText, cloneVideo, getVideos, getTexts, getElements, generateMasksForFrame, selectEditorElement, setVideoPlayerContainer,
         onFirstVideoMetadataLoaded, onEditorElementSelected, onVideoMetadataLoaded, reorderElements, generateMasksForVideo,
         removeOnEditorElementSelected, changeTool, changeToPreviousTool, removeElement, getBoxOfElement, download, getVideoMetadata,
         compileVideos, onElementAdded, onElementRemoved, registerBox, onAddMapBoxVideo, removeOnAddMapBoxVideo, getRectBoxOfElement,
         setVideoPlayerSize, onCompileVideoMetadata, getFlipStateOfVideo, exportProject, importProject, setVideoPlayerSpaceContainer,
-        removeOnElementRemoved, getVideoPlayerSize, removeOnCompileVideoMetadataCallback, promptElementSelection
+        removeOnElementRemoved, getVideoPlayerSize, removeOnCompileVideoMetadataCallback, promptElementSelection, dialogError, addAnimationLine
     }
 })

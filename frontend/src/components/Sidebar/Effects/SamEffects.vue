@@ -68,7 +68,8 @@
         { id: 4, name: 'Overlay', icon: 'fa-layer-group' },
         { id: 5, name: 'Cut', icon: 'fa-hand-scissors' },
         { id: 6, name: 'Split', icon: 'fa-table-columns' },
-        { id: 7, name: 'Label', icon: 'fa-text-width' }
+        { id: 7, name: 'Label', icon: 'fa-text-width' },
+        { id: 8, name: 'Zoom', icon: 'fas fa-magnifying-glass' },
     ];
 
     const backgroundEffects = [
@@ -171,7 +172,7 @@
               effectId(EffectHandler.SPLIT_BKG_EFFECT_ID, mask))
         }
 
-        else if (effect.name == 'Label') {
+        else if (effect.name === 'Label') {
             videoEditor.promptElementSelection(null, async (elements) => {
                 console.log(elements, elements.length)
                 for (const element of elements) {
@@ -179,10 +180,10 @@
                 }
             })
         }
-        //
-        //else if (effect.name === 'Empty') {
-        //    videoEditor.changeTool('emptyEffect')
-        //}
+        
+        else if (effect.name === 'Zoom') {
+            videoEditor.changeTool('zoomEffect')
+        }
     };
 
     async function applyBackgroundEffect(effect) {

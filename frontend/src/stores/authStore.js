@@ -94,7 +94,7 @@ export const useAuthStore = defineStore('auth', {
         thumbnail // miniatura do projeto
       }
       try{
-        const response = await axios.post('http://localhost:5175/projects', newProject)
+        const response = await axios.post('http://localhost:5173/projects', newProject)
         const savedProject = response.data
         this.currentUser.projects.push(savedProject) // adiciona o projeto ao user atual
         this._saveCurrentUser() // guarda no LocalStorage

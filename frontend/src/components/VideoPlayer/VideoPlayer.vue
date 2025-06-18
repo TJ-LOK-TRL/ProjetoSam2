@@ -7,6 +7,8 @@
                         <BoxVideo v-if="element.type === 'video'" :video="element" />
                         <BoxText v-else-if="element.type === 'text'" :text-element="element" />
                     </template>
+
+                    <AnimationLines />
                 </div>
             </div>
         </div>
@@ -19,6 +21,7 @@
     import BoxVideo from './BoxVideo.vue'
     import BoxText from './BoxText.vue'
     import { getRectWithZoom } from '@/assets/js/utils.js'
+    import AnimationLines from '@/components/Sidebar/Animations/AnimationVisuals/AnimationLines.vue'
 
     const props = defineProps({
         parentMaxHeight: Number
@@ -205,7 +208,7 @@
         position: relative;
         width: 100%;
         height: 100%;
-        max-width: 1000px;
+        /*max-width: 1000px;*/
         max-height: 100%;
         background-color: black;
     }

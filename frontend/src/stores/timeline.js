@@ -183,7 +183,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         currentTime.value = newTime
         currentPercentage.value = percentage
         lastUpdateOrigin.value = origin
-        onUpdateCallbacks.value.forEach((callback) => callback(newTime))
+        onUpdateCallbacks.value.forEach((callback) => callback(newTime, origin))
     }
 
     async function setCurrentTime(time, origin = 'user') {
@@ -198,7 +198,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
         currentPercentage.value = ((time - minDuration.value) / range) * 100
         lastUpdateOrigin.value = origin
-        onUpdateCallbacks.value.forEach((callback) => callback(time))
+        onUpdateCallbacks.value.forEach((callback) => callback(time, origin))
     }
 
     async function syncAll(time, origin = 'user') {

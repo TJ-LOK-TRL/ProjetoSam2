@@ -97,7 +97,8 @@ class SAM2Segmenter:
                 )   
             
             if debug_points:
-                self.show_results_on_interacted_frame(vod.points, vod.labels, frame_paths[vod.ann_frame_idx], vod.ann_frame_idx, out_obj_ids, out_mask_logits)
+                self.show_results_on_interacted_frame(vod.points, vod.labels, frame_paths[vod.ann_frame_idx], 
+                                                      vod.ann_frame_idx, out_obj_ids, out_mask_logits)
                 
             print(f"Pontos adicionados no frame {vod.ann_frame_idx} com obj_id {vod.ann_obj_id}.")
         
