@@ -36,17 +36,31 @@ class SAM2Segmenter:
     MODEL_SIZE_TINY = 'tiny'
     
     def __init__(self, model_size: str = MODEL_SIZE_TINY) -> None:
+        # Enable autocasting for CUDA with bfloat16 precision to optimize performance
         torch.autocast(device_type='cuda', dtype=torch.bfloat16).__enter__()
 
+        # If the GPU supports TensorFloat-32 (e.g., Ampere or newer), enable it for better performance
         if torch.cuda.get_device_properties(0).major >= 8:
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
             
+        # Set the device to GPU if available, otherwise fallback to CPU
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+        # Define the path to the SAM2 configuration file
         self.config = os.path.join(SAM2Segmenter.HOME, 'sam2', 'configs', 'sam2', 'sam2_hiera_t.yaml')
+        
+        # Define the path to the pre-trained model checkpoint based on the model size
         self.model_path = os.path.join(SAM2Segmenter.HOME, 'checkpoints', f'sam2_hiera_{model_size}.pt')
-        self.model = build_sam2('/' + os.path.abspath(self.config), self.model_path, device=self.device, apply_postprocessing=False)
+        
+        # Load the base SAM2 model with the given configuration and checkpoint
+        self.model = build_sam2('/' + os.path.abspath(self.config), self.model_path, 
+                                device=self.device, apply_postprocessing=False)
+        
+        # Load the video prediction model (used for handling temporal context in video)
         self.video_model = build_sam2_video_predictor('/' + os.path.abspath(self.config), self.model_path)
+        
+        # Initialize the automatic mask generator using the base SAM2 model
         self.mask_generator = SAM2AutomaticMaskGenerator(self.model)
 
     def generate_mask_for_image(self, img_path: str) -> Tuple[np.ndarray, np.ndarray, List[Dict]]:
@@ -68,10 +82,37 @@ class SAM2Segmenter:
         overwrite: bool = False,
         debug_points: bool = False,
     ) -> Tuple[Dict, Path]:        
+        """
+        Generates segmentation masks for a given video using point-based annotations.
+
+        Args:
+            video_path (Union[str, Path]): Path to the input video file.
+            video_objects_data (List[VideoObjectData]): A list of VideoObjectData instances,
+                each containing point annotations, labels, object ID, and frame index.
+            output_dir (Optional[Union[str, Path]], optional): Directory to store extracted frames 
+                and intermediate results. If not provided, defaults to the same directory as the video.
+            scale_factor (float, optional): Factor to scale frames during processing. 
+                Useful for faster inference. Default is 1.0 (no scaling).
+            start_frame (int, optional): Index of the frame to start processing from. Default is 0.
+            end_frame (Optional[int], optional): Index of the last frame to process. 
+                If None, processes until the end of the video. Default is None.
+            frame_pattern (str, optional): Naming pattern for extracted frame images. 
+                Default is "{:05d}.jpeg".
+            overwrite (bool, optional): If True, re-extracts frames even if they already exist. 
+                Default is False.
+            debug_points (bool, optional): If True, displays visual feedback of added points 
+                on frames for debugging. Default is False.
+
+        Returns:
+            Tuple[Dict, Path]: 
+                - A dictionary mapping frame indices to object masks (as NumPy arrays).
+                - The path to the directory containing the extracted frames.
+        """
         video_path = Path(video_path)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
+        # Extract video frames and save them as individual images
         frame_paths = self._extract_frames(
             video_path,
             output_dir,
@@ -83,11 +124,15 @@ class SAM2Segmenter:
         )
         
         print('Output dir is:', output_dir.as_posix())
+        
+        # Initialize model inference state using extracted frames
         self.inference_state = self.video_model.init_state(video_path=output_dir.as_posix())
         self.current_video_path = output_dir
         
+        # Iterate through each annotated object
         for vod in video_objects_data:
             if vod.points is not None and vod.labels is not None:
+                # Add user-provided points and labels to the model
                 _, out_obj_ids, out_mask_logits = self.video_model.add_new_points_or_box(
                     inference_state=self.inference_state,
                     frame_idx=vod.ann_frame_idx - start_frame,
@@ -96,13 +141,14 @@ class SAM2Segmenter:
                     labels=vod.labels
                 )   
             
+            # Optionally visualize debug information
             if debug_points:
                 self.show_results_on_interacted_frame(vod.points, vod.labels, frame_paths[vod.ann_frame_idx], 
                                                       vod.ann_frame_idx, out_obj_ids, out_mask_logits)
                 
             print(f"Pontos adicionados no frame {vod.ann_frame_idx} com obj_id {vod.ann_obj_id}.")
         
-        # Realizar propagação ao longo do vídeo
+        # Propagate the segmentation masks throughout the video frames
         video_segments = {}
         for out_frame_idx, out_obj_ids, out_mask_logits in self.video_model.propagate_in_video(self.inference_state):
             video_segments[out_frame_idx] = {
@@ -136,10 +182,14 @@ class SAM2Segmenter:
             image_name_pattern=frame_pattern
         )
         
+        # Begin writing frames to the image sink (e.g., saving frames to disk)
         with images_sink:
+            # Iterate over each frame from the generator, starting at the specified frame index
             for i, frame in enumerate(frames_generator, start=start_frame):
+                # If a scaling factor is provided (not 1.0), resize the frame accordingly for efficiency
                 if scale_factor != 1.0:
                     frame = sv.scale_image(frame, scale_factor)
+                # Save the processed frame (scaled or original) using the sink
                 images_sink.save_image(frame)
         
         return sorted(sv.list_files_with_extensions(output_dir.as_posix(), extensions=["jpeg"]))

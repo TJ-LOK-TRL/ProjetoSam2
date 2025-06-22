@@ -532,28 +532,42 @@ def download():
                     'draw': draw,
                 }
                 
+                # Set the duration of the video clip based on start and end times, or default to 5 seconds if either is missing
                 duration = end_t - start_t if start_t and end_t else 5
+                
+                # Use the given fps, or default to 1 frame per second if not specified
                 text_fps = fps or 1
+                
+                # Determine if the text should be bold — either by numeric weight (>=700) or by string comparison
                 is_bold = bold == int(bold) >= 700 if isinstance(bold, int) else bold == 'bold'
+                
+                # Check if the text style includes italic formatting
                 is_italic = 'italic' in italic
-                text_frame = create_text_frame(text, font_family, font_size, color, is_bold, is_italic, align, rect.width, rect.height)
+                
+                # Create a single text frame (image) with the given parameters (font, size, color, etc.)
+                text_frame = create_text_frame(text, font_family, font_size, color, is_bold, is_italic,
+                                               align, rect.width, rect.height)
+                
+                # Replicate the static frame into a video array to simulate a video at the specified FPS
                 text_frames = replicate_frame_as_video_array(text_frame, duration, text_fps)
+                
+                # Create a VideoArray object using the generated frames and FPS
                 video_input = VideoArray(text_frames, text_fps)
               
-            # Adiciona layer com configurações
+            # Add layer with settings
             compositor.add_layer(LayerInfo(
-                video=video_input,
-                rect=rect,
-                layer_idx=idx,
-                st_offset=st_offset,
-                start_t=start_t,
-                end_t=end_t,
-                rotation=rotation,
-                speed=speed,
-                flipped=flipped,
-                draw=draw,
-                opacity=opacity,
-                border_radius=border_radius,
+                video=video_input, # Video file or VideoArray
+                rect=rect, # Rect object with x, y, width, height
+                layer_idx=idx, # Layer index
+                st_offset=st_offset, # Start time offset in seconds
+                start_t=start_t, # Start time in seconds
+                end_t=end_t, # End time in seconds (None means until the end of the video)
+                rotation=rotation, # Rotation in degrees
+                speed=speed, # Speed multiplier
+                flipped=flipped, # Whether the video is flipped horizontally
+                draw=draw, # Whether to draw the video
+                opacity=opacity, # Opacity of the video layer (0.0 to 1.0)
+                border_radius=border_radius, # Border radius for rounded corners
             ))
         
         def process_frame(

@@ -3,7 +3,7 @@
         <div class="resizer" @mousedown="startResize"></div>
 
         <div class="timeline-controllers">
-            <div class="">example</div>
+            <div class="">Split</div>
             <div class="video-controllers">
                 <div class="video-controllers-buttons">
                     <button class="control-btn back" @click="timelineStore.goBack">

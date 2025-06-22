@@ -87,19 +87,19 @@ def comp_browser(
     extra_flags=None
 ):
     """
-    Converte um vídeo para formato compatível com browsers (H.264 + AAC).
+    Converts a video to a browser-compatible format (H.264 + AAC).
 
     Args:
-        input_path (str | Path): Caminho para o ficheiro de entrada.
-        output_path (str | Path, optional): Caminho de saída. Se None, usa o mesmo nome com '_converted.mp4'.
-        crf (int, optional): Constant Rate Factor para qualidade (0-51, onde 23 é bom).
-        preset (str, optional): Velocidade de compressão (ultrafast, superfast, veryfast, faster, fast, medium...).
-        audio_codec (str, optional): Codec de áudio (padrão: aac).
-        video_codec (str, optional): Codec de vídeo (padrão: libx264).
-        extra_flags (list, optional): Lista com flags extra para FFmpeg.
+        input_path (str | Path): Input video file path.
+        output_path (str | Path, optional): Output path. If None, appends '_converted.mp4' to the original name.
+        crf (int, optional): Constant Rate Factor (0-51, where 23 is a good default).
+        preset (str, optional): Compression speed (ultrafast, superfast, veryfast, faster, fast, medium...).
+        audio_codec (str, optional): Audio codec to use (default: aac).
+        video_codec (str, optional): Video codec to use (default: libx264).
+        extra_flags (list, optional): List of additional FFmpeg flags.
 
     Returns:
-        Path: Caminho para o ficheiro convertido.
+        Path: Path to the converted file.
     """
     input_path = Path(input_path)
     if output_path is None:
@@ -109,20 +109,19 @@ def comp_browser(
 
     cmd = [
         'ffmpeg',
-        '-y', 
-        '-i', str(input_path),
-        '-c:v', video_codec,
-        '-preset', preset,
-        '-crf', str(crf),
-        '-c:a', audio_codec,
-        '-movflags', '+faststart',
-        str(output_path)
+        '-y', # Overwrite output file without asking
+        '-i', str(input_path), # Input file
+        '-c:v', video_codec, # Video codec
+        '-preset', preset, # Compression speed/efficiency trade-off
+        '-crf', str(crf),  # Constant Rate Factor (lower is better quality)
+        '-c:a', audio_codec, # Audio codec
+        '-movflags', '+faststart', # Enables progressive streaming (start video before full download)
+        str(output_path) # Output file path
     ]
 
     if extra_flags:
         cmd = cmd[:-1] + extra_flags + [str(output_path)]
 
-    print("Comando FFmpeg:", " ".join(cmd))
     subprocess.run(cmd, check=True)
     return output_path
 

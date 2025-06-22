@@ -89,7 +89,7 @@ export default class EffectHandler {
         const frame = video.captureCurrentCanvasFrame();
 
         if (register) {
-            // register for backend download and history and ctrl-z
+            // register to allow sending this effects to the backend for compilation
             this.register.registerMaskEffect(video.id, mask.objId, EffectHandler.COLOR_EFFECT_NAME, {
                 color: color,
                 alpha: alpha,
@@ -136,13 +136,18 @@ export default class EffectHandler {
         await this.maskHandler.changeColorOfMask(frame, mask, null, {}, 0, detection, outputCanvas, getCanvasSize);
     }
 
-    async overlapVideo(overlayVideo, refVideoId, mask, videoRect, overlayVideoRect, outputCanvas, getCanvasSize, register = true) {
+    async overlapVideo(overlayVideo, refVideoId, mask, videoRect, overlayVideoRect, type, outputCanvas, getCanvasSize, register = true) {
         // register for backend download and history and ctrl-z
         if (register) {
             this.register.registerMaskEffect(overlayVideo.id, -2, EffectHandler.OVERLAP_EFFECT_NAME, {
                 refVideoId: refVideoId,
                 maskObjId: mask.objId,
+                type,
             });
+        }
+
+        if (type === 'Front') {
+            return
         }
 
         await this.maskHandler.overlapVideo(mask, videoRect, overlayVideoRect, outputCanvas, getCanvasSize)
@@ -399,18 +404,23 @@ export default class EffectHandler {
             maskObjId: mask.objId,
         });
 
+        /* 
+         * This is important because we need to preserve the spatial 
+         * offset between the effect and the reference object.
+         * The offset is calculated relative to the current frame, 
+         * so if the frame changes, the original offset may be lost. 
+        */
         this.videoEditor.onCompileVideoMetadata(callbackId, async (metadata, compileVideo) => {
-            if (compileVideo.id !== video.id) {
-                return
-            }
+            if (compileVideo.id !== video.id) { return }
 
+            // Get the center position of the reference mask in the current frame
             const position = await getMaskPosition(boxOfMask, objId)
-            if (!position || !boxOfVideo?.box) {
-                return
-            }
+            if (!position || !boxOfVideo?.box) { return }
 
             const [x, y] = position;
             const rect = boxOfVideo.box.getRect();
+
+            // Compute the relative offset between the video effect and the reference object
             metadata.x = rect.x - x
             metadata.y = rect.y - y
 

@@ -79,8 +79,6 @@
         { id: 11, name: 'Color', icon: 'fa-palette' },
         { id: 12, name: 'Cut', icon: 'fa-hand-scissors' },
         { id: 13, name: 'Split', icon: 'fa-table-columns' },
-        { id: 14, name: 'Blur', icon: 'fa-tint' },
-        { id: 15, name: 'Outline', icon: 'fa-border-all' }
     ];
 
     async function applyEffect(effect) {
@@ -106,8 +104,8 @@
 
         if (['Erase', 'Cut'].includes(effect.name)) {
             console.log('Resetting effects');
-            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask,
-             'object');
+            // Reseting effects
+            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 'object');
         }
 
         if (!mask) {
@@ -124,31 +122,41 @@
         }
 
         else if (effect.name === 'Erase') {
-            const worked = await videoEditor.effectHandler.eraseWithBackgroundReplacement(video,
-             mask)
+            // Try to erase the object by reconstructing the background behind the mask
+            const worked = await videoEditor.effectHandler.eraseWithBackgroundReplacement(video, mask)
+
+            // If background reconstruction failed, fill the mask area with black
             if (!worked) {
                 await videoEditor.effectHandler.changeColorOfMask(video, mask, '#000000', {})
             }
 
+            // Register a callback to modify the video frame before drawing
             boxOfVideo.addOnDrawVideoCallback(effectId(EffectHandler.ERASE_OBJ_EFFECT_ID, mask),
-             async img => {
-                const [width, height] = boxOfVideo.getBoxVideoSize()
-                const frame_mask = video.trackMasks?.[video.frameIdx]?.[objId]
-                if (frame_mask) {
-                    const outputCanvas = document.createElement('canvas')
-                    outputCanvas.width = width
-                    outputCanvas.height = height
-                    const outputCtx = outputCanvas.getContext('2d')
-                    outputCtx.drawImage(img, 0, 0, width, height)
-                    const worked = await videoEditor.effectHandler.eraseWithBackgroundReplacement(
-                        video, mask, outputCanvas, null, false)
-                    if (!worked) {
-                        await videoEditor.effectHandler.changeColorOfMask(video, mask, 
-                        '#000000', {}, 255, 255, outputCanvas, null, false)
+                async img => {
+                    const [width, height] = boxOfVideo.getBoxVideoSize()
+                    const frame_mask = video.trackMasks?.[video.frameIdx]?.[objId]
+
+                    // If the mask exists for the current frame, try to apply the erase effect again
+                    if (frame_mask) {
+                        const outputCanvas = document.createElement('canvas')
+                        outputCanvas.width = width
+                        outputCanvas.height = height
+                        const outputCtx = outputCanvas.getContext('2d')
+
+                        // Draw the original frame into the canvas
+                        outputCtx.drawImage(img, 0, 0, width, height)
+
+                        const worked = await videoEditor.effectHandler.eraseWithBackgroundReplacement(video, mask, 
+                                                                                                      outputCanvas, null, false)
+                        if (!worked) {
+                            await videoEditor.effectHandler.changeColorOfMask(video, mask,
+                                '#000000', {}, 255, 255, outputCanvas, null, false)
+                        }
+                        return outputCanvas
                     }
-                    return outputCanvas
-                }
-                return img
+
+                    // If there's no mask for the current frame, return the original image
+                    return img
             })
         }
 
@@ -161,15 +169,15 @@
         }
 
         else if (effect.name === 'Cut') {
-            await cutEffect(video, mask, boxOfVideo, (box, video) => 
-            video.trackMasks?.[video.frameIdx]?.[objId], 
-            effectId(EffectHandler.CUT_OBJ_EFFECT_ID, mask))
+            await cutEffect(video, mask, boxOfVideo, (box, video) =>
+                video.trackMasks?.[video.frameIdx]?.[objId],
+                effectId(EffectHandler.CUT_OBJ_EFFECT_ID, mask))
         }
 
         else if (effect.name === 'Split') {
             splitEffect(video, mask, (box, newVideo) =>
-             newVideo.trackMasks?.[newVideo.frameIdx]?.[objId],
-              effectId(EffectHandler.SPLIT_BKG_EFFECT_ID, mask))
+                newVideo.trackMasks?.[newVideo.frameIdx]?.[objId],
+                effectId(EffectHandler.SPLIT_BKG_EFFECT_ID, mask))
         }
 
         else if (effect.name === 'Label') {
@@ -180,7 +188,7 @@
                 }
             })
         }
-        
+
         else if (effect.name === 'Zoom') {
             videoEditor.changeTool('zoomEffect')
         }
@@ -201,8 +209,8 @@
         const boxOfVideo = videoEditor.getBoxOfElement(video)
 
         if (['Erase', 'Cut'].includes(effect.name)) {
-            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask, 
-            'background');
+            await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask,
+                'background');
         }
 
         if (effect.name === 'Color') {
@@ -212,27 +220,27 @@
         else if (effect.name === 'Erase') {
             await videoEditor.effectHandler.changeColorOfMask(video, mask, '#000000', {})
 
-            boxOfVideo.addOnDrawVideoCallback(effectId(EffectHandler.ERASE_OBJ_EFFECT_ID, 
-            mask), async img => {
-                const [width, height] = boxOfVideo.getBoxVideoSize()
-                const frame_mask = video.trackMasks?.[video.frameIdx]?.[objId]
-                if (frame_mask) {
-                    const outputCanvas = document.createElement('canvas')
-                    outputCanvas.width = width
-                    outputCanvas.height = height
-                    const outputCtx = outputCanvas.getContext('2d')
-                    outputCtx.drawImage(img, 0, 0, width, height)
-                    await videoEditor.effectHandler.changeColorOfMask(video, 
-                    mask, '#000000', {}, 255, 255, outputCanvas, null, false)
-                    return outputCanvas
-                }
-                return img
-            })
+            boxOfVideo.addOnDrawVideoCallback(effectId(EffectHandler.ERASE_OBJ_EFFECT_ID,
+                mask), async img => {
+                    const [width, height] = boxOfVideo.getBoxVideoSize()
+                    const frame_mask = video.trackMasks?.[video.frameIdx]?.[objId]
+                    if (frame_mask) {
+                        const outputCanvas = document.createElement('canvas')
+                        outputCanvas.width = width
+                        outputCanvas.height = height
+                        const outputCtx = outputCanvas.getContext('2d')
+                        outputCtx.drawImage(img, 0, 0, width, height)
+                        await videoEditor.effectHandler.changeColorOfMask(video,
+                            mask, '#000000', {}, 255, 255, outputCanvas, null, false)
+                        return outputCanvas
+                    }
+                    return img
+                })
         }
 
         else if (effect.name === 'Original') {
             await videoEditor.effectHandler.resetEffects(boxOfVideo, video, mask,
-             'background')
+                'background')
         }
 
         else if (effect.name === 'Blend') {
@@ -262,22 +270,27 @@
         video.preventNextUpdateCallbacks()
 
         videoEditor.cloneVideo(video, async (newVideo, box) => {
+            // Register video as a related video
             videoEditor.effectHandler.addRelatedVideo(newVideo);
 
+            // Get the first frame index and calculate the target time
             const frameIdx = Math.min(...Object.keys(video.trackMasks).map(Number));
             const targetTime = calculateTimeByFrameIdx(frameIdx, video.fps);
 
+            // Set the new video's speed equal to the original video's speed
             timelineStore.setVideoSpeed(newVideo, video.speed)
-            //timelineStore.setStOffset(newVideo, targetTime);
-            //timelineStore.setElementStart(newVideo, targetTime);
+
+            /* 
+            timelineStore.setStOffset(newVideo, targetTime);
+            timelineStore.setElementStart(newVideo, targetTime); */
 
             await newVideo.waitUntilVideoIsReady()
 
             const getBoxVideoSize = box.getBoxVideoSize
             const outputCanvas = box.getCanvasToApplyVideo()
 
-            await videoEditor.effectHandler.cutObject(newVideo, mask, 0, 
-            outputCanvas, getBoxVideoSize, true, false)
+            await videoEditor.effectHandler.cutObject(newVideo, mask, 0, outputCanvas, getBoxVideoSize, true, false)
+
             box.addOnDrawVideoCallback(id, async (img) => {
                 const frame_mask = await getFrameMask(box, newVideo)
                 const [width, height] = box.getBoxVideoSize()
@@ -287,8 +300,7 @@
                     outputCanvas.height = height
                     const outputCtx = outputCanvas.getContext('2d')
                     outputCtx.drawImage(img, 0, 0, width, height)
-                    await videoEditor.maskHandler.changeColorOfMask(
-                        img, frame_mask, null, {}, 0, 0, outputCanvas, getBoxVideoSize);
+                    await videoEditor.maskHandler.changeColorOfMask(img, frame_mask, null, {}, 0, 0, outputCanvas, getBoxVideoSize);
                     return outputCanvas
                 }
                 // Criar canvas vazio e transparente
@@ -337,7 +349,7 @@
         const boxOfVideo = videoEditor.getBoxOfElement(video)
         const { width, height } = videoEditor.getRectBoxOfElement(video);
         if (shouldCompile(video)) {
-            
+
             videoEditor.onCompileVideoMetadata(0, (metadata, compileVideo) => {
                 if (compileVideo.id === video.id) {
                     metadata.x = 0
@@ -445,7 +457,7 @@
         videoEditor.onEditorElementSelected('SameEffects', e => {
             const allowVideos = videoEditor.effectHandler.getAllEffectVideos();
             const isAllowed = allowVideos.some(v => v?.id === e?.id);
-            
+
             if (!isAllowed) {
                 videoEditor.changeTool('sam', 'sam');
             }

@@ -219,7 +219,7 @@
                 videoId: video.value.id,
                 objId: objId,
                 frameIdx: currentFrameNumber,
-                indexColor: videoEditor.maskHandler.getIndexedColor(index),
+                indexColor: videoEditor.maskHandler.getIndexedColor(index), // INDEX COLOR HERE
             }));
             video.value.masks = newMasks;
 

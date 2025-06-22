@@ -259,17 +259,16 @@ export default class MaskHandler {
             let lineWidth
 
             if (mask.id === this.selectedMask?.id) {
-                color = this.selectedMaskColor;
-                lineWidth = 3; // Mais espesso para máscara selecionada
+                color = this.selectedMaskColor; // Use the selected mask color (e.g., green)
+                lineWidth = 3; // Thicker border for selected mask
             } else if (mask.id === this.activeMask?.id) {
-                color = this.hoverMaskColor;
-                lineWidth = 2;
+                color = this.hoverMaskColor; // Use the hover color (e.g., red)
+                lineWidth = 2; // Medium thickness for hover state
             } else {
-                color = this.unselectedMaskColor;
-                lineWidth = 1;
+                color = this.unselectedMaskColor; // Use default color (e.g., gray)
+                lineWidth = 1; // Thinner border for inactive masks
             }
 
-            //this.drawVisibleMask(ctx, canvas, mask, color)
             this.drawMaskBoundingBox(ctx, canvas, mask, color, lineWidth)
         });
     }
@@ -443,23 +442,22 @@ export default class MaskHandler {
             y = centerY + (relX * Math.sin(angleRad) + relY * Math.cos(angleRad));
         }
 
+        // Get the color data of the pixel at coordinates (x, y)
         const pixel = ctx.getImageData(x, y, 1, 1).data;
-        const [r, g, b] = pixel;
+        const [r, g, b] = pixel; // Extract RGB values from the pixel data
 
         let detected = false;
-        //console.log(x, y, event.clientX, event.clientY, rect.left, rect.top, zoom);
-        //console.log(`Pixel at (${x}, ${y}): RGB(${r}, ${g}, ${b})`, 'Extra info:', rect.left, rect.top);
+
+        // Iterate through all masks to check if any match the pixel's color
         masks.forEach((mask, index) => {
-            //console.log(r, g, b, '-', mask.indexColor)
-            //const expectedColor = [(index * 50) % 255, (index * 80) % 255, (index * 120) % 255]; // MAX DE 51 cores ou seja mascaras
-            const expectedColor = mask.indexColor // Deve ser mais mas não calculei ainda
+            const expectedColor = mask.indexColor // The unique color assigned to the mask
             if (r === expectedColor[0] && g === expectedColor[1] && b === expectedColor[2]) {
+                // If the pixel color matches the mask's color, the object is being hovered
                 detected = true
                 onMouseHover(mask, index)
-                //console.log(`Pixel Hover: R:${r} G:${g} B:${b}`, expectedColor, true, mask.id);
             } else {
+                // If not matching, ensure hover is deactivated for this mask
                 onMouseNotHover(mask, index)
-                //console.log(`Pixel Hover: R:${r} G:${g} B:${b}`, expectedColor, false);
             }
         });
 
@@ -861,7 +859,7 @@ export default class MaskHandler {
 
         ctx.putImageData(finalImageData, 0, 0);
 
-        return { id: 'background', objId: id, url: canvas.toDataURL() };
+        return { id: 'background', objId: id, originalUrl: canvas.toDataURL(), url: canvas.toDataURL() };
     }
 
     applyChromaKeyOnCanvas(originalImage, outputCanvas, color, tolerance, width, height) {
@@ -1302,6 +1300,8 @@ export default class MaskHandler {
 
     async zoomObjectByMask(img, mask, zoomLevel, width, height, backgroundColor = [0, 0, 0, 0], detection = 255) {
         if (zoomLevel === 1) return img;
+        width = Math.round(width)
+        height = Math.round(height)
 
         // 1. Criar canvas temporários
         const resultCanvas = document.createElement('canvas');
@@ -1326,7 +1326,7 @@ export default class MaskHandler {
 
         // 4. Criar objeto isolado (com transparência onde não é máscara)
         const bbox = this.calculateBoundingBox(maskData, width, height, detection);
-        console.log(bbox, width, height)
+        console.log(bbox, width, height, mask.originalUrl)
         if (!bbox) return img;
 
         const objCanvas = document.createElement('canvas');
@@ -1336,13 +1336,14 @@ export default class MaskHandler {
         const objImageData = objCtx.createImageData(bbox.w, bbox.h);
         const objData = objImageData.data;
 
+        console.log('Size:', width, height, bbox.w, bbox.h, Math.round(bbox.w), Math.round(bbox.h))
         // Preencher objeto isolado
         for (let y = 0; y < bbox.h; y++) {
             for (let x = 0; x < bbox.w; x++) {
                 const origX = bbox.x + x;
                 const origY = bbox.y + y;
-                const origIdx = (origY * width + origX) * 4;
-                const objIdx = (y * bbox.w + x) * 4;
+                const origIdx = Math.round( (origY * width + origX) * 4 );
+                const objIdx = Math.round( (y * bbox.w + x) * 4 );
 
                 if (maskData[origIdx] === detection) {
                     objData[objIdx] = originalData[origIdx];     // R

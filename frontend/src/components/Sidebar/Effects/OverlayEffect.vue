@@ -103,15 +103,11 @@
     async function updateOverlayType() {
         if (videoEditor.selectedElement?.type !== 'video') return
 
-        const overlayVideo = videoEditor.selectedElement // PROBLEM HERE
+        const overlayVideo = videoEditor.selectedElement // PROBLEM HERE, MUST BE FIXED
         const boxOverlayVideo = videoEditor.getBoxOfElement(overlayVideo)
         boxOverlayVideo.removeOnDrawVideoCallback(EffectHandler.OVERLAY_TYPE_EFFECT_ID)
 
         const type = currentOverlaySetting.value
-        if (type === 'Front') {
-            await boxOverlayVideo.drawVideo()
-            return
-        }
 
         const video = videoEditor.maskHandler.video
         const videoRect = videoEditor.getRectBoxOfElement(video)
@@ -125,7 +121,12 @@
         const outputCanvas = boxOverlayVideo.getCanvasToApplyVideo()
         const getBoxVideoSize = boxOverlayVideo.getBoxVideoSize
 
-        await videoEditor.effectHandler.overlapVideo(overlayVideo, video.id, mask, videoRect, overlayVideoRect, outputCanvas, getBoxVideoSize)
+        await videoEditor.effectHandler.overlapVideo(overlayVideo, video.id, mask, videoRect, overlayVideoRect, type, outputCanvas, getBoxVideoSize)
+
+        if (type === 'Front') {
+            await boxOverlayVideo.drawVideo()
+            return
+        }
 
         boxOverlayVideo.addOnDrawVideoCallback(EffectHandler.OVERLAY_TYPE_EFFECT_ID, async (img) => {
             const frame_mask = video.trackMasks?.[video.frameIdx]?.[objId]

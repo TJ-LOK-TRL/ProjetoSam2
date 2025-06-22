@@ -6,6 +6,7 @@ from video_compositor import RenderInfo, RoiInfo, Rect
 import math
 
 class VideoEffectsProcessor:
+    
     @staticmethod
     def apply_blend(
         frame: np.ndarray, 
@@ -13,14 +14,13 @@ class VideoEffectsProcessor:
         mask: np.ndarray, 
         detection: int = 255
     ) -> np.ndarray:
-        h, w = frame.shape[:2]  # altura/largura do frame principal
-        bh, bw = blend_frame.shape[:2]  # altura/largura do blend_frame
+        h, w = frame.shape[:2]  # Height/width of the main frame
+        bh, bw = blend_frame.shape[:2]  # Height/width of the blend frame
 
-        # Se o blend_frame for menor que o frame, redimensiona (ou lança erro)
-        if bh < h or bw < w:
-            blend_frame = cv2.resize(blend_frame, (w, h))
+        # Resize blend frame
+        blend_frame = cv2.resize(blend_frame, (w, h))
         
-        # Aplica a máscara (pega apenas os pixels onde mask == detection)
+        # Replace pixels in the main frame where the mask matches the detection value
         frame[mask == detection] = blend_frame[:h, :w][mask == detection]
         
         return frame
@@ -62,29 +62,29 @@ class VideoEffectsProcessor:
     @staticmethod
     def get_center_of_binary_mask(mask: np.ndarray) -> tuple:
         """
-        Calcula o centro geométrico de uma máscara binária de forma otimizada.
-        
+        Calculates the geometric center (centroid) of a binary mask in an optimized way.
+
         Args:
-            mask: Array numpy (H, W) ou (H, W, 3) representando a máscara binária
-                (Valores brancos (255) são considerados parte da máscara)
-        
+            mask: Numpy array of shape (H, W) or (H, W, 3) representing the binary mask.
+                White pixels (value 255) are considered part of the mask.
+
         Returns:
-            Tupla (center_x, center_y) ou None se não encontrar pixels brancos
+            Tuple (center_x, center_y), or None if no white pixels are found.
         """
-        # Converte para escala de cinza se necessário
+        # Convert to grayscale if the mask has 3 channels
         if len(mask.shape) == 3:
             mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
         
-        # Cria uma máscara binária (255 onde é branco)
+        # Create a binary mask: 255 where pixel is white
         _, binary_mask = cv2.threshold(mask, 254, 255, cv2.THRESH_BINARY)
         
-        # Encontra coordenadas de todos os pixels brancos
+        # Find coordinates of all white pixels
         y_coords, x_coords = np.where(binary_mask == 255)
         
         if len(x_coords) == 0:
             return None
         
-        # Calcula o centroide usando média das coordenadas
+        # Compute the centroid as the average of coordinates
         center_x = int(np.round(np.mean(x_coords)))
         center_y = int(np.round(np.mean(y_coords)))
         
@@ -131,17 +131,19 @@ class VideoEffectsProcessor:
         mask_canvas_y2 = min(final_height, mask_y + mask_h)
         
         if mask_canvas_x1 < mask_canvas_x2 and mask_canvas_y1 < mask_canvas_y2:
-            # Região da máscara que será copiada
+            # Region of the mask to be copied
             mx1 = max(0, -mask_x)
             my1 = max(0, -mask_y)
             mx2 = mx1 + (mask_canvas_x2 - mask_canvas_x1)
             my2 = my1 + (mask_canvas_y2 - mask_canvas_y1)
             
-            # 5. Aplicar efeito de transparência nas áreas brancas
+            # 5. Apply transparency effect to white areas
+            
+            # Get the region of interest in the canvas and mask 
             canvas_roi = canvas[mask_canvas_y1:mask_canvas_y2, mask_canvas_x1:mask_canvas_x2]
             mask_roi = mask[my1:my2, mx1:mx2]
             
-            # Onde a máscara é branca, torna transparente
+            # Where the mask is white, make it transparent
             canvas_roi[mask_roi == 255, 3] = 0
             
             # Debug: desenhar máscara em vermelho semi-transparente
@@ -165,15 +167,19 @@ class VideoEffectsProcessor:
         detection_type = chroma_key_data.get('detectionType', 'Position')
         tolerance = int(chroma_key_data.get('tolerance', 100))
         
-        # Determinar a cor alvo (agora usando BGR consistentemente)
+        # Determine the target color (consistently using BGR format)
         if detection_type == 'Color':
             hex_color = chroma_key_data.get('selectedColor', '#00FF00')
             target_color = hexToRgb(hex_color)
             target_b, target_g, target_r = target_color['b'], target_color['g'], target_color['r']  # RGB to BGR
         elif detection_type == 'Position':
             x, y = map(int, chroma_key_data.get('position', (0, 0)))
+            
+            # Clamp coordinates to frame boundaries to avoid indexing errors
             y = min(max(0, y), frame.shape[0] - 1)
             x = min(max(0, x), frame.shape[1] - 1)
+            
+            # Get the BGR color directly from the frame at the specified position
             target_b, target_g, target_r = frame[y, x]  # Já está em BGR
         else:
             print(f"Tipo de detecção desconhecido: {detection_type}")
@@ -185,13 +191,15 @@ class VideoEffectsProcessor:
         else:
             frame_bgra = frame.copy()
         
-        # Calcular distância no espaço BGR (sem conversão para RGB)
+        # Calculate the distance in BGR color space (no conversion to RGB)
         diff = frame.astype(np.float32) - np.array([target_b, target_g, target_r], dtype=np.float32)
         distance_sq = np.sum(diff**2, axis=2)
         
-        # Criar máscara de transparência idêntica ao método que funciona
+        # Create an alpha mask similar to a working method
         alpha_channel = np.ones(frame.shape[:2], dtype=np.uint8) * 255
+        # Set alpha to 0 (transparent) where color distance is within the tolerance threshold
         alpha_channel[distance_sq <= (tolerance ** 2)] = 0
+        # Assign the alpha channel to the frame's alpha layer
         frame_bgra[:, :, 3] = alpha_channel
         
         return frame_bgra
@@ -235,7 +243,7 @@ class VideoEffectsProcessor:
         height: int,
         main_frame_idx: int,
         obj_id: int,
-        dilation_radius: int = 15  # Adicionado o mesmo parâmetro de dilatação
+        dilation_radius: int = 15
     ) -> Optional[Tuple[int, np.ndarray]]:
         """
         Encontra a melhor máscara de substituição baseada na proximidade do frame_idx
@@ -259,19 +267,19 @@ class VideoEffectsProcessor:
 
         if dilation_radius > 0:
             kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*dilation_radius+1, 2*dilation_radius+1))
-            main_mask = cv2.dilate(main_mask, kernel)  # Dilatação idêntica
+            main_mask = cv2.dilate(main_mask, kernel)  # Dilation to avoid imperfections
 
-        # Converte para binário (255 ou 0) se necessário
+        # Convert to binary (255 or 0) if needed
         main_bin = (main_mask > 254).astype(np.uint8) * 255
 
-        # Ordena outros frames pela proximidade ao frame principal
+        # Sort other frames by proximity to the main frame index
         sorted_frames = sorted(
             other_masks.keys(),
             key=lambda x: abs(x - main_frame_idx)
         )
 
         for frame_idx in sorted_frames:
-            # Pega apenas máscaras do mesmo objeto
+            # Only consider masks for the same object
             if obj_id not in other_masks[frame_idx]:
                 continue
                 
@@ -279,7 +287,7 @@ class VideoEffectsProcessor:
             other_mask = cv2.resize(other_mask, (width, height), interpolation=cv2.INTER_NEAREST)
             other_bin = (other_mask > 254).astype(np.uint8) * 255
 
-            # Verifica se TODAS as áreas brancas da principal são pretas na outra máscara
+            # Check if ALL white areas in the main mask are black in the other mask
             overlap = np.logical_and(main_bin == 255, other_bin == 255)
             if not np.any(overlap):
                 return (frame_idx, other_mask)
@@ -335,26 +343,21 @@ class VideoEffectsProcessor:
         return result
     
     @staticmethod
-    def cut_object(
-        frame: np.ndarray,
-        mask: np.ndarray,
-        width: int,
-        height: int
-    ) -> np.ndarray:
+    def cut_object(frame: np.ndarray, mask: np.ndarray, width: int, height: int) -> np.ndarray:
         """
-        Remove a parte do frame correspondente à área branca da máscara.
-        Retorna frame BGRA (com canal alpha).
+        Removes the part of the frame corresponding to the white area of the mask.
+        Returns a BGRA frame (with alpha channel).
         """
-        # Garante que a máscara está no tamanho correto
         mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST)
         
-        # Converte para BGRA se necessário
+        # Convert to BGRA if necessary
         if frame.shape[2] == 3:
             frame_bgra = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
         else:
             frame_bgra = frame.copy()
         
-        # Aplica a máscara no canal alpha (invertida)
+        # Where the mask is white, set alpha to 0 (fully transparent)
+        # Else, set alpha to 255 (fully opaque)
         frame_bgra[:, :, 3] = np.where(mask > 254, 0, 255)
         
         return frame_bgra
@@ -380,18 +383,18 @@ class VideoEffectsProcessor:
             blurred = VideoEffectsProcessor.apply_blur_effect(frame, settings['blur'])
             output[mask_binary] = blurred[mask_binary]
 
-        # 5. Aplica cor base se especificada
+        # 5. Applies base color if specified 
         if color:
-            # Calcula a intensidade média por pixel (R+G+B)/3, normalizada para [0, 1]
+            # Calculates the average intensity per pixel (R+G+B)/3, normalized to [0, 1]
             intensity = np.mean(frame[mask_binary], axis=1) / 255.0
 
-            # Converte a cor para array numpy para vetorizar
+            # Converts the color to a NumPy array for vectorized operations
             solid_color = np.array([color['b'], color['g'], color['r']], dtype=np.float32)
 
-            # Comportamento base (como se factor = 1)
+            # Base behavior (as if factor = 1)
             base = solid_color * intensity[:, np.newaxis]
 
-            # Interpola usando o factor (controla o quanto a cor sólida cobre os detalhes)
+            # Interpolates using the factor (controls how much the solid color covers the details)
             factor = settings.get('factor', 1)
             result = base * (2 - factor) + solid_color * (factor - 1)
 
@@ -476,126 +479,144 @@ class VideoEffectsProcessor:
         return output
     
     @staticmethod
-    def _apply_exposure(rgb, settings):
-        """Aplica exposição"""
+    def _apply_exposure(rgb: np.ndarray, settings: Dict[str, Any]):
+        """Apply exposure adjustment to the RGB array."""
         if 'exposure' in settings and settings['exposure'] != 0:
+            # Increase or decrease brightness by scaling pixel values
             rgb *= 2 ** settings['exposure']
+            
+            # Ensure pixel values stay within the valid range [0, 1]
             rgb = np.clip(rgb, 0, 1)
         return rgb
     
     @staticmethod
-    def _apply_brightness(rgb, settings):
-        """Aplica brilho"""
+    def _apply_brightness(rgb: np.ndarray, settings: Dict[str, Any]):
+        """Apply brightness"""
         if 'brightness' in settings and settings['brightness'] != 0:
-            #rgb = (rgb * 255).astype(np.uint8)
             hls = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_BGR2HLS).reshape(-1, 3).astype(np.float32)
             h, l, s = hls[:, 0], hls[:, 1], hls[:, 2]
             
             brightness = settings['brightness']
             if brightness > 0:
-                l = l + (1 - l) * brightness  # Clarear (não-linear)
+                l = l + (1 - l) * brightness  # Lighten (non-linear)
             else:
-                l = l * (1 + brightness)     # Escurecer (não-linear)
+                l = l * (1 + brightness)     # Darken (non-linear)
             l = np.clip(l, 0, 1)
             
             hls = np.stack([h, l, s], axis=1)
-            return cv2.cvtColor(hls.reshape(1, -1, 3), cv2.COLOR_HLS2BGR).reshape(-1, 3)#.astype(np.float32) / 255.0
+            return cv2.cvtColor(hls.reshape(1, -1, 3), cv2.COLOR_HLS2BGR).reshape(-1, 3)
         return rgb
     
     @staticmethod
-    def _apply_contrast(rgb, settings):
-        """Aplica contraste"""
+    def _apply_contrast(rgb: np.ndarray, settings: Dict[str, Any]):
+        """Apply contrast"""
         if 'contrast' in settings and settings['contrast'] != 0:
             contrast = settings['contrast'] + 1
-            v = np.clip((rgb - 0.5) * contrast + 0.5, 0, 1)
-            rgb = v
+            
+            # Adjust contrast by scaling pixel values around the midpoint (0.5)
+            rgb = np.clip((rgb - 0.5) * contrast + 0.5, 0, 1)
         return rgb
 
     @staticmethod
-    def _apply_hue(rgb, settings):
-        """Aplica ajuste de matiz (hue)"""
+    def _apply_hue(rgb: np.ndarray, settings: Dict[str, Any]):
+        """Apply hue adjustment to the RGB array."""
         if 'hue' in settings and settings['hue'] != 0:
+            # Convert RGB to HSV color space (reshape needed for cv2)
             hsv = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_BGR2HSV).reshape(-1, 3)
+            
+            # Adjust the hue channel and wrap around using modulo
             hsv[:, 0] = (hsv[:, 0] - settings['hue']) % 360
+            
+            # Convert HSV back to RGB color space
             rgb = cv2.cvtColor(hsv.reshape(1, -1, 3), cv2.COLOR_HSV2BGR).reshape(-1, 3)
         return rgb
     
     @staticmethod
-    def _apply_saturation(rgb, settings):
-        """Ajuste de saturação baseado em HLS (como no hslToRgb JS)"""
+    def _apply_saturation(rgb: np.ndarray, settings: Dict[str, Any]):
+        """Apply saturation adjustment to the RGB array."""
         if 'saturation' in settings and settings['saturation'] != 1:
+            # Convert RGB from [0,1] float to [0,255] uint8 for OpenCV
             rgb = (rgb * 255).astype(np.uint8)
+            
+            # Convert RGB to HLS color space (Hue, Lightness, Saturation)
             hls = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_BGR2HLS).reshape(-1, 3).astype(np.float32)
 
-            # Normalizar saturação
+            # Normalize saturation to [0,1]
             s_norm = hls[:, 2] / 255.0
 
-            # Aplicar curva não linear
+            # Apply nonlinear scaling to the saturation
             factor = 2 ** (settings['saturation'] - 1)
             s_norm = np.clip(s_norm * factor, 0, 1)
 
-            # Atualizar saturação
+            # Update the saturation channel
             hls[:, 2] = s_norm * 255
 
+            # Convert back to RGB and scale to [0,1] float
             return cv2.cvtColor(hls.reshape(1, -1, 3).astype(np.uint8), cv2.COLOR_HLS2BGR).reshape(-1, 3).astype(np.float32) / 255.0
         return rgb
     
     @staticmethod
-    def _apply_sharpen(rgb, settings):
-        """Aplica nitidez de forma idêntica ao frontend"""
+    def _apply_sharpen(rgb: np.ndarray, settings: Dict[str, Any]):
+        """Apply sharpen effect to the RGB array."""
         if 'sharpen' in settings and settings['sharpen'] > 0:
-            # Converter para escala 0-255 temporariamente (como no JS)
+            # Temporarily scale RGB from [0,1] to [0,255]
             rgb_255 = rgb * 255
             
-            # Calcular luminância (igual ao frontend)
+            # Compute luminance using standard weights (same as frontend)
             luminance = 0.299 * rgb_255[:,0] + 0.587 * rgb_255[:,1] + 0.114 * rgb_255[:,2]
             
-            # Fator de nitidez (não-linear como no JS)
+            # Non-linear sharpening factor (matches frontend logic)
             sharpen_amount = settings['sharpen'] * 0.3
             sharp_factor = 1 + (sharpen_amount * (1 + np.sin(sharpen_amount * np.pi)))
             
-            # Aplicar a cada canal
+            # Apply sharpening adjustment per channel
             for i in range(3):
-                # Fórmula idêntica ao frontend
+                # Enhances contrast from luminance
                 adjustment = (rgb_255[:,i] - luminance) * sharp_factor * \
                             (0.5 + (np.abs(128 - luminance) / 256))
                 rgb_255[:,i] = np.clip(rgb_255[:,i] + adjustment, 0, 255)
             
-            # Converter de volta para 0-1
+            # Convert RGB back to [0,1] float range
             rgb = rgb_255 / 255.0
             
         return rgb
     
     @staticmethod
-    def _apply_noise(rgb, height, width, mask, settings):
-        """Aplica ruído granular"""
+    def _apply_noise(rgb: np.ndarray, height: int, width: int, mask: np.ndarray, settings: Dict[str, Any]):
+        """Apply random noise to the RGB array."""
         if 'noise' in settings and settings['noise'] > 0:
             noise_seed = settings.get('noiseSeed', 0)
+            
+            # Compute intensity based on a non-linear scale
             intensity = (settings['noise'] ** 1.5) * 0.5
             
-            # Geração de coordenadas
+            # Compute intensity based on a non-linear scale
             pixel_indices = np.arange(len(rgb))
             x_coords = (pixel_indices % width).astype(np.int32)
             y_coords = (pixel_indices // width).astype(np.int32)
             
-            # Gerador de ruído JS compatível
-            def js_random(x, y, seed):
+            # Custom JS-compatible pseudo-random number generator
+            def rnd(x, y, seed):
                 seed_arr = (x * 12345 + y) ^ seed
                 return np.abs(np.sin(seed_arr * 12.9898 + seed_arr * 78.233) * 43758.5453) % 1
             
-            # Cálculo do ruído
-            noise_values = (js_random(x_coords, y_coords, noise_seed) - 0.5) * 2 * intensity * 255
+            # Compute noise values in range [-1, 1] scaled by intensity and 255
+            noise_values = (rnd(x_coords, y_coords, noise_seed) - 0.5) * 2 * intensity * 255
+            
+            # Compute luminance from RGB (scaled to [0,255])
             luminance = 0.299 * (rgb[:, 0] * 255) + 0.587 * (rgb[:, 1] * 255) + 0.114 * (rgb[:, 2] * 255)
+            
+            # Noise is scaled inversely by luminance (darker pixels get more noise)
             noise_factor = 1 + (noise_values / (luminance + 50))
             
-            # Aplicação canal por canal
+            # Apply noise factor to each RGB channel
             for i in range(3):
                 rgb[:, i] = np.clip((rgb[:, i] * 255 * noise_factor), 0, 255) / 255
 
         return rgb
 
     @staticmethod
-    def _apply_vignette(rgb, height, width, settings):
+    def _apply_vignette(rgb: np.ndarray, height: int, width: int, settings: Dict[str, Any]):
         """Aplica vinheta mantendo consistência com o pipeline"""
         if 'vignette' in settings and settings['vignette'] > 0:
             # Garantir que estamos trabalhando com valores 0-255
@@ -603,28 +624,28 @@ class VideoEffectsProcessor:
             if is_normalized:
                 rgb = rgb * 255.0
 
-            # Criar coordenadas
+            # Create pixel coordinate grid (1D flattened format)
             pixel_indices = np.arange(rgb.shape[0])
             x_coords = (pixel_indices % width).astype(np.float32)
             y_coords = (pixel_indices // width).astype(np.float32)
             
-            # Calcular centro
+            # Compute image center
             center_x = width / 2
             center_y = height / 2
             
-            # Calcular distâncias normalizadas
+            # Normalize distance from center (range from 0 at center to ~1 at corners)
             dx = (x_coords - center_x) / center_x
             dy = (y_coords - center_y) / center_y
-            distance = np.sqrt(dx**2 + dy**2)
+            distance = np.sqrt(dx**2 + dy**2) # Euclidean distance from center, normalized
             
-            # Aplicar vinheta com suavização
+            # Apply vignette strength proportionally to distance
             vignette_strength = distance * settings['vignette']
-            vignette_factor = 1 - vignette_strength
+            vignette_factor = 1 - vignette_strength # Inverted to darken edges
             
-            # Suavização adicional para evitar bordas duras
-            vignette_factor = np.clip(vignette_factor, 0.3, 1.0)  # Mínimo de 30% de luminosidade
+            # Optional smoothing to avoid hard dark borders
+            vignette_factor = np.clip(vignette_factor, 0.3, 1.0)  # Minimum brightness 30%
             
-            # Aplicar a cada canal
+            # Apply the vignette effect to each RGB channel
             for i in range(3):
                 rgb[:, i] *= vignette_factor
             
@@ -641,26 +662,27 @@ class VideoEffectsProcessor:
     @staticmethod
     def apply_blur_effect(image_data: np.ndarray, radius: int) -> np.ndarray:
         if radius <= 0:
+            # No blur needed if radius is zero or negative
             return image_data
         
-        # Calcula o tamanho do kernel igual ao JS (radius*2+1)
+        # Compute kernel size
         ksize = int(radius) * 2 + 1
         
-        # Calcula sigma baseado no radius (para equivalência com JS)
+        # Compute sigma (standard deviation for Gaussian)
         sigma = radius / 2.0  # Ajuste empírico para equivalência visual
         
-        # Aplica blur separadamente em cada canal para maior controle
+        # Apply Gaussian blur to each RGB channel independently
         blurred = np.zeros_like(image_data)
-        for channel in range(3):  # Aplica para R, G, B
+        for channel in range(3):  # Apply to R, G, B channels only
             blurred[:, :, channel] = cv2.GaussianBlur(
                 image_data[:, :, channel], 
                 (ksize, ksize), 
                 sigmaX=sigma,
                 sigmaY=sigma,
-                borderType=cv2.BORDER_REFLECT
+                borderType=cv2.BORDER_REFLECT  # Mirror edge handling (same as JS canvas behavior)
             )
         
-        # Mantém o canal alpha se existir
+        # Preserve the alpha channel (if present)
         if image_data.shape[2] == 4:
             blurred[:, :, 3] = image_data[:, :, 3]
         
@@ -797,7 +819,10 @@ class VideoEffectsProcessor:
             
             # Remove object with background replacement effect
             if 'backgroundRemoveEffect' in effects:
+                # Retrieve masks from other frames that contain the same object
                 other_masks = VideoEffectsProcessor.other_frame_masks(frame_idx, obj_id, masks) 
+                
+                # Attempt to find the best replacement mask from nearby frames
                 replacement_mask_info = VideoEffectsProcessor.find_best_replacement_mask(
                     mask, 
                     other_masks, 
@@ -806,10 +831,16 @@ class VideoEffectsProcessor:
                     frame_idx,
                     obj_id,
                 )
+                
+                # If a suitable replacement mask was found
                 if replacement_mask_info:
                     other_frame_idx, replacement_mask = replacement_mask_info
+                    
+                    # Retrieve the frame that corresponds to the selected replacement mask
                     ret, replacement_frame = render_info.get_frame_by_idx(other_frame_idx)
+                    
                     if ret:
+                        # Use the replacement frame and mask to erase the object from the current frame
                         processed_frame = VideoEffectsProcessor.erase_object_with_replacement(
                             frame=processed_frame,
                             mask=mask,
@@ -916,6 +947,8 @@ class VideoEffectsProcessor:
                 
                 ref_mask = cv2.resize(ref_mask, (int(ref_video_rect.width), int(ref_video_rect.height)))
                 ref_mask = cv2.flip(ref_mask, 1) if ref_video_flipped else ref_mask
+                
+                # Get the center of the binary mask
                 center_xy = VideoEffectsProcessor.get_center_of_binary_mask(ref_mask)
                 if not center_xy:
                     return None
@@ -924,27 +957,20 @@ class VideoEffectsProcessor:
                 prev_position = extra_info.get('previous_position')
 
                 if prev_position is None:
-                    # No primeiro frame, sem deslocamento
-                    dx, dy = 0, 0
-                    offsetX = rect.x
-                    offsetY = rect.y
-                    print('OffsetX:', offsetX)
-                    print('OffsetY:', offsetY)
-                    print('CenterX:', center_x)
-                    print('CenterY:', center_y)
-                    print('X:', center_x + offsetX)
-                    print('Y:', center_y + offsetY)
-                    rect.x = center_x + offsetX
-                    rect.y = center_y + offsetY
+                    # In this type of special videos, rect.x and rect.y are offsets
+                    # Absolute X is center_X + offset_X
+                    # So this two lines are just putting the video in their original positions
+                    rect.x += center_x
+                    rect.y += center_y
                 else:
                     prev_cx, prev_cy = prev_position
-                    dx, dy = center_x - prev_cx, center_y - prev_cy
+                    dx, dy = center_x - prev_cx, center_y - prev_cy # Compute movement delta
 
-                # move o rect apenas pelo delta atual
-                rect.x += dx
-                rect.y += dy
+                    # Move the rectangle by the delta from previous frame
+                    rect.x += dx
+                    rect.y += dy
                 
-                # guarda o centro deste frame como referência para o próximo
+                # Store the current center to use as reference in the next frame
                 extra_info['previous_position'] = (center_x, center_y)
 
         return processed_frame
@@ -984,7 +1010,8 @@ class VideoEffectsProcessor:
             overlap_video_info = effects.get('overlapVideo', {})
             ref_video_id = overlap_video_info.get('refVideoId', None)
             mask_obj_id = overlap_video_info.get('maskObjId', None)
-            if ref_video_id and mask_obj_id:
+            overlap_type = overlap_video_info.get('type', 'Front')
+            if overlap_type == 'Back' and ref_video_id and mask_obj_id:
                 ref_video = next(
                     (v for v in video_data.values() if v.get('video_id') == ref_video_id),
                     None

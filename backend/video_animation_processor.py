@@ -28,11 +28,15 @@ class VideoAnimationProcessor:
         if key in self.opacity_info:
             last_origin_type, last_origin_name, old_opacity = self.opacity_info[key]
 
+            # Check if the opacity was previously changed by a different origin
             if (last_origin_name != origin_name):
+                # Animation changes have priority over limit changes,
                 if last_origin_type == 'animation' and origin_type == 'limit': return frame
                 if last_origin_type == origin_type: pass
 
         self.opacity_info[key] = [origin_type, origin_name, new_opacity]
+        
+        # Apply the new opacity to the frame and return the modified frame
         return VideoAnimationProcessor.apply_opacity_on_frame(frame, new_opacity)
     
     def apply_fade_effect(
@@ -51,14 +55,18 @@ class VideoAnimationProcessor:
         _id = render_info.layer.layer_idx
         
         if type == 'in':
+            # Calculate the elapsed time since the animation start
             animation_start = settings.get('start', 0)
             time_since_start = video_current_time - animation_start
             
+            # If animation is in progress, increase opacity gradually from 0 to 1
             if time_since_start >= 0 and time_since_start < animation_duration:
                 opacity = time_since_start / animation_duration
                 return self.change_opacity(frame, _id, opacity, 'animation', 'in')
+            # If animation is finished, keep opacity at 1 (fully visible)
             elif time_since_start >= animation_duration:
                 return self.change_opacity(frame, _id, 1, 'limit', 'in')
+            # If animation hasn't started yet, keep opacity at 0 (fully transparent)
             else:
                 return self.change_opacity(frame, _id, 0, 'limit', 'in')
         
@@ -78,32 +86,41 @@ class VideoAnimationProcessor:
     
     @staticmethod
     def get_position(time: float, points: List[Dict[str, float]]) -> Optional[Tuple[float, float]]:
+        """
+        Returns the interpolated position (x, y) of an element at a given time,
+        based on a list of keyframe points.
+
+        :param time: The time at which to calculate the position.
+        :param points: A list of Point(x, y, time) keyframes sorted by time.
+        :return: Tuple of (x, y) or (None, None) if no points exist.
+        """
         if not points:
             return None, None
 
         if len(points) == 1:
             return points[0]['x'], points[0]['y']
 
-        # Antes do primeiro ponto
+        # If time is before the first point, return the first position
         if time < points[0]['time']:
             return points[0]['x'], points[0]['y']
 
-        # Depois do último ponto
+        # If time is after the last point, return the last position
         if time > points[-1]['time']:
             return points[-1]['x'], points[-1]['y']
 
-        # Interpolação entre dois pontos
+        # Find two keyframes between which the current time falls
         for i in range(len(points) - 1):
             p0 = points[i]
             p1 = points[i + 1]
 
             if p0['time'] <= time <= p1['time']:
-                alpha = (time - p0['time']) / (p1['time'] - p0['time'])
-                x = p0['x'] + alpha * (p1['x'] - p0['x'])
-                y = p0['y'] + alpha * (p1['y'] - p0['y'])
+                # Linear interpolation
+                alpha = (time - p0['time']) / (p1['time'] - p0['time']) # Linear interpolation factor
+                x = p0['x'] + alpha * (p1['x'] - p0['x']) # Interpolated x position
+                y = p0['y'] + alpha * (p1['y'] - p0['y']) # Interpolated y position
                 return x, y
 
-        # (Não deveria chegar aqui, mas por segurança)
+        # Fallback (should not happen)
         return points[-1]['x'], points[-1]['y']
     
     def apply_movement_animation(self, render_info: RenderInfo, settings: Dict, current_time: float) -> None:

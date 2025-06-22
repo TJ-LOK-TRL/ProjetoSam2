@@ -80,7 +80,7 @@
 
         const boxOfMainVideo = videoEditor.getBoxOfElement(videoEditor.maskHandler.video)
 
-        videoEditor.selectedElement = video; // Define o vídeo como o elemento selecionado
+        //videoEditor.selectedElement = video; // Define o vídeo como o elemento selecionado
         video.shouldBeDraw = false;
         video.track_id = videoEditor.maskHandler.video.track_id
         
