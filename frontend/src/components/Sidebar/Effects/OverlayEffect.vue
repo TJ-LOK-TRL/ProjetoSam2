@@ -116,7 +116,11 @@
         const objId = videoEditor.maskHandler.maskToEdit.objId
 
         const mask = video.trackMasks?.[video.frameIdx]?.[objId]
-        if (!mask) return
+        if (!mask) {
+            console.warn('Video id: ', video.id, 'overlayVideo id:', overlayVideo.id);
+            console.warn('No mask found for the current video frame and object ID:', objId, 'on frame', video.frameIdx, 'trackMasks:', Object.keys(video.trackMasks));
+            return
+        }
 
         const outputCanvas = boxOverlayVideo.getCanvasToApplyVideo()
         const getBoxVideoSize = boxOverlayVideo.getBoxVideoSize
@@ -124,6 +128,7 @@
         await videoEditor.effectHandler.overlapVideo(overlayVideo, video.id, mask, videoRect, overlayVideoRect, type, outputCanvas, getBoxVideoSize)
 
         if (type === 'Front') {
+            console.info('Not applying overlay change type on video because using Front');
             await boxOverlayVideo.drawVideo()
             return
         }
@@ -165,6 +170,10 @@
             });
 
             const video = await videoEditor.addVideo(file);
+
+            // CORRECT THIS LATER BETTER
+            video.__not_apply_select = true // ONE DAY LEFT; SO QUICKLY FIXED :()
+
 
             videoEditor.selectedElement = video; // Define o vídeo como o elemento selecionado
             videoEditor.onAddMapBoxVideo(async (newVideo, box) => {

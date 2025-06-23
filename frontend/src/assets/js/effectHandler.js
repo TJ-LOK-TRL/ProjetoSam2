@@ -265,6 +265,8 @@ export default class EffectHandler {
     }
 
     setVideoToApplyEffect(video, isOriginalVideo = false) {
+        if (video.__not_apply_select) return; // QUIK FIX. ONE DAY LEFT. CORRECT LATER BETTER!!!!
+
         if (isOriginalVideo && this.originalVideo?.id !== video.id) {
             this.originalVideo = video
         }

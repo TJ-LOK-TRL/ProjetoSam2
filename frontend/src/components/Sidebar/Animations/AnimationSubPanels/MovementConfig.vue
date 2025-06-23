@@ -21,6 +21,10 @@
 
     function resetPositions() {
         line.value.points.length = 0
+
+        //callbackId = editorElement?.value?.id + 'movAnim'
+        //timelineStore.removeUpdate(callbackId, updatePosition)
+        videoEditor.animationHandler.resetByType(editorElement.value, null, AnimationTypes.MOVEMENT) // SHOULD BE CHANGE LATER BECAUSE IS BY TYPE WHEN SHOULD BE BY NAME
     }
 
     function saveCurrentPosition() {
@@ -42,8 +46,9 @@
             videoEditor.addAnimationLine(lineId, [point], true)
         }
 
-        const callbackId = lineId + 'movAnim'
-        timelineStore.onUpdate(callbackId, updatePosition)
+        //const callbackId = lineId + 'movAnim'
+        //timelineStore.onUpdate(callbackId, updatePosition)
+        videoEditor.animationHandler.addUpdateCallback(lineId, AnimationNames.MOVEMENT, AnimationTypes.MOVEMENT, updatePosition)
 
         console.log('Saved point:', point)
     }

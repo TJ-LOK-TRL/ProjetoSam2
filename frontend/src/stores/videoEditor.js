@@ -267,6 +267,7 @@ export const useVideoEditor = defineStore('videoEditor', () => {
                     };
 
                     newMasks[newFrameIdx][objId] = newMask;
+                    //console.log(`Mask generated for frame ${newFrameIdx}, objId ${objId}:`, newMask);
                 });
             });
 

@@ -86,6 +86,8 @@ def segmentar_image(image_name):
     except Exception as e:
         return jsonify({'error': f'Erro ao segmentar imagem: {str(e)}'}), 500
     
+    
+# ONLY ROUTES BELOW ARE USED
 @app.route('/convert/image-to-video', methods=['POST'])
 def convert_image_to_video():
     image_file = request.files.get('image')
