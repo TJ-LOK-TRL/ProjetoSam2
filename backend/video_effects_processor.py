@@ -525,7 +525,7 @@ class VideoEffectsProcessor:
             hsv = cv2.cvtColor(rgb.reshape(1, -1, 3), cv2.COLOR_BGR2HSV).reshape(-1, 3)
             
             # Adjust the hue channel and wrap around using modulo
-            hsv[:, 0] = (hsv[:, 0] - settings['hue']) % 360
+            hsv[:, 0] = (hsv[:, 0] - -settings['hue']) % 360
             
             # Convert HSV back to RGB color space
             rgb = cv2.cvtColor(hsv.reshape(1, -1, 3), cv2.COLOR_HSV2BGR).reshape(-1, 3)
