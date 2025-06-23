@@ -18,7 +18,7 @@ sudo apt-get install -y ffmpeg
 ## 🚀 Manual de Instalação
 
 ### ✅ Pré-requisitos
-- Python 3.9 ou superior
+- Python 3.10 ou superior
 - Node.js (v16+) e npm
 - Git instalado
 - Ambiente recomendado: Linux/macOS ou WSL2 (para evitar problemas com dependências no Windows)
