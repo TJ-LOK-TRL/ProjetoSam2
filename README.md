@@ -2,6 +2,17 @@
 
 Este projeto é um editor de vídeo que utiliza o modelo **Segment Anything 2 (SAM2)** para segmentação de objetos em vídeos. A aplicação é dividida em **frontend (Vue.js)** e **backend (Flask + Python)**.
 
+## 🧱 Pré-requisitos do sistema
+
+Antes de iniciar, certifique-se de ter os seguintes pacotes instalados no sistema:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libgl1-mesa-glx
+sudo apt-get install -y libglib2.0-0
+sudo apt-get install -y ffmpeg
+```
+
 ---
 
 ## 🚀 Manual de Instalação
