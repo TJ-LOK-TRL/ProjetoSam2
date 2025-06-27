@@ -256,7 +256,7 @@ export default class EffectHandler {
 
     removeBoxCallbacks(box, ids, objId) {
         for (const id of ids) {
-            box.removeOnDrawVideoCallback(EffectHandler.id(id, objId));
+            box?.removeOnDrawVideoCallback(EffectHandler.id(id, objId));
         }
     }
 

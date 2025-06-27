@@ -65,9 +65,9 @@ export const useBackendStore = defineStore('backend', () => {
         if (!(videoFile instanceof File)) {
             throw new Error("O parâmetro videoFile deve ser um objeto File");
         }
+        
+        // Add video file and options to formData
         formData.append('video', videoFile);
-
-        // Adicione outros parâmetros como strings
         formData.append('scale_factor', (options.scale_factor || 1).toString());
         formData.append('start_frame', (options.start_frame || 0).toString());
         formData.append('end_frame', (options.end_frame || -1).toString());
@@ -86,6 +86,7 @@ export const useBackendStore = defineStore('backend', () => {
                 end_frame: (options.end_frame || -1),
                 stage_name: (options.stage_name || null),
             });
+            // Send the request to the backend
             const response = await axios.post(`http://${ip.value}:${port.value}/video/mask`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
