@@ -114,6 +114,10 @@ export const useVideoEditor = defineStore('videoEditor', () => {
             selectedElement.value = null
         }
 
+        if (maskHandler.value?.video?.id === editorElement?.id) {
+            maskHandler.value.video = null
+        }
+
         elementManager.value.removeElement(editorElement)
         if (editorElement.type === 'video') {
             const video = editorElement

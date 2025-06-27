@@ -41,7 +41,7 @@
     const videoEditor = useVideoEditor();
     const timelineStore = useTimelineStore();
 
-    const video = computed(() => videoEditor.selectedElement)
+    const video = computed(() => videoEditor.selectedElement || videoEditor.maskHandler.video || videoEditor.effectHandler.originalVideo)
     const maskToEdit = computed(() => videoEditor.maskHandler.maskToEdit)
 
     const zoomData = ref([])
